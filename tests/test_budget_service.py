@@ -357,5 +357,48 @@ class PlanItemWriteBoundaryTest(AccountFixtureMixin, unittest.TestCase):
 
 
 
+class DeletePlanItemTest(unittest.TestCase):
+    def setUp(self):
+        fd, self.db_path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        self._patch = mock.patch("database.db.DB_NAME", self.db_path)
+        self._patch.start()
+        from database.init_db import initialize_database
+
+        initialize_database()
+
+    def tearDown(self):
+        self._patch.stop()
+        os.unlink(self.db_path)
+
+    def test_a_deleted_item_leaves_the_plan_and_a_second_delete_reports_nothing(self):
+        from services.budget_service import (
+            calculate_monthly_budget, delete_plan_item, get_effective_plan_items,
+            save_plan_item,
+        )
+
+        save_plan_item(item_type="expense", name="Market", amount=500, month=3, year=2026)
+        save_plan_item(item_type="income", name="Maas", amount=900, month=3, year=2026)
+        item = next(i for i in get_effective_plan_items(3, 2026) if i["name"] == "Market")
+        self.assertTrue(delete_plan_item(item["id"]))
+        self.assertFalse(delete_plan_item(item["id"]))
+        self.assertEqual([i["name"] for i in get_effective_plan_items(3, 2026)], ["Maas"])
+        self.assertEqual(calculate_monthly_budget(3, 2026)["planned_expense"], 0)
+
+    def test_deleting_a_template_removes_it_from_every_month(self):
+        from services.budget_service import (
+            delete_plan_item, get_effective_plan_items, save_plan_item,
+        )
+
+        save_plan_item(
+            item_type="expense", name="Kira", amount=100, month=3, year=2026,
+            is_template=True,
+        )
+        template = get_effective_plan_items(7, 2026)[0]
+        delete_plan_item(template["id"])
+        self.assertEqual(get_effective_plan_items(3, 2026), [])
+        self.assertEqual(get_effective_plan_items(7, 2026), [])
+
+
 if __name__ == "__main__":
     unittest.main()

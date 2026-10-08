@@ -287,6 +287,22 @@ def save_plan_item(
         conn.close()
 
 
+def delete_plan_item(item_id):
+    """Removes a plan item; returns True if it existed.
+
+    Deleting a template removes it from every month that inherited it.
+    """
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            "DELETE FROM monthly_budget_plan WHERE id = ?", (int(item_id),)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
 def apply_plan_to_year_end(source_month, source_year):
     """Copies the current month's plan items through to the end of the year (December).
 

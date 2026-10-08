@@ -14,6 +14,7 @@ Rectangle {
         || payInstallments.visible || addRecurring.visible || stopRecurring.visible
         || autoPayDay.visible || reschedule.visible || changeAmount.visible
         || addAsset.visible || sellAsset.visible || addGoal.visible || moveSavings.visible
+        || addPlanItem.visible
     color: Theme.page
 
     readonly property var sections: [
@@ -185,7 +186,15 @@ Rectangle {
         }
     }
 
-    Component { id: toolsSection; Tools {} }
+    Component {
+        id: toolsSection
+        Tools {
+            objectName: "tools"
+            onAddPlanItemRequested: addPlanItem.openFresh()
+        }
+    }
+
+    AddPlanItem { id: addPlanItem; objectName: "addPlanItem" }
 
     AddGoal { id: addGoal; objectName: "addGoal" }
     MoveSavings { id: moveSavings; objectName: "moveSavings" }

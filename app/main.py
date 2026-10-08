@@ -15,6 +15,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from app.accounts import AccountsController, TransactionFormController
 from app.assets import AssetsController
 from app.payments import DebtsController, RecurringController
+from app.monthly import BudgetController, CalendarController
 from app.planning import LoanController, SavingsController
 from app.settings import SettingsController
 from app.controllers import (
@@ -121,7 +122,7 @@ def build(app: QGuiApplication):
 
     if failure:
         auth = dashboard = accounts = transactions = debts = recurring = None
-        settings = assets = savings = loan = None
+        settings = assets = savings = loan = budget = calendar = None
     else:
         auth_service = AuthService(store)
         auth = AuthController(controller, auth_service, tasks, app)
@@ -133,9 +134,11 @@ def build(app: QGuiApplication):
         assets = AssetsController(tasks, app)
         savings = SavingsController(tasks, app)
         loan = LoanController(tasks, app)
+        budget = BudgetController(tasks, app)
+        calendar = CalendarController(tasks, app)
 
         # A write anywhere refreshes every view that shows money.
-        views = (dashboard, accounts, debts, recurring, assets, savings)
+        views = (dashboard, accounts, debts, recurring, assets, savings, budget, calendar)
         for writer in (accounts, transactions, debts, recurring, assets, savings, loan):
             for view in views:
                 if view is not writer:
@@ -181,6 +184,8 @@ def build(app: QGuiApplication):
     context.setContextProperty("assets", assets)
     context.setContextProperty("savings", savings)
     context.setContextProperty("loan", loan)
+    context.setContextProperty("budget", budget)
+    context.setContextProperty("calendar", calendar)
 
     engine.load(QUrl.fromLocalFile(os.path.join(QML_DIR, "Main.qml")))
     if not engine.rootObjects():

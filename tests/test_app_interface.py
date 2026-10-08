@@ -101,6 +101,8 @@ class InterfaceSmokeTest(unittest.TestCase):
         cls.assets = context.contextProperty("assets")
         cls.savings = context.contextProperty("savings")
         cls.loan = context.contextProperty("loan")
+        cls.budget = context.contextProperty("budget")
+        cls.calendar = context.contextProperty("calendar")
         _pump(seconds=0.2)
 
     @classmethod
@@ -130,6 +132,7 @@ class InterfaceSmokeTest(unittest.TestCase):
             self.accounts.busy or self.transactions.busy or self.debts.busy
             or self.recurring.busy or self.settings.busy or self.auth.busy
             or self.assets.busy or self.savings.busy or self.loan.busy
+            or self.budget.busy
             or self.dashboard.loading
         ))
         # Let the reloads a write triggers come back before reading state.
@@ -317,6 +320,50 @@ class InterfaceSmokeTest(unittest.TestCase):
         self._settle()
         self.assertEqual(self.loan.addedNote, "Added to your debts.")
         self.assertEqual(self.debts.debts[0]["monthlyText"], "10.989,84 ₺")
+
+        # -- budget plan and calendar ---------------------------------------
+        tools = window.findChild(QObject, "tools")
+        tools.setProperty("tool", "budget")
+        self._settle()
+        self.budget.addItem("expense", "", "100", "", False)
+        self._settle()
+        self.assertEqual(self.budget.message, "Enter a name for the plan item.")
+        self.budget.addItem("income", "Salary", "5.000", "Maaş", True)
+        self._settle()
+        self.budget.addItem("expense", "Groceries", "400", "Süpermarket", False)
+        self._settle()
+        self.assertEqual(self.budget.incomeText, "5.000,00 ₺")
+        self.assertEqual(self.budget.expenseText, "400,00 ₺")
+        self.assertEqual(self.budget.leftText, "4.600,00 ₺")
+        groceries = self.budget.progress[0]
+        self.assertEqual(groceries["category"], "Groceries")
+        self.assertEqual(groceries["spentText"], "500,50 ₺")
+        self.assertTrue(groceries["over"])
+        shows("addPlanItem", "openFresh")
+        self.budget.next()
+        self._settle()
+        self.assertEqual([item["name"] for item in self.budget.items], ["Salary"])
+        self.budget.previous()
+        self._settle()
+        for item in list(self.budget.items):
+            self.budget.deleteItem(item["id"])
+            self._settle()
+        self.assertEqual(self.budget.items, [])
+
+        tools.setProperty("tool", "calendar")
+        self._settle()
+        today = datetime.date.today()
+        self.assertEqual(self.calendar.selectedDay, today.day)
+        self.assertEqual(len(self.calendar.cells) % 7, 0)
+        marked = next(cell for cell in self.calendar.cells if cell["today"])
+        self.assertGreater(marked["count"], 0)
+        self.assertGreater(len(self.calendar.dayItems), 0)
+        self.calendar.previous()
+        self._settle()
+        self.calendar.next()
+        self._settle()
+        tools.setProperty("tool", "loan")
+        self._settle()
 
         # -- recurring payments --------------------------------------------
         shell.setProperty("section", "subscriptions")
