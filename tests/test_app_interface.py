@@ -379,13 +379,57 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertEqual(groceries["spentText"], "500,50 ₺")
         self.assertTrue(groceries["over"])
         shows("addPlanItem", "openFresh")
+
+        item = next(i for i in self.budget.items if i["name"] == "Groceries")
+        shows("addPlanItem", "openFor", item)
+        self.budget.saveItem(
+            item["id"], "expense", "Groceries", "600", "Süpermarket", False, True, "500"
+        )
+        self._settle()
+        self.assertIn("warning level", self.budget.message)
+        self.budget.saveItem(
+            item["id"], "expense", "Groceries", "600", "Süpermarket", False, True, "50"
+        )
+        self._settle()
+        self.assertEqual(self.budget.message, "")
+        groceries = self.budget.progress[0]
+        self.assertEqual(groceries["plannedText"], "600,00 ₺")
+        self.assertFalse(groceries["over"])
+        self.assertTrue(groceries["near"])
+        edited = next(i for i in self.budget.items if i["name"] == "Groceries")
+        self.assertTrue(edited["rollover"])
+        self.assertEqual(edited["threshold"], 50)
+        self.assertEqual(len(self.budget.items), 2)
+
+        salary = next(i for i in self.budget.items if i["name"] == "Salary")
+        self.assertTrue(salary["everyMonth"])
+        self.budget.saveItem(salary["id"], "income", "Salary", "5.500", "Maaş", False, False, "80")
+        self._settle()
+        salary = next(i for i in self.budget.items if i["name"] == "Salary")
+        self.assertEqual(salary["amountText"], "5.500,00 ₺")
+        self.assertFalse(salary["everyMonth"])
+        self.assertEqual(self.budget.incomeText, "5.500,00 ₺")
+
+        self.budget.next()
+        self._settle()
+        self.assertEqual(self.budget.incomeText, "5.000,00 ₺")
+        carried = next(
+            (row for row in self.budget.progress if row["category"] == "Groceries"), None
+        )
+        self.assertIsNone(carried)
+        self.budget.previous()
+        self._settle()
         self.budget.next()
         self._settle()
         self.assertEqual([item["name"] for item in self.budget.items], ["Salary"])
         self.budget.previous()
         self._settle()
-        for item in list(self.budget.items):
-            self.budget.deleteItem(item["id"])
+        # Removing this month's own Salary uncovers the repeating one again,
+        # so keep removing until nothing is left.
+        for _ in range(6):
+            if not self.budget.items:
+                break
+            self.budget.deleteItem(self.budget.items[0]["id"])
             self._settle()
         self.assertEqual(self.budget.items, [])
 

@@ -433,7 +433,8 @@ def get_effective_limit(category_name, target_month, target_year):
         item for item in get_category_budget_progress(prev_month, prev_year)
         if item["category"] == category_name
     ), None)
-    carry = previous["remaining"] if previous else 0.0
+    # An int, not 0.0: `planned` is a Decimal and Decimal + float raises.
+    carry = previous["remaining"] if previous else 0
     return round(current["planned"] + carry, 2)
 
 

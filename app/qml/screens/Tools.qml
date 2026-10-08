@@ -8,6 +8,7 @@ Flickable {
     id: root
     property string tool: "budget"
     signal addPlanItemRequested()
+    signal editPlanItemRequested(var item)
 
     contentWidth: width
     contentHeight: page.implicitHeight + 48
@@ -63,7 +64,10 @@ Flickable {
 
     Component {
         id: budgetTool
-        BudgetTool { onAddRequested: root.addPlanItemRequested() }
+        BudgetTool {
+            onAddRequested: root.addPlanItemRequested()
+            onEditRequested: function (item) { root.editPlanItemRequested(item) }
+        }
     }
     Component { id: calendarTool; CalendarTool {} }
     Component { id: loanTool; CalculatorsTool { objectName: "calculators" } }

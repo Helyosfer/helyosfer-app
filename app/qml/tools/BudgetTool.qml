@@ -6,6 +6,7 @@ import "../components"
 Column {
     id: root
     signal addRequested()
+    signal editRequested(var item)
     spacing: Theme.gap
 
     Component.onCompleted: budget.refresh()
@@ -200,6 +201,7 @@ Column {
                         text: line.modelData.name
                             + (line.modelData.category.length > 0 ? "  ·  " + line.modelData.category : "")
                             + (line.modelData.everyMonth ? "  ·  every month" : "")
+                            + (line.modelData.rollover ? "  ·  carries over" : "")
                         color: Theme.text
                         font.family: Theme.uiFont
                         font.pixelSize: 13
@@ -208,21 +210,29 @@ Column {
                     Text {
                         id: sum
                         anchors.verticalCenter: parent.verticalCenter
-                        anchors.right: remove.left
+                        anchors.right: rowActions.left
                         anchors.rightMargin: 20
                         text: (line.modelData.income ? "+" : "−") + line.modelData.amountText
                         color: line.modelData.income ? Theme.up : Theme.text
                         font.family: Theme.dataFont
                         font.pixelSize: 13
                     }
-                    PrimaryButton {
-                        id: remove
+                    Row {
+                        id: rowActions
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        compact: true; quiet: true; danger: true
-                        text: "Remove"
-                        enabled: !budget.busy
-                        onClicked: budget.deleteItem(line.modelData.id)
+                        spacing: 8
+                        PrimaryButton {
+                            compact: true; quiet: true
+                            text: "Edit"
+                            onClicked: root.editRequested(line.modelData)
+                        }
+                        PrimaryButton {
+                            compact: true; quiet: true; danger: true
+                            text: "Remove"
+                            enabled: !budget.busy
+                            onClicked: budget.deleteItem(line.modelData.id)
+                        }
                     }
                 }
             }

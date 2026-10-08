@@ -191,6 +191,7 @@ Rectangle {
         Tools {
             objectName: "tools"
             onAddPlanItemRequested: addPlanItem.openFresh()
+            onEditPlanItemRequested: function (item) { addPlanItem.openFor(item) }
         }
     }
 

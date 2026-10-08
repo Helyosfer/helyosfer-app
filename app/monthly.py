@@ -8,6 +8,7 @@ import datetime
 from PySide6.QtCore import Property, Signal, Slot
 
 from app.accounts import read_amount
+from app.payments import read_count
 from app.controllers import display_title, format_amount
 from app.payments import _Listing
 from services.background_task_manager import BackgroundTaskManager
@@ -101,10 +102,17 @@ class BudgetController(_Monthly):
         from services import budget_service
 
         month, year = self._month, self._year
+        progress = budget_service.get_category_budget_progress(month, year)
+        for row in progress:
+            # A carried-over category is measured against last month's leftover too.
+            row["limit"] = (
+                budget_service.get_effective_limit(row["category"], month, year)
+                if row["rollover_enabled"] else row["planned"]
+            )
         return (
             budget_service.calculate_monthly_budget(month, year),
             budget_service.get_effective_plan_items(month, year),
-            budget_service.get_category_budget_progress(month, year),
+            progress,
         )
 
     def _show(self, data) -> None:
@@ -125,7 +133,12 @@ class BudgetController(_Monthly):
                 "category": tr(item["category_name"]) if item["category_name"] else "",
                 "income": item["type"] in _INCOME_TYPES,
                 "amountText": f"{format_amount(float(item['amount']))} ₺",
+                "amountForm": format_amount(float(item["amount"])),
                 "everyMonth": bool(item["is_template"]),
+                "kind": "income" if item["type"] in _INCOME_TYPES else "expense",
+                "categoryKey": item["category_name"] or "",
+                "rollover": bool(item.get("rollover_enabled")),
+                "threshold": int(item.get("alert_threshold_pct") or 80),
             }
             for item in ordered
         ]
@@ -133,27 +146,48 @@ class BudgetController(_Monthly):
 
     @staticmethod
     def _progress_row(row: dict) -> dict:
-        over = row["remaining"] < 0
-        near = (
-            not over and row["pct"] is not None
-            and float(row["pct"]) >= row["alert_threshold_pct"]
+        limit = float(row["limit"])
+        spent = float(row["actual"])
+        left = limit - spent
+        over = left < 0
+        used = spent / limit * 100 if limit > 0 else (100.0 if spent > 0 else 0.0)
+        near = not over and used >= row["alert_threshold_pct"]
+        carried = limit - float(row["planned"])
+        note = (
+            f"{format_amount(-left)} ₺ over" if over else f"{format_amount(left)} ₺ left"
         )
+        if abs(carried) >= 0.005:
+            note += (
+                f"  ·  {format_amount(abs(carried))} ₺ "
+                + ("carried over" if carried > 0 else "overspent last month")
+            )
         return {
             "category": tr(row["category"]),
-            "spentText": f"{format_amount(row['actual'])} ₺",
-            "plannedText": f"{format_amount(row['planned'])} ₺",
-            "ratio": min(1.0, float(row["actual"] / row["planned"])) if row["planned"] else 0.0,
+            "spentText": f"{format_amount(spent)} ₺",
+            "plannedText": f"{format_amount(limit)} ₺",
+            "ratio": min(1.0, spent / limit) if limit > 0 else (1.0 if spent > 0 else 0.0),
             "over": over,
             "near": near,
-            "note": (
-                f"{format_amount(-row['remaining'])} ₺ over" if over
-                else f"{format_amount(row['remaining'])} ₺ left"
-            ),
+            "note": note,
         }
 
     @Slot(str, str, str, str, bool)
     def addItem(self, kind, name, amount_text, category, every_month):
+        self.saveItem(-1, kind, name, amount_text, category, every_month, False, "80")
+
+    @Slot(int, str, str, str, str, bool, bool, str)
+    def saveItem(self, item_id, kind, name, amount_text, category, every_month,
+                 rollover, threshold_text):
+        """Adds an item (`item_id` -1) or changes an existing one.
+
+        Changing an item that repeats every month changes this month only:
+        the service stores it as this month's own item, which takes the
+        repeating one's place.
+        """
         month, year = self._month, self._year
+        was_repeating = any(
+            item["id"] == item_id and item["everyMonth"] for item in self._items
+        )
 
         def work():
             from services.budget_service import save_plan_item
@@ -162,7 +196,14 @@ class BudgetController(_Monthly):
                 item_type=kind, name=name,
                 amount=read_amount(amount_text, "amount"),
                 month=month, year=year,
-                category=category or None, is_template=every_month,
+                category=category or None,
+                rollover_enabled=rollover and bool(category) and kind == "expense",
+                is_template=every_month,
+                alert_threshold_pct=read_count(
+                    threshold_text or "80", "warning level", 1, 100
+                ),
+                item_id=item_id if item_id >= 0 else None,
+                editing_a_template=was_repeating,
             )
 
         self._notice = ""
