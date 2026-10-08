@@ -11,7 +11,9 @@ import unittest
 from unittest import mock
 
 try:
-    from PySide6.QtCore import QCoreApplication, QtMsgType, qInstallMessageHandler
+    from PySide6.QtCore import (
+        QCoreApplication, QEvent, QtMsgType, qInstallMessageHandler,
+    )
     from PySide6.QtGui import QGuiApplication
     from PySide6.QtQuickControls2 import QQuickStyle
 except ImportError:  # pragma: no cover - the interface toolkit is optional for core tests
@@ -29,6 +31,9 @@ def _pump(until=None, seconds=8.0):
         time.sleep(0.01)
     for _ in range(10):
         QCoreApplication.processEvents()
+    # `processEvents` skips deferred deletions, so a screen a Loader has
+    # replaced would linger and be found by name instead of the live one.
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 @unittest.skipIf(QGuiApplication is None, "PySide6 is not installed")
@@ -62,6 +67,8 @@ class InterfaceSmokeTest(unittest.TestCase):
         cls.app = context.contextProperty("app")
         cls.auth = context.contextProperty("auth")
         cls.dashboard = context.contextProperty("dashboard")
+        cls.accounts = context.contextProperty("accounts")
+        cls.transactions = context.contextProperty("transactions")
         _pump(seconds=0.2)
 
     @classmethod
@@ -84,6 +91,84 @@ class InterfaceSmokeTest(unittest.TestCase):
             text for kind, text in self.messages
             if kind != QtMsgType.QtDebugMsg and "font" not in text.lower()
         ]
+
+    def _settle(self):
+        _pump(lambda: not (
+            self.accounts.busy or self.transactions.busy or self.dashboard.loading
+        ))
+        _pump(seconds=0.05)
+
+    def _accounts_and_transactions(self):
+        from PySide6.QtCore import QMetaObject, QObject, Q_ARG
+
+        window = self.engine.rootObjects()[0]
+        shell = window.findChild(QObject, "shell")
+        shell.setProperty("section", "cards")
+        self._settle()
+
+        self.accounts.addAccount("credit_card", "Travel card", "3.200", "", "15", "")
+        self._settle()
+        self.assertEqual(self.accounts.message, "Enter the card limit.")
+        self.accounts.addAccount(
+            "credit_card", "Travel card", "3.200", "25.000", "15", "4543123456789012"
+        )
+        self._settle()
+        self.assertEqual(self.accounts.message, "")
+        main, card = self.accounts.accounts
+        self.assertEqual(card["lastFour"], "9012")
+        self.assertEqual(card["network"], "Visa")
+        self.assertEqual(card["debtText"], "3.200,00 ₺")
+
+        self.transactions.add("expense", "", main["id"], "Süpermarket", "", "", 1)
+        self._settle()
+        self.assertEqual(self.transactions.message, "Enter the amount.")
+        self.transactions.add(
+            "expense", "500,50", main["id"], "Süpermarket", "Weekly shop", "", 1
+        )
+        self._settle()
+        self.assertEqual(self.transactions.message, "")
+        self.transactions.add(
+            "expense", "6.000", card["id"], "Tatil/Konaklama", "Hotel", "", 6
+        )
+        self._settle()
+        self.accounts.payDebt(card["id"], main["id"], "99.999")
+        self._settle()
+        self.assertIn("cannot exceed", self.accounts.message)
+        self.accounts.payDebt(card["id"], main["id"], "200")
+        self._settle()
+
+        main, card = self.accounts.accounts
+        self.assertEqual(main["balanceText"], "800,00 ₺")
+        self.assertEqual(card["debtText"], "9.000,00 ₺")
+        self.assertEqual(self.accounts.cashText, "800,00 ₺")
+        self.assertEqual(card["recent"][0]["title"], "Travel card debt payment")
+        self.assertEqual(self.dashboard.recent[0]["title"], "Travel card debt payment")
+
+        self.accounts.setFrozen(card["id"], True)
+        self._settle()
+        self.transactions.add("expense", "10", card["id"], "Taksi", "", "", 1)
+        self._settle()
+        self.assertIn("frozen", self.transactions.message)
+        self.transactions.clearMessage()
+
+        def shows(name, method, *arguments):
+            dialog = window.findChild(QObject, name)
+            QMetaObject.invokeMethod(
+                dialog, method, *[Q_ARG("QVariant", value) for value in arguments]
+            )
+            self.assertTrue(dialog.property("visible"), (name, self._warnings()))
+            dialog.setProperty("visible", False)
+
+        shows("addTransaction", "openFor", card["id"])
+        shows("payDebt", "openFor", card)
+        shows("confirmDelete", "openFor", card)
+        shows("addAccount", "openFresh")
+
+        self.accounts.deleteCard(card["id"])
+        self._settle()
+        self.assertEqual(len(self.accounts.accounts), 1)
+        shell.setProperty("section", "overview")
+        self._settle()
 
     def test_the_whole_first_run_path_works_without_qml_warnings(self):
         self.assertEqual(self.app.screen, "setup")
@@ -120,6 +205,8 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.auth.login(STRONG)
         _pump(lambda: self.app.screen == "home")
         self.assertEqual(self.app.screen, "home")
+
+        self._accounts_and_transactions()
 
         self.app.fail("Geri yükleme tamamlanamadı", "Veritabanı doğrulanamadı")
         _pump(seconds=0.1)

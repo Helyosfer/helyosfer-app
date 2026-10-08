@@ -6,8 +6,8 @@ and portfolio tracking.
 > [!IMPORTANT]
 > Helysofer is in development. There is no installable release yet: the core
 > (data, encryption, backup, pricing, insights) is in place and tested, and the
-> desktop interface (PySide6 and Qt Quick) currently covers sign-in and the
-> overview screen.
+> desktop interface (PySide6 and Qt Quick) currently covers sign-in, the
+> overview, accounts and cards, and adding transactions.
 
 ## What it covers
 

@@ -2,9 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import ".."
 
+// The filled accent button by default; `quiet` gives the outlined secondary
+// form and `danger` colors a quiet button for destructive actions.
 Button {
     id: control
     property bool quiet: false
+    property bool danger: false
 
     implicitHeight: Theme.controlHeight
     leftPadding: 16
@@ -17,7 +20,7 @@ Button {
     contentItem: Text {
         text: control.text
         font: control.font
-        color: control.quiet ? Theme.text : Theme.onAccent
+        color: control.danger ? Theme.down : (control.quiet ? Theme.text : Theme.onAccent)
         opacity: control.enabled ? 1 : 0.5
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter

@@ -2,10 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import ".."
 import "../components"
+import "../dialogs"
 
 // Signed-in frame: navigation rail on the left, the selected section on the right.
 Rectangle {
     id: root
+    objectName: "shell"
     property string section: "overview"
     color: Theme.page
 
@@ -115,10 +117,35 @@ Rectangle {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        sourceComponent: root.section === "overview" ? overview : pending
+        sourceComponent: root.section === "overview" ? overview
+            : root.section === "cards" ? cards : pending
     }
 
-    Component { id: overview; Dashboard {} }
+    Component {
+        id: overview
+        Dashboard { onAddRequested: addTransaction.openFor(-1) }
+    }
+
+    Component {
+        id: cards
+        Accounts {
+            onAddAccountRequested: addAccount.openFresh()
+            onAddTransactionRequested: function (accountId) { addTransaction.openFor(accountId) }
+            onPayDebtRequested: function (account) { payDebt.openFor(account) }
+            onDeleteRequested: function (account) { confirmDelete.openFor(account) }
+        }
+    }
+
+    AddTransaction { id: addTransaction; objectName: "addTransaction" }
+    AddAccount { id: addAccount; objectName: "addAccount" }
+    PayDebt { id: payDebt; objectName: "payDebt" }
+    ConfirmDelete { id: confirmDelete; objectName: "confirmDelete" }
+
+    Shortcut {
+        sequence: "Ctrl+N"
+        enabled: !addTransaction.opened && !addAccount.opened && !payDebt.opened && !confirmDelete.opened
+        onActivated: addTransaction.openFor(-1)
+    }
 
     Component {
         id: pending

@@ -12,6 +12,7 @@ from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 
+from app.accounts import AccountsController, TransactionFormController
 from app.controllers import (
     AppController, AuthController, DashboardController, Dispatcher,
 )
@@ -114,13 +115,21 @@ def build(app: QGuiApplication):
     context.setContextProperty("app", controller)
 
     if failure:
-        auth = dashboard = None
+        auth = dashboard = accounts = transactions = None
     else:
         auth = AuthController(controller, AuthService(store), tasks, app)
         dashboard = DashboardController(tasks, app)
+        accounts = AccountsController(tasks, app)
+        transactions = TransactionFormController(tasks, app)
         auth.signedIn.connect(dashboard.refresh)
+        auth.signedIn.connect(accounts.refresh)
+        accounts.dataChanged.connect(dashboard.refresh)
+        transactions.dataChanged.connect(dashboard.refresh)
+        transactions.dataChanged.connect(accounts.refresh)
     context.setContextProperty("auth", auth)
     context.setContextProperty("dashboard", dashboard)
+    context.setContextProperty("accounts", accounts)
+    context.setContextProperty("transactions", transactions)
 
     engine.load(QUrl.fromLocalFile(os.path.join(QML_DIR, "Main.qml")))
     if not engine.rootObjects():

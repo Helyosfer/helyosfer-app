@@ -52,6 +52,16 @@ def short_date(iso_date: str) -> str:
     return f"{day.day:02d} {_MONTHS[day.month - 1]}"
 
 
+_DEBT_PAYMENT_SUFFIX = " Borç Ödemesi"
+
+
+def display_title(text: str) -> str:
+    """Stored descriptions as shown: generated ones are put into English."""
+    if text.endswith(_DEBT_PAYMENT_SUFFIX):
+        return text[: -len(_DEBT_PAYMENT_SUFFIX)] + " debt payment"
+    return tr(text)
+
+
 class Dispatcher(QObject):
     """Runs a callable on the interface thread, from any thread."""
 
@@ -382,7 +392,7 @@ class DashboardController(QObject):
         income = item["type"] == "income"
         if item["readable"]:
             amount = ("+" if income else "−") + format_amount(item["amount"]) + " ₺"
-            title = item["description"] or tr(item["category"])
+            title = display_title(item["description"] or item["category"])
         else:
             amount, title = "—", "Unreadable record"
         return {

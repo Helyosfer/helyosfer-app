@@ -5,6 +5,7 @@ import "../components"
 
 Flickable {
     id: root
+    signal addRequested()
     contentWidth: width
     contentHeight: page.implicitHeight + 48
     clip: true
@@ -20,6 +21,29 @@ Flickable {
         y: 24
         width: Math.min(root.width - 56, 1180)
         spacing: Theme.gap
+
+        Item {
+            width: parent.width
+            height: addButton.height
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Overview"
+                color: Theme.text
+                font.family: Theme.displayFont
+                font.pixelSize: 22
+                font.weight: Font.Light
+            }
+            PrimaryButton {
+                id: addButton
+                anchors.right: parent.right
+                text: "Add transaction"
+                ToolTip.visible: hovered
+                ToolTip.delay: 600
+                ToolTip.text: "Ctrl+N"
+                onClicked: root.addRequested()
+            }
+        }
 
         Text {
             width: parent.width
