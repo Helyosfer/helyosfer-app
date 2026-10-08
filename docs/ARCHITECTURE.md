@@ -6,6 +6,7 @@ changes should preserve.
 ## Repository map
 
 ```text
+app/         Desktop interface: Qt Quick views (`app/qml`) and controllers
 database/    SQLite schema, migrations, models, connections, and ledger
 services/    Domain operations, pricing, insights, projections, and recovery
 security/    Local authentication, password policy, and login throttling
@@ -14,9 +15,11 @@ ui/          English text catalog and chart localization
 tests/       Unit, integration, security, and recovery tests
 ```
 
-The desktop interface is being built with PySide6 and Qt Quick. It is a thin
-layer: it renders state and forwards user actions. Domain rules live in
-services with direct tests, never in the interface.
+The desktop interface is PySide6 with Qt Quick. It is a thin layer: QML views
+bind to controllers in `app/controllers.py`, which hold display-ready state
+and forward user actions. Controllers never compute a financial figure and
+never touch the database on the interface thread; domain rules live in
+services with direct tests.
 
 ## Application flow
 

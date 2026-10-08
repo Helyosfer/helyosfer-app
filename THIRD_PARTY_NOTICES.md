@@ -8,6 +8,7 @@ License texts and metadata for the principal direct dependencies are available
 from their distributions:
 
 - PyCryptodome — BSD-2-Clause
+- PySide6 (Qt for Python) — LGPL-3.0-only, dynamically linked
 - Pillow — HPND
 - pandas — BSD-3-Clause
 - NumPy — BSD-3-Clause

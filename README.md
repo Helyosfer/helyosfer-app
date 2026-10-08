@@ -6,7 +6,8 @@ and portfolio tracking.
 > [!IMPORTANT]
 > Helysofer is in development. There is no installable release yet: the core
 > (data, encryption, backup, pricing, insights) is in place and tested, and the
-> desktop interface is being built with PySide6 and Qt Quick.
+> desktop interface (PySide6 and Qt Quick) currently covers sign-in and the
+> overview screen.
 
 ## What it covers
 
@@ -28,6 +29,7 @@ and portfolio tracking.
 ## Repository layout
 
 ```text
+app/         Desktop interface: Qt Quick views and their controllers
 database/    SQLite schema, migrations, connections, and ledger
 services/    Domain operations, pricing, insights, projections, backup, recovery
 security/    Local authentication, password policy, and login throttling
@@ -43,6 +45,10 @@ Python 3.12 is the supported version.
 
 ```bash
 python -m pip install -r requirements.txt
+```
+
+```bash
+python -m app
 ```
 
 ```bash
