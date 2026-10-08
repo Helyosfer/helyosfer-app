@@ -9,6 +9,10 @@ Rectangle {
     id: root
     objectName: "shell"
     property string section: "overview"
+    readonly property bool dialogOpen: addTransaction.visible || addAccount.visible
+        || payDebt.visible || confirmDelete.visible || addDebt.visible
+        || payInstallments.visible || addRecurring.visible || stopRecurring.visible
+        || autoPayDay.visible || reschedule.visible || changeAmount.visible
     color: Theme.page
 
     readonly property var sections: [
@@ -118,7 +122,9 @@ Rectangle {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         sourceComponent: root.section === "overview" ? overview
-            : root.section === "cards" ? cards : pending
+            : root.section === "cards" ? cards
+            : root.section === "debts" ? debtsSection
+            : root.section === "subscriptions" ? subscriptionsSection : pending
     }
 
     Component {
@@ -136,6 +142,60 @@ Rectangle {
         }
     }
 
+    Component {
+        id: debtsSection
+        Debts {
+            onAddRequested: addDebt.openFresh()
+            onPayRequested: function (debt, payOff) { payInstallments.openFor(debt, payOff) }
+            onAutoPayRequested: function (debt) { autoPayDay.openFor(debt, "1") }
+            onRescheduleRequested: function (item) { reschedule.openFor(item, "") }
+        }
+    }
+
+    Component {
+        id: subscriptionsSection
+        Subscriptions {
+            onAddRequested: addRecurring.openFresh()
+            onAmountRequested: function (item) { changeAmount.openFor(item, "") }
+            onStopRequested: function (item) { stopRecurring.openFor(item) }
+        }
+    }
+
+    AddDebt { id: addDebt; objectName: "addDebt" }
+    PayInstallments { id: payInstallments; objectName: "payInstallments" }
+    AddRecurring { id: addRecurring; objectName: "addRecurring" }
+    StopRecurring { id: stopRecurring; objectName: "stopRecurring" }
+    Prompt {
+        id: autoPayDay
+        objectName: "autoPayDay"
+        source: debts
+        title: "Pay automatically"
+        subtitle: subject ? subject.monthlyText + " is taken for " + subject.name + " each month." : ""
+        fieldLabel: "Day of the month (1–31)"
+        confirmText: "Turn on"
+        onSubmitted: function (text) { debts.setAutoPay(subject.id, true, text) }
+    }
+    Prompt {
+        id: reschedule
+        objectName: "reschedule"
+        source: debts
+        title: "Reschedule"
+        subtitle: subject ? subject.title + "  ·  " + subject.amount : ""
+        fieldLabel: "New date"
+        fieldPlaceholder: "DD.MM.YYYY"
+        onSubmitted: function (text) { debts.reschedule(subject.id, text) }
+    }
+    Prompt {
+        id: changeAmount
+        objectName: "changeAmount"
+        source: recurring
+        title: "Change amount"
+        subtitle: subject ? subject.name + "  ·  currently " + subject.amountText : ""
+        fieldLabel: "New amount (₺)"
+        fieldPlaceholder: "0,00"
+        onSubmitted: function (text) { recurring.changeAmount(subject.id, text) }
+    }
+
     AddTransaction { id: addTransaction; objectName: "addTransaction" }
     AddAccount { id: addAccount; objectName: "addAccount" }
     PayDebt { id: payDebt; objectName: "payDebt" }
@@ -143,7 +203,7 @@ Rectangle {
 
     Shortcut {
         sequence: "Ctrl+N"
-        enabled: !addTransaction.opened && !addAccount.opened && !payDebt.opened && !confirmDelete.opened
+        enabled: !root.dialogOpen
         onActivated: addTransaction.openFor(-1)
     }
 

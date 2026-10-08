@@ -8,12 +8,13 @@ Button {
     id: control
     property bool quiet: false
     property bool danger: false
+    property bool compact: false
 
-    implicitHeight: Theme.controlHeight
-    leftPadding: 16
-    rightPadding: 16
+    implicitHeight: compact ? 30 : Theme.controlHeight
+    leftPadding: compact ? 12 : 16
+    rightPadding: compact ? 12 : 16
     font.family: Theme.uiFont
-    font.pixelSize: 13
+    font.pixelSize: compact ? 12 : 13
     font.weight: Font.DemiBold
     hoverEnabled: true
 

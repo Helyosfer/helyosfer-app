@@ -13,10 +13,12 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 
 from app.accounts import AccountsController, TransactionFormController
+from app.payments import DebtsController, RecurringController
 from app.controllers import (
     AppController, AuthController, DashboardController, Dispatcher,
 )
 from utils.app_paths import data_dir, resource_dir
+from utils.logging_config import get_logger
 
 QML_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "qml")
 
@@ -115,21 +117,46 @@ def build(app: QGuiApplication):
     context.setContextProperty("app", controller)
 
     if failure:
-        auth = dashboard = accounts = transactions = None
+        auth = dashboard = accounts = transactions = debts = recurring = None
     else:
         auth = AuthController(controller, AuthService(store), tasks, app)
         dashboard = DashboardController(tasks, app)
         accounts = AccountsController(tasks, app)
         transactions = TransactionFormController(tasks, app)
-        auth.signedIn.connect(dashboard.refresh)
-        auth.signedIn.connect(accounts.refresh)
-        accounts.dataChanged.connect(dashboard.refresh)
-        transactions.dataChanged.connect(dashboard.refresh)
-        transactions.dataChanged.connect(accounts.refresh)
+        debts = DebtsController(tasks, app)
+        recurring = RecurringController(tasks, app)
+
+        # A write anywhere refreshes every view that shows money.
+        views = (dashboard, accounts, debts, recurring)
+        for writer in (accounts, transactions, debts, recurring):
+            for view in views:
+                if view is not writer:
+                    writer.dataChanged.connect(view.refresh)
+
+        def refresh_all(_changed=None):
+            for view in views:
+                view.refresh()
+
+        def settle_due_items():
+            from services.scheduled_service import process_due_items
+
+            tasks.submit(
+                "due-items", lambda _cancel: process_due_items(),
+                on_success=lambda changed: refresh_all() if changed else None,
+                on_error=lambda error: get_logger().exception(
+                    "Vadesi gelen kayıtlar işlenemedi.",
+                    exc_info=(type(error), error, error.__traceback__),
+                ),
+            )
+
+        auth.signedIn.connect(refresh_all)
+        auth.signedIn.connect(settle_due_items)
     context.setContextProperty("auth", auth)
     context.setContextProperty("dashboard", dashboard)
     context.setContextProperty("accounts", accounts)
     context.setContextProperty("transactions", transactions)
+    context.setContextProperty("debts", debts)
+    context.setContextProperty("recurring", recurring)
 
     engine.load(QUrl.fromLocalFile(os.path.join(QML_DIR, "Main.qml")))
     if not engine.rootObjects():

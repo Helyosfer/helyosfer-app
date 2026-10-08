@@ -4,6 +4,7 @@ Runs the real QML through Qt's offscreen platform. A QML warning counts as a
 failure: a binding that silently stops working is how a blank screen ships.
 """
 
+import datetime
 import os
 import tempfile
 import time
@@ -69,6 +70,8 @@ class InterfaceSmokeTest(unittest.TestCase):
         cls.dashboard = context.contextProperty("dashboard")
         cls.accounts = context.contextProperty("accounts")
         cls.transactions = context.contextProperty("transactions")
+        cls.debts = context.contextProperty("debts")
+        cls.recurring = context.contextProperty("recurring")
         _pump(seconds=0.2)
 
     @classmethod
@@ -94,9 +97,14 @@ class InterfaceSmokeTest(unittest.TestCase):
 
     def _settle(self):
         _pump(lambda: not (
-            self.accounts.busy or self.transactions.busy or self.dashboard.loading
+            self.accounts.busy or self.transactions.busy or self.debts.busy
+            or self.recurring.busy or self.dashboard.loading
         ))
-        _pump(seconds=0.05)
+        # Let the reloads a write triggers come back before reading state.
+        deadline = time.time() + 0.15
+        while time.time() < deadline:
+            QCoreApplication.processEvents()
+            time.sleep(0.01)
 
     def _accounts_and_transactions(self):
         from PySide6.QtCore import QMetaObject, QObject, Q_ARG
@@ -167,6 +175,68 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.accounts.deleteCard(card["id"])
         self._settle()
         self.assertEqual(len(self.accounts.accounts), 1)
+
+        # -- debts and pending transactions --------------------------------
+        shell.setProperty("section", "debts")
+        self._settle()
+        self.debts.addDebt("", "100", "3", False, "")
+        self._settle()
+        self.assertEqual(self.debts.message, "Enter a name for the debt.")
+        self.debts.addDebt("Phone", "100", "3", False, "")
+        self._settle()
+        debt = self.debts.debts[0]
+        self.assertEqual(debt["remainingText"], "300,00 ₺")
+        self.debts.pay(debt["id"], main["id"], 5)
+        self._settle()
+        self.assertIn("more installments", self.debts.message)
+        self.debts.pay(debt["id"], main["id"], 1)
+        self._settle()
+        self.assertEqual(self.debts.debts[0]["progressText"], "1 of 3 paid")
+        self.assertEqual(self.accounts.accounts[0]["balanceText"], "700,00 ₺")
+
+        later = (datetime.date.today() + datetime.timedelta(days=8)).strftime("%d.%m.%Y")
+        self.transactions.add("expense", "50", main["id"], "İnternet", "Fiber", later, 1)
+        self._settle()
+        self.assertEqual(len(self.debts.pending), 1)
+        self.assertEqual(self.accounts.accounts[0]["balanceText"], "700,00 ₺")
+        shows("addDebt", "openFresh")
+        shows("payInstallments", "openFor", self.debts.debts[0], False)
+        shows("autoPayDay", "openFor", self.debts.debts[0], "1")
+        shows("reschedule", "openFor", self.debts.pending[0], "")
+        self.debts.cancelPending(self.debts.pending[0]["id"])
+        self._settle()
+        self.assertEqual(self.debts.pending, [])
+        self.debts.pay(debt["id"], main["id"], 0)
+        self._settle()
+        self.assertEqual(self.debts.debts, [])
+        self.assertEqual(self.accounts.accounts[0]["balanceText"], "500,00 ₺")
+
+        # -- recurring payments --------------------------------------------
+        shell.setProperty("section", "subscriptions")
+        self._settle()
+        today = datetime.date.today().strftime("%d.%m.%Y")
+        self.recurring.add(
+            "expense", "Music", "60", "Dijital Platformlar", "monthly", today,
+            False, main["id"],
+        )
+        self._settle()
+        self.assertEqual(self.recurring.message, "")
+        item = self.recurring.items[0]
+        self.assertEqual(item["amountText"], "60,00 ₺")
+        self.recurring.payNow(item["id"])
+        self._settle()
+        self.assertEqual(self.accounts.accounts[0]["balanceText"], "440,00 ₺")
+        self.assertEqual(self.recurring.chargeThisMonth(item["id"]), "60,00 ₺")
+        self.recurring.changeAmount(item["id"], "75")
+        self._settle()
+        self.assertEqual(self.recurring.items[0]["amountText"], "75,00 ₺")
+        shows("addRecurring", "openFresh")
+        shows("changeAmount", "openFor", self.recurring.items[0], "")
+        shows("stopRecurring", "openFor", self.recurring.items[0])
+        self.recurring.cancel(item["id"], True)
+        self._settle()
+        self.assertEqual(self.recurring.items, [])
+        self.assertEqual(self.accounts.accounts[0]["balanceText"], "500,00 ₺")
         shell.setProperty("section", "overview")
         self._settle()
 
