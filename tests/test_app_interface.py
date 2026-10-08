@@ -99,6 +99,8 @@ class InterfaceSmokeTest(unittest.TestCase):
         cls.recurring = context.contextProperty("recurring")
         cls.settings = context.contextProperty("settings")
         cls.assets = context.contextProperty("assets")
+        cls.savings = context.contextProperty("savings")
+        cls.loan = context.contextProperty("loan")
         _pump(seconds=0.2)
 
     @classmethod
@@ -127,7 +129,8 @@ class InterfaceSmokeTest(unittest.TestCase):
         _pump(lambda: not (
             self.accounts.busy or self.transactions.busy or self.debts.busy
             or self.recurring.busy or self.settings.busy or self.auth.busy
-            or self.assets.busy or self.dashboard.loading
+            or self.assets.busy or self.savings.busy or self.loan.busy
+            or self.dashboard.loading
         ))
         # Let the reloads a write triggers come back before reading state.
         deadline = time.time() + 0.15
@@ -268,6 +271,52 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertEqual(self.assets.holdings, [])
         self.assertEqual(self.accounts.accounts[0]["balanceText"], "500,00 ₺")
         self.assertEqual(self.assets.history[0]["title"], "Sold 2 × Turkish Airlines (THYAO)")
+
+        # -- savings goals --------------------------------------------------
+        shell.setProperty("section", "savings")
+        self._settle()
+        self.savings.addGoal("", "1.000", "")
+        self._settle()
+        self.assertEqual(self.savings.message, "Enter a name for the goal.")
+        self.savings.addGoal("Holiday", "1.000", "")
+        self._settle()
+        goal = self.savings.goals[0]
+        self.savings.move(goal["id"], goal["uid"], "200", main["id"], True)
+        self._settle()
+        self.assertEqual(self.savings.goals[0]["savedText"], "200,00 ₺")
+        self.assertEqual(self.accounts.accounts[0]["balanceText"], "300,00 ₺")
+        self.savings.move(goal["id"], goal["uid"], "500", main["id"], False)
+        self._settle()
+        self.assertEqual(self.savings.message, "The goal does not hold that much.")
+        self.savings.move(goal["id"], "not-this-goal", "10", main["id"], True)
+        self._settle()
+        self.assertTrue(self.savings.message)
+        self.assertEqual(self.savings.goals[0]["savedText"], "200,00 ₺")
+        shows("addGoal", "openFresh")
+        shows("moveSavings", "openFor", self.savings.goals[0], "deposit")
+        shows("moveSavings", "openFor", self.savings.goals[0], "delete")
+        self.savings.deleteGoal(goal["id"], goal["uid"], -1)
+        self._settle()
+        self.assertIn("receives the saved money", self.savings.message)
+        self.savings.deleteGoal(goal["id"], goal["uid"], main["id"])
+        self._settle()
+        self.assertEqual(self.savings.goals, [])
+        self.assertEqual(self.accounts.accounts[0]["balanceText"], "500,00 ₺")
+
+        # -- loan calculator ------------------------------------------------
+        shell.setProperty("section", "tools")
+        self._settle()
+        self.loan.calculate("100.000", "x", "12", True)
+        self.assertFalse(self.loan.hasResult)
+        self.assertTrue(self.loan.message)
+        self.loan.calculate("100.000", "3,49", "12", True)
+        self.assertTrue(self.loan.hasResult)
+        self.assertEqual(self.loan.monthlyText, "10.989,84 ₺")
+        self.assertEqual(len(self.loan.schedule), 12)
+        self.loan.addToDebts("Car loan")
+        self._settle()
+        self.assertEqual(self.loan.addedNote, "Added to your debts.")
+        self.assertEqual(self.debts.debts[0]["monthlyText"], "10.989,84 ₺")
 
         # -- recurring payments --------------------------------------------
         shell.setProperty("section", "subscriptions")

@@ -13,7 +13,7 @@ Rectangle {
         || payDebt.visible || confirmDelete.visible || addDebt.visible
         || payInstallments.visible || addRecurring.visible || stopRecurring.visible
         || autoPayDay.visible || reschedule.visible || changeAmount.visible
-        || addAsset.visible || sellAsset.visible
+        || addAsset.visible || sellAsset.visible || addGoal.visible || moveSavings.visible
     color: Theme.page
 
     readonly property var sections: [
@@ -22,6 +22,7 @@ Rectangle {
         { key: "cards", label: "Cards and accounts", glyph: "" },
         { key: "debts", label: "Debts and payments", glyph: "" },
         { key: "subscriptions", label: "Subscriptions", glyph: "" },
+        { key: "savings", label: "Savings goals", glyph: "" },
         { key: "tools", label: "Tools", glyph: "" },
         { key: "settings", label: "Settings", glyph: "" }
     ]
@@ -127,7 +128,9 @@ Rectangle {
             : root.section === "debts" ? debtsSection
             : root.section === "subscriptions" ? subscriptionsSection
             : root.section === "settings" ? settingsSection
-            : root.section === "assets" ? assetsSection : pending
+            : root.section === "assets" ? assetsSection
+            : root.section === "savings" ? savingsSection
+            : root.section === "tools" ? toolsSection : pending
     }
 
     Component {
@@ -174,6 +177,18 @@ Rectangle {
         }
     }
 
+    Component {
+        id: savingsSection
+        Savings {
+            onAddRequested: addGoal.openFresh()
+            onMoveRequested: function (goal, mode) { moveSavings.openFor(goal, mode) }
+        }
+    }
+
+    Component { id: toolsSection; Tools {} }
+
+    AddGoal { id: addGoal; objectName: "addGoal" }
+    MoveSavings { id: moveSavings; objectName: "moveSavings" }
     AddAsset { id: addAsset; objectName: "addAsset" }
     SellAsset { id: sellAsset; objectName: "sellAsset" }
 

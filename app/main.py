@@ -15,6 +15,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from app.accounts import AccountsController, TransactionFormController
 from app.assets import AssetsController
 from app.payments import DebtsController, RecurringController
+from app.planning import LoanController, SavingsController
 from app.settings import SettingsController
 from app.controllers import (
     AppController, AuthController, DashboardController, Dispatcher,
@@ -120,7 +121,7 @@ def build(app: QGuiApplication):
 
     if failure:
         auth = dashboard = accounts = transactions = debts = recurring = None
-        settings = assets = None
+        settings = assets = savings = loan = None
     else:
         auth_service = AuthService(store)
         auth = AuthController(controller, auth_service, tasks, app)
@@ -130,10 +131,12 @@ def build(app: QGuiApplication):
         debts = DebtsController(tasks, app)
         recurring = RecurringController(tasks, app)
         assets = AssetsController(tasks, app)
+        savings = SavingsController(tasks, app)
+        loan = LoanController(tasks, app)
 
         # A write anywhere refreshes every view that shows money.
-        views = (dashboard, accounts, debts, recurring, assets)
-        for writer in (accounts, transactions, debts, recurring, assets):
+        views = (dashboard, accounts, debts, recurring, assets, savings)
+        for writer in (accounts, transactions, debts, recurring, assets, savings, loan):
             for view in views:
                 if view is not writer:
                     writer.dataChanged.connect(view.refresh)
@@ -176,6 +179,8 @@ def build(app: QGuiApplication):
     context.setContextProperty("recurring", recurring)
     context.setContextProperty("settings", settings)
     context.setContextProperty("assets", assets)
+    context.setContextProperty("savings", savings)
+    context.setContextProperty("loan", loan)
 
     engine.load(QUrl.fromLocalFile(os.path.join(QML_DIR, "Main.qml")))
     if not engine.rootObjects():
