@@ -17,6 +17,20 @@ Rectangle {
         || addPlanItem.visible
     color: Theme.page
 
+    property string pendingTool: ""
+
+    // Goes to a section; "calendar" opens the calendar tool on a given date.
+    function open(target, argument) {
+        search.clear()
+        if (target === "calendar") {
+            calendar.showDate(argument)
+            pendingTool = "calendar"
+            section = "tools"
+        } else {
+            section = target
+        }
+    }
+
     readonly property var sections: [
         { key: "overview", label: "Overview", glyph: "" },
         { key: "assets", label: "Assets", glyph: "" },
@@ -136,7 +150,10 @@ Rectangle {
 
     Component {
         id: overview
-        Dashboard { onAddRequested: addTransaction.openFor(-1) }
+        Dashboard {
+            onAddRequested: addTransaction.openFor(-1)
+            onOpenRequested: function (section, argument) { root.open(section, argument) }
+        }
     }
 
     Component {
@@ -190,6 +207,9 @@ Rectangle {
         id: toolsSection
         Tools {
             objectName: "tools"
+            Component.onCompleted: {
+                if (root.pendingTool.length > 0) { tool = root.pendingTool; root.pendingTool = "" }
+            }
             onAddPlanItemRequested: addPlanItem.openFresh()
             onEditPlanItemRequested: function (item) { addPlanItem.openFor(item) }
         }

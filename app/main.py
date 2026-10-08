@@ -18,7 +18,8 @@ from app.payments import DebtsController, RecurringController
 from app.insight import HistoryController, InsightsController, ScenarioController
 from app.monthly import BudgetController, CalendarController
 from app.calculators import CalculatorController, LoanController
-from app.planning import SavingsController
+from app.planning import CategoriesController, SavingsController
+from app.search import SearchController
 from app.settings import SettingsController
 from app.controllers import (
     AppController, AuthController, DashboardController, Dispatcher,
@@ -125,7 +126,7 @@ def build(app: QGuiApplication):
     if failure:
         auth = dashboard = accounts = transactions = debts = recurring = None
         settings = assets = savings = loan = budget = calendar = None
-        insights = scenario = history = calc = None
+        insights = scenario = history = calc = search = categories = None
     else:
         auth_service = AuthService(store)
         auth = AuthController(controller, auth_service, tasks, app)
@@ -138,6 +139,9 @@ def build(app: QGuiApplication):
         savings = SavingsController(tasks, app)
         loan = LoanController(tasks, app)
         calc = CalculatorController(tasks, app)
+        search = SearchController(tasks, app)
+        categories = CategoriesController(tasks, app)
+        categories.dataChanged.connect(transactions.categoriesEdited)
         budget = BudgetController(tasks, app)
         calendar = CalendarController(tasks, app)
         insights = InsightsController(tasks, app)
@@ -148,7 +152,7 @@ def build(app: QGuiApplication):
         views = (dashboard, accounts, debts, recurring, assets, savings, budget,
                  calendar, insights)
         for writer in (accounts, transactions, debts, recurring, assets, savings,
-                       loan, insights, calc):
+                       loan, insights, calc, categories):
             for view in views:
                 if view is not writer:
                     writer.dataChanged.connect(view.refresh)
@@ -194,6 +198,8 @@ def build(app: QGuiApplication):
     context.setContextProperty("savings", savings)
     context.setContextProperty("loan", loan)
     context.setContextProperty("calc", calc)
+    context.setContextProperty("search", search)
+    context.setContextProperty("categories", categories)
     context.setContextProperty("budget", budget)
     context.setContextProperty("calendar", calendar)
     context.setContextProperty("insights", insights)

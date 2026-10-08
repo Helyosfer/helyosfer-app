@@ -6,6 +6,7 @@ import "../components"
 Flickable {
     id: root
     signal addRequested()
+    signal openRequested(string section, string argument)
     contentWidth: width
     contentHeight: page.implicitHeight + 48
     clip: true
@@ -26,13 +27,18 @@ Flickable {
             width: parent.width
             height: addButton.height
 
-            Text {
+            Field {
+                id: searchBox
+                objectName: "searchBox"
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Overview"
-                color: Theme.text
-                font.family: Theme.displayFont
-                font.pixelSize: 22
-                font.weight: Font.Light
+                width: Math.min(420, parent.width - addButton.width - 24)
+                placeholder: "Search transactions, accounts and categories   Ctrl+K"
+                onTextChanged: search.search(text)
+                Keys.onEscapePressed: text = ""
+            }
+            Shortcut {
+                sequence: "Ctrl+K"
+                onActivated: searchBox.input.forceActiveFocus()
             }
             PrimaryButton {
                 id: addButton
@@ -42,6 +48,83 @@ Flickable {
                 ToolTip.delay: 600
                 ToolTip.text: "Ctrl+N"
                 onClicked: root.addRequested()
+            }
+        }
+
+        // -- Search results ------------------------------------------------
+        Card {
+            width: parent.width
+            visible: search.active
+
+            Column {
+                width: parent.width
+
+                Text {
+                    visible: search.results.length === 0
+                    text: search.searching ? "Searching…" : "Nothing matches."
+                    color: Theme.faint
+                    font.family: Theme.uiFont
+                    font.pixelSize: 13
+                }
+
+                Repeater {
+                    model: search.results
+
+                    AbstractButton {
+                        id: hit
+                        required property var modelData
+                        required property int index
+                        width: parent.width
+                        height: 42
+                        enabled: modelData.target.length > 0
+                        hoverEnabled: true
+                        Accessible.name: modelData.title
+                        onClicked: root.openRequested(modelData.target, modelData.argument)
+
+                        background: Rectangle {
+                            color: hit.hovered && hit.enabled ? Theme.raised : "transparent"
+                            radius: Theme.controlRadius
+                            border.width: hit.visualFocus ? 2 : 0
+                            border.color: Theme.accent
+                            Rectangle {
+                                visible: hit.index > 0
+                                width: parent.width; height: 1; color: Theme.lineSoft
+                            }
+                        }
+                        contentItem: Item {
+                            Text {
+                                id: hitKind
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 96
+                                text: hit.modelData.kind
+                                color: Theme.faint
+                                font.family: Theme.uiFont
+                                font.pixelSize: 12
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: hitKind.right
+                                anchors.right: hitDetail.left
+                                anchors.rightMargin: 16
+                                text: hit.modelData.title
+                                color: Theme.text
+                                font.family: Theme.uiFont
+                                font.pixelSize: 13
+                                elide: Text.ElideRight
+                            }
+                            Text {
+                                id: hitDetail
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.right: parent.right
+                                anchors.rightMargin: 4
+                                text: hit.modelData.detail
+                                color: Theme.muted
+                                font.family: Theme.uiFont
+                                font.pixelSize: 12
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -147,6 +230,97 @@ Flickable {
                                 font.family: Theme.uiFont
                                 font.pixelSize: 17
                                 font.weight: Font.Medium
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // -- Coming up -----------------------------------------------------
+        Card {
+            width: parent.width
+            visible: dashboard.upcoming.length > 0
+
+            Column {
+                width: parent.width
+
+                Text {
+                    bottomPadding: 10
+                    text: "Coming up"
+                    color: Theme.text
+                    font.family: Theme.uiFont
+                    font.pixelSize: 13
+                    font.weight: Font.DemiBold
+                }
+
+                Repeater {
+                    model: dashboard.upcoming
+
+                    AbstractButton {
+                        id: due
+                        required property var modelData
+                        width: parent.width
+                        height: 46
+                        hoverEnabled: true
+                        Accessible.name: modelData.title + ", " + modelData.when
+                        onClicked: root.openRequested(modelData.section, "")
+
+                        background: Rectangle {
+                            color: due.hovered ? Theme.raised : "transparent"
+                            radius: Theme.controlRadius
+                            border.width: due.visualFocus ? 2 : 0
+                            border.color: Theme.accent
+                            Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+                        }
+                        contentItem: Item {
+                            Column {
+                                id: dueDate
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 44
+                                Text {
+                                    text: due.modelData.day
+                                    color: Theme.text
+                                    font.family: Theme.dataFont
+                                    font.pixelSize: 14
+                                }
+                                Text {
+                                    text: due.modelData.month
+                                    color: Theme.faint
+                                    font.family: Theme.dataFont
+                                    font.pixelSize: 10
+                                }
+                            }
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: dueDate.right
+                                anchors.right: dueAmount.left
+                                anchors.rightMargin: 16
+                                spacing: 1
+                                Text {
+                                    width: parent.width
+                                    text: due.modelData.title
+                                    color: Theme.text
+                                    font.family: Theme.uiFont
+                                    font.pixelSize: 13
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    text: due.modelData.when + "  ·  " + due.modelData.note
+                                    color: due.modelData.overdue ? Theme.warn : Theme.muted
+                                    font.family: Theme.uiFont
+                                    font.pixelSize: 12
+                                }
+                            }
+                            Text {
+                                id: dueAmount
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.right: parent.right
+                                anchors.rightMargin: 4
+                                text: due.modelData.amount
+                                color: due.modelData.income ? Theme.up : Theme.text
+                                font.family: Theme.dataFont
+                                font.pixelSize: 13
                             }
                         }
                     }

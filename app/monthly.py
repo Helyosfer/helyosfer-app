@@ -311,6 +311,16 @@ class CalendarController(_Monthly):
         self._day = min(self._day, days)
         self._load_day()
 
+    @Slot(str)
+    def showDate(self, iso_date):
+        """Jumps to the month of 'YYYY-MM-DD' and selects that day."""
+        try:
+            day = datetime.date.fromisoformat((iso_date or "")[:10])
+        except ValueError:
+            return
+        self._year, self._month, self._day = day.year, day.month, day.day
+        self.refresh()
+
     @Slot(int)
     def selectDay(self, day):
         if day > 0:

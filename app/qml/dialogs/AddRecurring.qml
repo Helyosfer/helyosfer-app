@@ -81,7 +81,7 @@ Sheet {
             width: (parent.width - 12) / 2
             label: "Category"
             placeholder: "Choose a category"
-            model: transactions.categories(root.kind)
+            model: (transactions.categoryRevision, transactions.categories(root.kind))
         }
     }
 

@@ -309,10 +309,12 @@ class AccountsController(_Mutating):
 
 class TransactionFormController(_Mutating):
     stateChanged = Signal()
+    categoriesChanged = Signal()
 
     def __init__(self, tasks: BackgroundTaskManager, parent=None):
         super().__init__(tasks, parent)
         self._last_pending = False
+        self._category_revision = 0
         self.saved.connect(self.stateChanged)
 
     @Property(str, notify=stateChanged)
@@ -322,6 +324,16 @@ class TransactionFormController(_Mutating):
     @Property(bool, notify=stateChanged)
     def lastWasPending(self):
         return self._last_pending
+
+    @Property(int, notify=categoriesChanged)
+    def categoryRevision(self):
+        """Changes whenever the category list does; bindings read it to refresh."""
+        return self._category_revision
+
+    @Slot()
+    def categoriesEdited(self):
+        self._category_revision += 1
+        self.categoriesChanged.emit()
 
     @Slot(str, result="QVariantList")
     def categories(self, transaction_type):

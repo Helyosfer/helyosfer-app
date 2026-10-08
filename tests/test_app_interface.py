@@ -102,6 +102,8 @@ class InterfaceSmokeTest(unittest.TestCase):
         cls.savings = context.contextProperty("savings")
         cls.loan = context.contextProperty("loan")
         cls.calc = context.contextProperty("calc")
+        cls.search = context.contextProperty("search")
+        cls.categories = context.contextProperty("categories")
         cls.budget = context.contextProperty("budget")
         cls.calendar = context.contextProperty("calendar")
         cls.insights = context.contextProperty("insights")
@@ -137,7 +139,7 @@ class InterfaceSmokeTest(unittest.TestCase):
             or self.recurring.busy or self.settings.busy or self.auth.busy
             or self.assets.busy or self.savings.busy or self.loan.busy
             or self.budget.busy or self.insights.busy or self.scenario.busy
-            or self.calc.busy
+            or self.calc.busy or self.categories.busy or self.search.searching
             or self.history.busy
             or self.dashboard.loading
         ))
@@ -482,6 +484,76 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertIn("no records that far back", self.history.message)
 
         tools.setProperty("tool", "loan")
+        self._settle()
+
+        # -- overview: search and coming up -----------------------------------
+        shell.setProperty("section", "overview")
+        self._settle()
+        self.search.search("weekly")
+        self._settle()
+        self.assertTrue(self.search.active)
+        hit = next(r for r in self.search.results if r["kind"] == "Transaction")
+        self.assertEqual(hit["title"], "Weekly shop")
+        self.assertEqual(hit["target"], "calendar")
+        self.search.search("main")
+        self._settle()
+        self.assertEqual(
+            [(r["kind"], r["title"], r["target"]) for r in self.search.results],
+            [("Account", "Main account", "cards")],
+        )
+        self.search.search("nothing-matches-this")
+        self._settle()
+        self.assertEqual(self.search.results, [])
+        QMetaObject.invokeMethod(
+            shell, "open", Q_ARG("QVariant", "calendar"), Q_ARG("QVariant", hit["argument"])
+        )
+        self._settle()
+        self.assertFalse(self.search.active)
+        self.assertEqual(shell.property("section"), "tools")
+        self.assertEqual(window.findChild(QObject, "tools").property("tool"), "calendar")
+        self.assertGreater(len(self.calendar.dayItems), 0)
+        shell.setProperty("section", "overview")
+        self._settle()
+
+        soon = (datetime.date.today() + datetime.timedelta(days=4)).strftime("%d.%m.%Y")
+        self.transactions.add("expense", "75", main["id"], "İnternet", "Fiber", soon, 1)
+        self._settle()
+        coming = self.dashboard.upcoming
+        self.assertEqual(len(coming), 1)
+        self.assertEqual(
+            (coming[0]["title"], coming[0]["when"], coming[0]["section"], coming[0]["amount"]),
+            ("Fiber", "in 4 days", "debts", "−75,00 ₺"),
+        )
+        self.debts.cancelPending(self.debts.pending[0]["id"])
+        self._settle()
+        self.dashboard.refresh()
+        self._settle()
+        self.assertEqual(self.dashboard.upcoming, [])
+
+        # -- categories -----------------------------------------------------
+        shell.setProperty("section", "settings")
+        self._settle()
+        self.assertGreater(len(self.categories.items), 50)
+        self.categories.add("expense", "", False)
+        self._settle()
+        self.assertEqual(self.categories.message, "Enter a name for the category.")
+        revision = self.transactions.categoryRevision
+        self.categories.add("expense", "Pet sitter", True)
+        self._settle()
+        self.assertEqual(self.categories.message, "")
+        added = next(c for c in self.categories.items if c["key"] == "Pet sitter")
+        self.assertTrue(added["essential"])
+        self.assertGreater(self.transactions.categoryRevision, revision)
+        self.assertIn("Pet sitter", [c["key"] for c in self.transactions.categories("expense")])
+        self.categories.add("expense", "PET SITTER", False)
+        self._settle()
+        self.assertIn("already exists", self.categories.message)
+        self.categories.clearMessage()
+        self.categories.setEssential("Pet sitter", False)
+        self._settle()
+        added = next(c for c in self.categories.items if c["key"] == "Pet sitter")
+        self.assertFalse(added["essential"])
+        shell.setProperty("section", "tools")
         self._settle()
 
         # -- recurring payments --------------------------------------------

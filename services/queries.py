@@ -34,6 +34,63 @@ class CategoryService:
         return rows
 
 
+MAX_CATEGORY_NAME_LENGTH = 40
+CATEGORY_TYPES = ("income", "expense")
+
+
+def list_categories():
+    """Every category as {category, type, importance}, in stored order."""
+    with managed_connection() as conn:
+        rows = conn.execute(
+            "SELECT name, type, IFNULL(importance, 'extra') FROM categories ORDER BY id"
+        ).fetchall()
+    return [{"category": row[0], "type": row[1], "importance": row[2]} for row in rows]
+
+
+def add_category(name, category_type, essential=False):
+    """Adds a category the user names. Names are unique regardless of case."""
+    from services.search_service import normalize
+
+    name = " ".join(str(name or "").split())
+    if not name:
+        raise ValueError("Kategori adı boş olamaz.")
+    if len(name) > MAX_CATEGORY_NAME_LENGTH:
+        raise ValueError("Kategori adı en fazla 40 karakter olabilir.")
+    if category_type not in CATEGORY_TYPES:
+        raise ValueError("Kategori türü geçersiz.")
+    wanted = normalize(name)
+    with managed_connection() as conn:
+        existing = conn.execute("SELECT name FROM categories").fetchall()
+        if any(normalize(row[0]) == wanted for row in existing):
+            raise ValueError("Bu adda bir kategori zaten var.")
+        conn.execute(
+            "INSERT INTO categories(name, type, importance) VALUES(?,?,?)",
+            (name, category_type, "main" if essential else "extra"),
+        )
+        conn.commit()
+    return name
+
+
+def set_category_importance(name, essential):
+    """Marks a category as essential ('main') or extra.
+
+    The split decides which bucket its transactions fall into in the
+    summaries, so every figure derived from them is aged.
+    """
+    with managed_connection() as conn:
+        cursor = conn.execute(
+            "UPDATE categories SET importance = ? WHERE name = ?",
+            ("main" if essential else "extra", name),
+        )
+        conn.commit()
+        changed = cursor.rowcount > 0
+    if changed:
+        from services.asset_service import mark_financial_data_changed
+
+        mark_financial_data_changed()
+    return changed
+
+
 class DashboardService:
 
     @staticmethod

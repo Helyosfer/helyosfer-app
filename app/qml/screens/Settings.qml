@@ -203,6 +203,128 @@ Item {
             }
 
             Section {
+                id: categorySection
+                heading: "Categories"
+                property string kind: "expense"
+
+                Component.onCompleted: categories.refresh()
+
+                Item {
+                    width: parent.width
+                    height: kindChoice.height + 12
+
+                    Text {
+                        anchors.verticalCenter: kindChoice.verticalCenter
+                        width: parent.width - kindChoice.width - 24
+                        text: "Essential categories are counted as needs in summaries and the health score; the rest as extras."
+                        color: Theme.muted
+                        font.family: Theme.uiFont
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                    }
+                    Segmented {
+                        id: kindChoice
+                        anchors.right: parent.right
+                        model: [{ key: "expense", label: "Spending" }, { key: "income", label: "Income" }]
+                        current: categorySection.kind
+                        onChosen: function (key) { categorySection.kind = key }
+                    }
+                }
+
+                // Only the visible rows exist; the list scrolls on its own.
+                ListView {
+                    width: parent.width
+                    height: 264
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    ScrollBar.vertical: ScrollBar {}
+                    model: categories.items.filter(function (item) { return item.kind === categorySection.kind })
+
+                    delegate: Item {
+                        id: categoryRow
+                        required property var modelData
+                        width: ListView.view.width
+                        height: 44
+
+                        Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
+                            anchors.right: essential.left
+                            anchors.rightMargin: 16
+                            text: categoryRow.modelData.name
+                            color: Theme.text
+                            font.family: Theme.uiFont
+                            font.pixelSize: 13
+                            elide: Text.ElideRight
+                        }
+                        Toggle {
+                            id: essential
+                            anchors.right: parent.right
+                            anchors.rightMargin: 14
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Essential"
+                            checked: categoryRow.modelData.essential
+                            onToggled: categories.setEssential(categoryRow.modelData.key, checked)
+                        }
+                    }
+                }
+
+                Item {
+                    width: parent.width
+                    height: newCategory.height + 20
+
+                    Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+
+                    Row {
+                        anchors.bottom: parent.bottom
+                        spacing: 12
+
+                        Field {
+                            id: newCategory
+                            width: 260
+                            label: categorySection.kind === "income" ? "New income category" : "New spending category"
+                            placeholder: "Name"
+                            onAccepted: categories.add(categorySection.kind, text, newEssential.checked)
+                        }
+                        Item {
+                            width: newEssential.width
+                            height: newCategory.height
+                            Toggle {
+                                id: newEssential
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: 10
+                                text: "Essential"
+                            }
+                        }
+                        Item {
+                            width: addCategory.width
+                            height: newCategory.height
+                            PrimaryButton {
+                                id: addCategory
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: 2
+                                quiet: true
+                                text: "Add category"
+                                enabled: !categories.busy && newCategory.text.trim().length > 0
+                                onClicked: categories.add(categorySection.kind, newCategory.text, newEssential.checked)
+                            }
+                        }
+                    }
+                }
+
+                Connections {
+                    target: categories
+                    function onSaved() { newCategory.text = "" }
+                }
+
+                Notice {
+                    width: parent.width
+                    text: categories.message
+                }
+            }
+
+            Section {
                 heading: "Danger zone"
                 SettingRow {
                     title: "Delete all data"

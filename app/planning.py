@@ -141,3 +141,51 @@ class SavingsController(_Listing):
             )
 
         self._mutate(work)
+
+
+class CategoriesController(_Listing):
+    changed = Signal()
+
+    def __init__(self, tasks: BackgroundTaskManager, parent=None):
+        super().__init__(tasks, parent)
+        self._items: list[dict] = []
+
+    @Property("QVariantList", notify=changed)
+    def items(self):
+        return self._items
+
+    @staticmethod
+    def _fetch():
+        from services.queries import list_categories
+
+        return list_categories()
+
+    def _show(self, rows) -> None:
+        from ui.i18n import tr
+
+        self._items = sorted(
+            (
+                {
+                    "key": row["category"],
+                    # Built-in categories are catalog values; one the user
+                    # added is not in the catalog and comes back as typed.
+                    "name": tr(row["category"]),
+                    "kind": row["type"],
+                    "essential": row["importance"] == "main",
+                }
+                for row in rows
+            ),
+            key=lambda item: item["name"].casefold(),
+        )
+
+    @Slot(str, str, bool)
+    def add(self, kind, name, essential):
+        from services.queries import add_category
+
+        self._mutate(lambda: add_category(name, kind, essential))
+
+    @Slot(str, bool)
+    def setEssential(self, key, essential):
+        from services.queries import set_category_importance
+
+        self._mutate(lambda: set_category_importance(key, essential), announce=False)

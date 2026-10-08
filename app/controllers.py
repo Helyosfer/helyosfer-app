@@ -304,7 +304,7 @@ class DashboardController(QObject):
             "whole": "—", "fraction": "", "change": "", "direction": 0,
             "income": "—", "expense": "—", "net": "—", "net_direction": 0,
             "series": [], "series_labels": [], "axis": [],
-            "recent": [], "error": "",
+            "recent": [], "upcoming": [], "error": "",
         }
 
     # -- properties ----------------------------------------------------------
@@ -364,6 +364,11 @@ class DashboardController(QObject):
     def recent(self):
         return self._state["recent"]
 
+    @Property("QVariantList", notify=changed)
+    def upcoming(self):
+        """Pending transactions and recurring payments due within a week."""
+        return self._state["upcoming"]
+
     @Property(str, notify=changed)
     def error(self):
         return self._state["error"]
@@ -391,13 +396,14 @@ class DashboardController(QObject):
 
     @staticmethod
     def _load(period: str) -> dict:
-        from services import dashboard_service
+        from services import dashboard_service, upcoming_service
 
         metrics = dashboard_service.compute_dashboard_metrics(period)
         return {
             "period": period,
             "metrics": metrics,
             "recent": dashboard_service.recent_transactions(8),
+            "upcoming": upcoming_service.collect_upcoming(),
             "series": dashboard_service.balance_series(period),
         }
 
@@ -431,9 +437,41 @@ class DashboardController(QObject):
             "series": [point["balance"] for point in data["series"]],
             "series_labels": [short_date(point["date"]) for point in data["series"]],
             "recent": [self._row(item) for item in data["recent"]],
+            "upcoming": [self._upcoming_row(item) for item in data["upcoming"]],
             "error": "",
         }
         self._done()
+
+    @staticmethod
+    def _upcoming_row(item: dict) -> dict:
+        today = datetime.date.today()
+        day = datetime.date.fromisoformat(item["date"][:10]) if item["date"] else today
+        delta = (day - today).days
+        if delta < 0:
+            when = "1 day overdue" if delta == -1 else f"{-delta} days overdue"
+        elif delta == 0:
+            when = "today"
+        elif delta == 1:
+            when = "tomorrow"
+        else:
+            when = f"in {delta} days"
+        pending = item["kind"] == "pending"
+        amount = "—"
+        if item["amount"] is not None:
+            amount = ("+" if item["income"] else "−") + format_amount(item["amount"]) + " ₺"
+        return {
+            # Names are the user's own text; only generated ones are reworded.
+            "title": display_title(item["name"]) if pending else item["name"],
+            "day": f"{day.day:02d}",
+            "month": _MONTHS[day.month - 1],
+            "when": when,
+            "note": "Pending transaction" if pending
+            else ("Taken automatically" if item["automatic"] else "Pay by hand"),
+            "amount": amount,
+            "income": item["income"],
+            "overdue": delta < 0,
+            "section": "debts" if pending else "subscriptions",
+        }
 
     @staticmethod
     def _row(item: dict) -> dict:

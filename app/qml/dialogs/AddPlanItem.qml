@@ -87,7 +87,7 @@ Sheet {
         width: parent.width
         label: "Category (optional)"
         placeholder: "No category"
-        model: transactions.categories(root.kind)
+        model: (transactions.categoryRevision, transactions.categories(root.kind))
     }
 
     Toggle {
