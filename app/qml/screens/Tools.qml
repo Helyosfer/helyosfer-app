@@ -40,7 +40,10 @@ Flickable {
                 model: [
                     { key: "budget", label: "Budget plan" },
                     { key: "calendar", label: "Calendar" },
-                    { key: "loan", label: "Loan calculator" }
+                    { key: "loan", label: "Loan calculator" },
+                    { key: "insights", label: "Insights" },
+                    { key: "scenario", label: "What if" },
+                    { key: "history", label: "Past balance" }
                 ]
                 current: root.tool
                 onChosen: function (key) { root.tool = key }
@@ -51,7 +54,10 @@ Flickable {
         Loader {
             width: parent.width
             sourceComponent: root.tool === "budget" ? budgetTool
-                : root.tool === "calendar" ? calendarTool : loanTool
+                : root.tool === "calendar" ? calendarTool
+                : root.tool === "insights" ? insightsTool
+                : root.tool === "scenario" ? scenarioTool
+                : root.tool === "history" ? historyTool : loanTool
         }
     }
 
@@ -61,4 +67,7 @@ Flickable {
     }
     Component { id: calendarTool; CalendarTool {} }
     Component { id: loanTool; LoanTool {} }
+    Component { id: insightsTool; InsightsTool {} }
+    Component { id: scenarioTool; ScenarioTool {} }
+    Component { id: historyTool; HistoryTool {} }
 }

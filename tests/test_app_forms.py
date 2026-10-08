@@ -7,6 +7,8 @@ try:
     from app.accounts import FormError, read_amount, read_date, user_message
     from app.assets import format_quantity, read_quantity
     from app.controllers import display_title, short_date
+    from app.insight import read_percent, read_signed_amount
+    from app.payments import due_phrase, read_count
 except ImportError:  # pragma: no cover - the interface toolkit is optional for core tests
     read_amount = None
 
@@ -95,6 +97,38 @@ class FormInputTest(unittest.TestCase):
         self.assertEqual(short_date("2026-10-08 10:00:00"), "08 Oct")
         self.assertEqual(short_date("08/10/2026"), "08 Oct")
         self.assertEqual(short_date("not a date"), "not a date")
+
+    def test_percentages_accept_signs_commas_and_blank(self):
+        self.assertEqual(read_percent("", "change"), 0.0)
+        self.assertEqual(read_percent("-5", "change"), -5.0)
+        self.assertEqual(read_percent("12,5 %", "change"), 12.5)
+        for bad in ("abc", "-150", "5000"):
+            with self.subTest(bad=bad):
+                with self.assertRaises(FormError):
+                    read_percent(bad, "change")
+
+    def test_one_time_amounts_keep_their_sign(self):
+        self.assertEqual(read_signed_amount(""), 0.0)
+        self.assertEqual(read_signed_amount("5.000"), 5000.0)
+        self.assertEqual(read_signed_amount("-2.500,50"), -2500.5)
+        with self.assertRaises(FormError):
+            read_signed_amount("lots")
+
+    def test_counts_are_whole_numbers_within_their_range(self):
+        self.assertEqual(read_count(" 12 ", "months", 1, 360), 12)
+        for bad in ("", "1,5", "0", "361"):
+            with self.subTest(bad=bad):
+                with self.assertRaises(FormError):
+                    read_count(bad, "months", 1, 360)
+
+    def test_due_dates_are_described_relative_to_today(self):
+        import datetime
+
+        today = datetime.date(2026, 10, 8)
+        self.assertEqual(due_phrase("2026-10-08", today), ("08 Oct  ·  today", False))
+        self.assertEqual(due_phrase("2026-10-09", today), ("09 Oct  ·  tomorrow", False))
+        self.assertEqual(due_phrase("2026-10-20", today), ("20 Oct  ·  in 12 days", False))
+        self.assertEqual(due_phrase("2026-10-06", today), ("06 Oct  ·  2 days overdue", True))
 
 
 if __name__ == "__main__":

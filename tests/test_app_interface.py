@@ -103,6 +103,9 @@ class InterfaceSmokeTest(unittest.TestCase):
         cls.loan = context.contextProperty("loan")
         cls.budget = context.contextProperty("budget")
         cls.calendar = context.contextProperty("calendar")
+        cls.insights = context.contextProperty("insights")
+        cls.scenario = context.contextProperty("scenario")
+        cls.history = context.contextProperty("history")
         _pump(seconds=0.2)
 
     @classmethod
@@ -132,7 +135,8 @@ class InterfaceSmokeTest(unittest.TestCase):
             self.accounts.busy or self.transactions.busy or self.debts.busy
             or self.recurring.busy or self.settings.busy or self.auth.busy
             or self.assets.busy or self.savings.busy or self.loan.busy
-            or self.budget.busy
+            or self.budget.busy or self.insights.busy or self.scenario.busy
+            or self.history.busy
             or self.dashboard.loading
         ))
         # Let the reloads a write triggers come back before reading state.
@@ -362,6 +366,42 @@ class InterfaceSmokeTest(unittest.TestCase):
         self._settle()
         self.calendar.next()
         self._settle()
+        tools.setProperty("tool", "insights")
+        self._settle()
+        # A day of history is enough for a score but not for a forecast.
+        self.assertTrue(self.insights.healthNote)
+        if self.insights.healthReady:
+            self.assertTrue(self.insights.score.isdigit())
+            self.assertEqual(len(self.insights.healthRows), 3)
+        self.assertFalse(self.insights.forecastReady)
+        self.assertIn("three months", self.insights.forecastNote)
+        self.assertEqual(self.insights.message, "")
+
+        tools.setProperty("tool", "scenario")
+        self._settle()
+        self.assertTrue(self.scenario.hasResult)
+        self.scenario.run("x", "", "", "90")
+        self.assertIn("percentage", self.scenario.message)
+        self.scenario.run("0", "0", "1.000", "30")
+        self._settle()
+        self.assertEqual(self.scenario.message, "")
+        self.assertEqual(self.scenario.differenceDirection, 1)
+        self.assertEqual(len(self.scenario.scenarioSeries), len(self.scenario.baseSeries))
+        self.assertEqual(len(self.scenario.labels), len(self.scenario.baseSeries))
+
+        tools.setProperty("tool", "history")
+        self._settle()
+        self.history.lookUp("not a date")
+        self.assertIn("DD.MM.YYYY", self.history.message)
+        self.history.lookUp(today.strftime("%d.%m.%Y"))
+        self._settle()
+        self.assertTrue(self.history.hasResult)
+        self.assertEqual(self.history.balanceText, self.accounts.accounts[0]["balanceText"])
+        self.history.lookUp((today - datetime.timedelta(days=4000)).strftime("%d.%m.%Y"))
+        self._settle()
+        self.assertFalse(self.history.hasResult)
+        self.assertIn("no records that far back", self.history.message)
+
         tools.setProperty("tool", "loan")
         self._settle()
 

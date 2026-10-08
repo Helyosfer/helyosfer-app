@@ -6,6 +6,8 @@ import ".."
 Item {
     id: root
     property var values: []
+    // An optional second series drawn behind the first as a muted line.
+    property var compare: []
     property var labels: []
     property string emptyText: "Not enough history to draw yet"
 
@@ -14,6 +16,7 @@ Item {
     readonly property real padTop: 8
 
     onValuesChanged: canvas.requestPaint()
+    onCompareChanged: canvas.requestPaint()
     onWidthChanged: canvas.requestPaint()
     onHeightChanged: canvas.requestPaint()
 
@@ -49,8 +52,9 @@ Item {
             var points = root.values
             if (points.length < 2) return
 
-            var low = Math.min.apply(null, points)
-            var high = Math.max.apply(null, points)
+            var other = root.compare.length === points.length ? root.compare : []
+            var low = Math.min.apply(null, points.concat(other))
+            var high = Math.max.apply(null, points.concat(other))
             var span = high - low
             var margin = span > 0 ? span * 0.15 : Math.max(Math.abs(high) * 0.05, 1)
             low -= margin
@@ -85,7 +89,8 @@ Item {
             for (var i = 0; i < points.length; i += every) {
                 if (root.labels[i] === undefined) continue
                 var x = px(i)
-                ctx.textAlign = i === 0 ? "left" : "center"
+                ctx.textAlign = i === 0 ? "left"
+                    : (i === points.length - 1 ? "right" : "center")
                 ctx.fillText(root.labels[i], x, height - 4)
             }
 
@@ -100,6 +105,15 @@ Item {
             ctx.closePath()
             ctx.fillStyle = fade
             ctx.fill()
+
+            if (other.length > 0) {
+                ctx.beginPath()
+                ctx.moveTo(px(0), py(other[0]))
+                for (var c = 1; c < other.length; c++) ctx.lineTo(px(c), py(other[c]))
+                ctx.strokeStyle = Theme.faint
+                ctx.lineWidth = 1.5
+                ctx.stroke()
+            }
 
             ctx.beginPath()
             ctx.moveTo(px(0), py(points[0]))
