@@ -1,0 +1,536 @@
+"""Tests of the multi-account / credit-card logic.
+
+The acceptance scenario the user asked for is here (test_credit_card_scenario):
+a card with a 10,000-lira limit is added, a 500-lira supermarket spend is made
+on the card, and net worth is verified to fall by exactly 500 lira.
+
+The tests run against a temporary database file -- the user's real finance.db is
+never touched.
+
+"""
+import os
+import sqlite3
+import tempfile
+import unittest
+from unittest import mock
+
+
+from tests.fixtures import AccountFixtureMixin
+
+
+class AccountServiceTestCase(AccountFixtureMixin, unittest.TestCase):
+
+    def setUp(self):
+        fd, self.db_path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+
+
+        self._patcher = mock.patch("database.db.DB_NAME", self.db_path)
+        self._patcher.start()
+
+        from database.init_db import initialize_database
+        initialize_database()
+
+
+        self.seed_account_ids = self.create_legacy_seed_accounts()
+
+    def tearDown(self):
+        self._patcher.stop()
+        os.unlink(self.db_path)
+
+    def _raw_accounts(self):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        rows = [dict(r) for r in conn.execute("SELECT * FROM accounts")]
+        conn.close()
+        return rows
+
+
+    def test_schema_has_new_columns(self):
+
+
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(accounts)")}
+        finally:
+            conn.close()
+        self.assertIn("account_type", cols)
+        self.assertIn("credit_limit", cols)
+        self.assertIn("statement_date", cols)
+
+    def test_migration_backfills_existing_rows(self):
+        """When a database created with the old schema (4 columns) is migrated, no
+        account may be left without a type and the old 'credit' account must
+        become a credit card.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DROP TABLE accounts")
+        conn.execute("""
+            CREATE TABLE accounts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                type TEXT NOT NULL,
+                balance REAL DEFAULT 0
+            )
+        """)
+        conn.executemany(
+            "INSERT INTO accounts(name,type,balance) VALUES(?,?,?)",
+            [("Eski Nakit", "cash", 1000), ("Eski Kart", "credit", -750)],
+        )
+        conn.commit()
+        conn.close()
+
+        from database.init_db import initialize_database
+        initialize_database()
+
+        from services.account_service import AccountService
+        by_name = {a["name"]: a for a in AccountService.get_accounts()}
+        self.assertEqual(by_name["Eski Nakit"]["account_type"], "checking")
+        self.assertEqual(by_name["Eski Kart"]["account_type"], "credit_card")
+
+        self.assertEqual(by_name["Eski Nakit"]["balance"], 1000.0)
+        self.assertEqual(by_name["Eski Kart"]["debt"], 750.0)
+
+
+    def test_create_credit_card_stores_debt_as_negative_balance(self):
+        from services.account_service import AccountService
+        acc_id = AccountService.create_account(
+            "Test Kart", "credit_card", initial_balance=1500, credit_limit=10000
+        )
+        raw = [r for r in self._raw_accounts() if r["id"] == acc_id][0]
+        self.assertEqual(raw["balance"], -1500.0)
+        self.assertEqual(raw["credit_limit"], 10000.0)
+
+        acc = AccountService.get_account(acc_id)
+        self.assertEqual(acc["debt"], 1500.0)
+        self.assertEqual(acc["available_limit"], 8500.0)
+
+    def test_create_account_validation(self):
+        from services.account_service import AccountService
+        with self.assertRaises(ValueError):
+            AccountService.create_account("", "checking")
+        with self.assertRaises(ValueError):
+            AccountService.create_account("Kart", "credit_card", credit_limit=0)
+        with self.assertRaises(ValueError):
+            AccountService.create_account(
+                "Kart", "credit_card", initial_balance=200, credit_limit=100
+            )
+        with self.assertRaises(ValueError):
+            AccountService.create_account(
+                "Kart", "credit_card", credit_limit=1000, statement_date=45
+            )
+
+    def test_checking_account_ignores_card_fields(self):
+        from services.account_service import AccountService
+        acc_id = AccountService.create_account(
+            "Vadesiz", "checking", initial_balance=2000,
+            credit_limit=5000, statement_date=10,
+        )
+        acc = AccountService.get_account(acc_id)
+        self.assertEqual(acc["balance"], 2000.0)
+        self.assertEqual(acc["credit_limit"], 0.0)
+        self.assertIsNone(acc["statement_date"])
+
+    # ─── Kabul senaryosu ─────────────────────────────────────────────────────
+
+    def test_credit_card_scenario(self):
+        """A card with a 10,000-lira limit + a 500-lira supermarket spend -> net worth -500."""
+        from services.account_service import AccountService
+        from services.transaction_service import TransactionService
+
+        before = AccountService.get_net_worth()
+
+        card_id = AccountService.create_account(
+            "Bonus Kart", "credit_card",
+            initial_balance=0, credit_limit=10000, statement_date=15,
+        )
+
+
+        after_add = AccountService.get_net_worth()
+        self.assertEqual(after_add["net"], before["net"])
+
+        card = AccountService.get_account(card_id)
+        self.assertEqual(card["debt"], 0.0)
+        self.assertEqual(card["available_limit"], 10000.0)
+
+        TransactionService.add_transaction(
+            account_id=card_id, amount=500.0, transaction_type="expense",
+            category="Süpermarket", description="Market alışverişi",
+        )
+
+        card = AccountService.get_account(card_id)
+        self.assertEqual(card["debt"], 500.0, "Karttan gider borcu ARTIRMALI")
+        self.assertEqual(card["available_limit"], 9500.0)
+
+        after_spend = AccountService.get_net_worth()
+        self.assertEqual(after_spend["card_debt"], before["card_debt"] + 500.0)
+        self.assertEqual(after_spend["cash"], before["cash"],
+                         "Kart harcaması nakit bakiyeye dokunmamalı")
+        self.assertEqual(after_spend["net"], round(before["net"] - 500.0, 2),
+                         "Net servet kart borcu kadar DÜŞMELİ")
+
+    def test_checking_expense_reduces_balance(self):
+        """The other end of the opposite arithmetic: an expense from a checking account reduces the balance."""
+        from services.account_service import AccountService
+        from services.transaction_service import TransactionService
+
+        acc_id = AccountService.create_account("Vadesiz", "checking", initial_balance=1000)
+        TransactionService.add_transaction(
+            account_id=acc_id, amount=300.0, transaction_type="expense",
+            category="Süpermarket", description="Market",
+        )
+        self.assertEqual(AccountService.get_account(acc_id)["balance"], 700.0)
+
+    def test_card_payment_reduces_debt(self):
+        """A payment to the card (income) reduces the debt and raises net worth."""
+        from services.account_service import AccountService
+        from services.transaction_service import TransactionService
+
+        card_id = AccountService.create_account(
+            "Kart", "credit_card", initial_balance=2000, credit_limit=10000
+        )
+        net_before = AccountService.get_net_worth()["net"]
+
+        TransactionService.add_transaction(
+            account_id=card_id, amount=800.0, transaction_type="income",
+            category="Borç Ödeme", description="Kart ödemesi",
+        )
+
+        self.assertEqual(AccountService.get_account(card_id)["debt"], 1200.0)
+        self.assertEqual(AccountService.get_net_worth()["net"], round(net_before + 800.0, 2))
+
+    def test_debt_payment_moves_cash_and_card_atomically(self):
+        from services.account_service import AccountService
+        from services.transaction_service import TransactionService
+
+        source_id = AccountService.create_account("Maaş", "checking", initial_balance=5000)
+        card_id = AccountService.create_account(
+            "Kart", "credit_card", initial_balance=2400, credit_limit=3000
+        )
+
+        AccountService.pay_credit_card_debt(card_id, source_id, 900)
+
+        self.assertEqual(AccountService.get_account(source_id)["balance"], 4100.0)
+        card = AccountService.get_account(card_id)
+        self.assertEqual(card["debt"], 1500.0)
+        self.assertEqual(card["available_limit"], 1500.0)
+
+        statement = TransactionService.get_recent_for_account(card_id, limit=None)
+        self.assertEqual(len(statement), 1)
+        self.assertEqual(statement[0]["type"], "payment")
+        self.assertEqual(statement[0]["amount"], 900.0)
+
+    def test_debt_payment_cannot_exceed_debt(self):
+        from services.account_service import AccountService
+
+        source_id = AccountService.create_account("Maaş", "checking", initial_balance=5000)
+        card_id = AccountService.create_account(
+            "Kart", "credit_card", initial_balance=500, credit_limit=3000
+        )
+
+        with self.assertRaisesRegex(ValueError, "mevcut borcu aşamaz"):
+            AccountService.pay_credit_card_debt(card_id, source_id, 501)
+
+        self.assertEqual(AccountService.get_account(source_id)["balance"], 5000.0)
+        self.assertEqual(AccountService.get_account(card_id)["debt"], 500.0)
+
+    def test_debt_payment_rejects_card_without_debt(self):
+        from services.account_service import AccountService
+
+        source_id = AccountService.create_account("Maaş", "checking", initial_balance=5000)
+        card_id = AccountService.create_account("Kart", "credit_card", credit_limit=3000)
+
+        with self.assertRaisesRegex(ValueError, "ödenecek borç bulunmuyor"):
+            AccountService.pay_credit_card_debt(card_id, source_id, 100)
+
+        self.assertEqual(AccountService.get_account(source_id)["balance"], 5000.0)
+        self.assertEqual(AccountService.get_account(card_id)["balance"], 0.0)
+
+    def test_debt_payment_rejects_non_finite_amounts_before_any_write(self):
+        """NaN/infinity must be rejected BEFORE REACHING SQL.
+
+        The trio `float(amount)` + `amount <= 0` + `amount > debt` let NaN
+        through (EVERY comparison made with `nan` is False). NaN travelled as
+        far as the first UPDATE, pulling the source account's balance to NULL
+        inside the transaction, and then, because the second UPDATE's condition
+        did not hold, the operation was rolled back -- no permanent corruption,
+        but the decision was being made outside the boundary. This test
+        measures the boundary itself: the balances, the debt and the ledger
+        must be left UNTOUCHED.
+        """
+        import sqlite3 as _sqlite3
+
+        from services.account_service import AccountService
+
+        source_id = AccountService.create_account("Maaş", "checking", initial_balance=5000)
+        card_id = AccountService.create_account(
+            "Kart", "credit_card", initial_balance=1000, credit_limit=3000
+        )
+
+        def snapshot():
+            conn = _sqlite3.connect(self.db_path)
+            try:
+                return (
+                    conn.execute(
+                        "SELECT id, balance, typeof(balance) FROM accounts"
+                        " ORDER BY id").fetchall(),
+                    conn.execute("SELECT COUNT(*) FROM transactions").fetchone(),
+                    conn.execute("SELECT COUNT(*) FROM balance_events").fetchone(),
+                )
+            finally:
+                conn.close()
+
+        before = snapshot()
+        for amount in (float("nan"), float("inf"), float("-inf"), "nan"):
+            with self.subTest(amount=amount):
+
+
+                with self.assertRaisesRegex(ValueError, "geçerli bir sayı"):
+                    AccountService.pay_credit_card_debt(card_id, source_id, amount)
+                self.assertEqual(snapshot(), before,
+                                 "sonlu olmayan tutar kalıcı durumu değiştirdi")
+        self.assertEqual(AccountService.get_account(source_id)["balance"], 5000.0)
+        self.assertEqual(AccountService.get_account(card_id)["debt"], 1000.0)
+
+    def test_delete_credit_card_removes_only_its_data(self):
+        from database.db import get_connection
+        from services.account_service import AccountService
+        from services.transaction_service import TransactionService
+        from utils.crypto import encrypt
+        from database.db import SECRET_KEY
+
+        deleted_id = AccountService.create_account(
+            "Silinecek", "credit_card", initial_balance=200, credit_limit=3000
+        )
+        kept_id = AccountService.create_account(
+            "Kalacak", "credit_card", initial_balance=100, credit_limit=3000
+        )
+        TransactionService.add_transaction(
+            deleted_id, 50, "expense", "Test", "Silinecek hareket"
+        )
+        TransactionService.add_transaction(
+            kept_id, 25, "expense", "Test", "Kalacak hareket"
+        )
+
+        conn = get_connection()
+        conn.execute(
+            "INSERT INTO recurring_payments"
+            " (name, amount, category, frequency, next_due_date, auto_deduct, is_active, account_id)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (encrypt("Abonelik", SECRET_KEY), encrypt("10", SECRET_KEY), "Test",
+             "monthly", "2026-08-01", 1, 1, deleted_id),
+        )
+        conn.commit()
+        conn.close()
+
+        AccountService.delete_credit_card(deleted_id)
+
+        self.assertIsNone(AccountService.get_account(deleted_id))
+        self.assertIsNotNone(AccountService.get_account(kept_id))
+        self.assertEqual(len(TransactionService.get_recent_for_account(deleted_id, None)), 0)
+        self.assertEqual(len(TransactionService.get_recent_for_account(kept_id, None)), 1)
+
+        conn = get_connection()
+        recurring = conn.execute(
+            "SELECT id FROM recurring_payments WHERE account_id = ?", (deleted_id,)
+        ).fetchone()
+        events = conn.execute(
+            "SELECT COUNT(*) FROM balance_events WHERE entity_type = 'account' AND entity_id = ?",
+            (deleted_id,),
+        ).fetchone()[0]
+        conn.close()
+        self.assertIsNone(recurring)
+        self.assertEqual(events, 0)
+
+
+    def test_expense_over_limit_is_rejected(self):
+        from services.account_service import AccountService
+        from services.transaction_service import TransactionService
+
+        card_id = AccountService.create_account(
+            "Dar Kart", "credit_card", initial_balance=900, credit_limit=1000
+        )
+        with self.assertRaises(ValueError):
+            TransactionService.add_transaction(
+                account_id=card_id, amount=250.0, transaction_type="expense",
+                category="Süpermarket", description="Limit aşan harcama",
+            )
+
+        self.assertEqual(AccountService.get_account(card_id)["debt"], 900.0)
+
+    def test_import_bypasses_limit_check(self):
+        from services.account_service import AccountService
+        from services.transaction_service import TransactionService
+
+        card_id = AccountService.create_account(
+            "Dar Kart", "credit_card", initial_balance=900, credit_limit=1000
+        )
+        TransactionService.add_transaction(
+            account_id=card_id, amount=250.0, transaction_type="expense",
+            category="Süpermarket", description="Geçmiş kayıt",
+            enforce_credit_limit=False,
+        )
+        self.assertEqual(AccountService.get_account(card_id)["debt"], 1150.0)
+
+    def test_net_worth_matches_sum_of_balances(self):
+        """The invariant of the signed convention: net worth == SUM(balance).
+
+        If this breaks, somewhere that touches accounts.balance has broken the
+        sign rule (see the db.adjust_account_balance docstring).
+        """
+        from services.account_service import AccountService
+        from services.transaction_service import TransactionService
+
+        AccountService.create_account("Ek Vadesiz", "checking", initial_balance=4000)
+        card_id = AccountService.create_account(
+            "Ek Kart", "credit_card", initial_balance=1200, credit_limit=10000
+        )
+        TransactionService.add_transaction(
+            account_id=card_id, amount=300.0, transaction_type="expense",
+            category="Süpermarket", description="Market",
+        )
+
+        conn = sqlite3.connect(self.db_path)
+        raw_sum = conn.execute("SELECT SUM(balance) FROM accounts").fetchone()[0]
+        conn.close()
+
+        self.assertEqual(AccountService.get_net_worth()["net"], round(raw_sum, 2))
+
+    def test_migrated_card_without_limit_is_not_blocked(self):
+        """Cards coming from a migration arrive with credit_limit=0; that means
+        'no limit set' and spending must not be blocked.
+        """
+        import sqlite3 as _sq
+        conn = _sq.connect(self.db_path)
+        conn.execute("UPDATE accounts SET credit_limit = 0 WHERE account_type = 'credit_card'")
+        conn.commit()
+        conn.close()
+
+        from services.account_service import AccountService
+        from services.transaction_service import TransactionService
+
+        card = [a for a in AccountService.get_accounts()
+                if a["account_type"] == "credit_card"][0]
+        TransactionService.add_transaction(
+            account_id=card["id"], amount=750.0, transaction_type="expense",
+            category="Süpermarket", description="Limitsiz kart harcaması",
+        )
+        self.assertEqual(AccountService.get_account(card["id"])["debt"],
+                         round(card["debt"] + 750.0, 2))
+
+
+class CardDataNotPersistedTest(unittest.TestCase):
+    """The full card number, expiry date and
+    CVC are NO LONGER WRITTEN TO DISK AT ALL. Only the last four digits and the
+    card network (masked_number/network_logo) are derived and stored at the
+    moment the account is created -- there is never any raw data left to
+    decrypt.
+    """
+
+    def setUp(self):
+        fd, self.db_path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        self._patcher = mock.patch("database.db.DB_NAME", self.db_path)
+        self._patcher.start()
+        from database.init_db import initialize_database
+        initialize_database()
+
+    def tearDown(self):
+        self._patcher.stop()
+        os.unlink(self.db_path)
+
+    def _raw_row(self, account_id):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            return conn.execute(
+                "SELECT * FROM accounts WHERE id = ?", (account_id,)
+            ).fetchone()
+        finally:
+            conn.close()
+
+    def test_new_card_never_writes_raw_pan_or_cvc(self):
+        from services.account_service import AccountService
+
+        account_id = AccountService.create_account(
+            "Test Kart", "credit_card", initial_balance=500, credit_limit=5000,
+            card_number_full="4532 1234 5678 9012",
+        )
+
+        row = self._raw_row(account_id)
+        self.assertIsNone(row["card_number_full"])
+        self.assertIsNone(row["expiry_date"])
+        self.assertIsNone(row["cvc_code"])
+        self.assertEqual(row["masked_number"], "**** **** **** 9012")
+        self.assertTrue(row["network_logo"].endswith("visa.png"))
+
+        account = AccountService.get_account(account_id)
+        self.assertEqual(account["masked_number"], "**** **** **** 9012")
+        self.assertTrue(account["has_card_number"])
+
+    def test_create_account_no_longer_accepts_cvc_or_expiry(self):
+        from services.account_service import AccountService
+
+        with self.assertRaises(TypeError):
+            AccountService.create_account(
+                "Test Kart", "credit_card", initial_balance=0, credit_limit=1000,
+                cvc_code="123",
+            )
+        with self.assertRaises(TypeError):
+            AccountService.create_account(
+                "Test Kart", "credit_card", initial_balance=0, credit_limit=1000,
+                expiry_date="12/28",
+            )
+
+    def test_migration_backfills_masked_number_then_nulls_sensitive_columns(self):
+        """A row from an older version carrying real encrypted card data: when
+        initialize_database() runs again it must first derive and backfill the
+        masked_number/network_logo, and THEN null the raw data. In the reverse
+        order the data would be lost before being derived.
+        """
+        from database.db import SECRET_KEY
+        from utils.crypto import encrypt
+
+
+        conn = sqlite3.connect(self.db_path)
+        conn.execute(
+            "INSERT INTO accounts (name, type, balance, account_type, "
+            "credit_limit, card_number_full, expiry_date, cvc_code) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            ("Eski Kartım", "credit", -1000.0, "credit_card", 5000.0,
+             encrypt("5555 4444 3333 2222", SECRET_KEY),
+             encrypt("12/28", SECRET_KEY),
+             encrypt("123", SECRET_KEY)),
+        )
+        conn.commit()
+        conn.close()
+
+        from database.init_db import initialize_database
+        initialize_database()  # migration burada tetiklenir
+
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM accounts WHERE name = 'Eski Kartım'"
+        ).fetchone()
+        conn.close()
+
+        self.assertEqual(row["masked_number"], "**** **** **** 2222")
+        self.assertTrue(row["network_logo"].endswith("mastercard.png"))
+        self.assertIsNone(row["card_number_full"])
+        self.assertIsNone(row["expiry_date"])
+        self.assertIsNone(row["cvc_code"])
+
+
+        initialize_database()
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        second = conn.execute(
+            "SELECT * FROM accounts WHERE name = 'Eski Kartım'"
+        ).fetchone()
+        conn.close()
+        self.assertEqual(second["masked_number"], row["masked_number"])
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,46 @@
+# Runtime data must never be committed.
+finance.db
+finance.db.bak*
+savings_goals.json
+helysofer_config.json
+legacy_config_backup.json
+crash.log
+db_backups/
+
+# Encryption keys must never be committed.
+security/secret.key
+
+# Python and development-tool artifacts
+__pycache__/
+*.pyc
+.venv/
+venv/
+aeadvenv/
+.vscode/
+.claude/
+
+# Build outputs
+build/
+dist/
+*.build/
+
+# Linux packaging outputs
+AppDir/
+pkg/
+src/
+*.pkg.tar.zst
+
+# Windows packaging outputs
+installer_output/
+
+# Test and audit artifacts
+test_output*.txt
+test_exit*.txt
+discover_output*.txt
+
+# Machine-specific generated graphs
+graphify-out/
+
+# Runtime-downloaded images
+assets/logo_cache/
+assets/brand_icon_cache/

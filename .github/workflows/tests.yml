@@ -1,0 +1,126 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-runtime.txt
+
+      - name: Run test suite
+        env:
+          HELYSOFER_HEADLESS: "1"
+        run: python run_tests.py
+
+  test-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-runtime.txt
+
+      - name: Run test suite
+        env:
+          HELYSOFER_HEADLESS: "1"
+        run: python run_tests.py
+
+  reliability-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Adversarial financial reproductions
+        run: >-
+          python -m unittest
+          scripts.audit.test_adversarial_reproductions
+          scripts.audit.test_additional_reproductions
+          scripts.audit.test_migration_fault_injection
+          scripts.audit.test_backup_archive
+          scripts.audit.test_concurrency
+          scripts.audit.test_nonfinite_matrix
+
+      - name: Financial property tests (hypothesis)
+        run: python -m unittest scripts.audit.test_financial_properties
+
+      - name: Dependency vulnerability scan
+        run: python -m pip_audit -r requirements-runtime.txt --strict
+
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install lint and type-check dependencies
+        run: |
+          python -m pip install -r requirements-runtime.txt
+          python -m pip install -r requirements-dev.txt
+
+      - name: Block the full pyflakes set and bare except
+        run: >-
+          python -m flake8 .
+          --select=F,E722
+          --exclude=.venv,venv,build,dist,.git
+          --count
+
+      - name: Prevent new broad or silent exception handlers
+        run: >-
+          python scripts/audit_exception_handlers.py
+          --check .github/exception-baseline.json
+
+      - name: Type-check the production core
+        run: python -m mypy services database

@@ -1,0 +1,50 @@
+# Runtime dependencies, each pinned to an exact version so this file acts as
+# the lockfile.
+#
+# Before adding a package, confirm it is really needed: some are used without
+# a direct import (pandas and numpy come in through yfinance's DataFrames).
+# Check the `Required-by` field of `pip show <package>`.
+argon2-cffi==25.1.0
+argon2-cffi-bindings==25.1.0
+beautifulsoup4==4.15.0
+certifi==2026.5.20
+cffi==2.0.0
+charset-normalizer==3.4.7
+cryptography==50.0.0
+curl_cffi==0.15.0
+defusedxml==0.7.1
+fonttools==4.63.0
+fpdf2==2.8.7
+idna==3.17
+jaraco.classes==3.4.0
+jaraco.context==6.1.2
+jaraco.functools==4.6.0
+jeepney==0.9.0
+keyring==25.7.0
+markdown-it-py==4.2.0
+mdurl==0.1.2
+multitasking==0.0.13
+more-itertools==11.1.0
+numpy==2.4.6
+packaging==26.2
+pandas==3.0.3
+peewee==4.0.7
+pillow==12.3.0
+platformdirs==4.10.0
+protobuf==7.35.1
+pycparser==3.0
+pycryptodome==3.23.0
+pywin32-ctypes==0.2.3; sys_platform == "win32"
+Pygments==2.20.0
+python-dateutil==2.9.0.post0
+pytz==2026.2
+requests==2.34.2
+rich==15.0.0
+setuptools==83.0.0
+SecretStorage==3.5.0; sys_platform == "linux"
+six==1.17.0
+soupsieve==2.8.4
+typing_extensions==4.15.0
+urllib3==2.7.0
+websockets==16.0
+yfinance==1.4.1

@@ -1,0 +1,253 @@
+"""Inventory broad handlers and prevent new silent handlers in CI."""
+
+import argparse
+import ast
+import collections
+import hashlib
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+SKIP = {".git", ".venv", "venv", "build", "dist", "AppDir"}
+
+
+AUDIT_MARKER = "EXCEPTION-AUDIT: bilinçli geniş"
+
+_LOG_METHODS = {"debug", "info", "warning", "error", "exception", "critical"}
+
+
+def _logs(handler):
+    """Is there a logger call in the handler body?
+
+    It used to search the `ast.dump` text for "get_logger"/"logging"; that
+    could not see the code base's OWN helpers (`_log().error(...)`, a
+    module-level `logger.warning(...)`) and dropped logging boundaries into the
+    "needs narrowing" box. It now looks at the shape of the call.
+    """
+    for node in ast.walk(handler):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in _LOG_METHODS
+        ):
+            return True
+    return False
+
+
+_BROAD_NAMES = {"Exception", "BaseException"}
+
+
+def _broad_aliases(tree):
+    """Collects the aliases given to `Exception`/`BaseException` within the module.
+
+    The gate used to recognise only `ast.Name`, so a rename such as
+    `Ex = Exception; except Ex:` was entirely invisible.
+    """
+    aliases = set()
+    for node in ast.walk(tree):
+        # X = Exception
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Name):
+            if node.value.id in _BROAD_NAMES | aliases:
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        aliases.add(target.id)
+        # from builtins import Exception as X
+        if isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                if alias.name in _BROAD_NAMES and alias.asname:
+                    aliases.add(alias.asname)
+    return aliases
+
+
+def _is_broad(expr, aliases):
+    """Does `except <expr>:` catch everything?
+
+    The recognised forms: a bare except, Name, Attribute
+    (`builtins.Exception`), Tuple (`(Exception,)` and mixed tuples such as
+    `(Exception, OSError)` -- if a broad type is inside, the whole tuple is
+    broad) and aliases.
+    """
+    if expr is None:                       # bare except:
+        return True
+    if isinstance(expr, ast.Name):
+        return expr.id in _BROAD_NAMES or expr.id in aliases
+    if isinstance(expr, ast.Attribute):    # builtins.Exception
+        return expr.attr in _BROAD_NAMES
+    if isinstance(expr, ast.Tuple):
+        return any(_is_broad(el, aliases) for el in expr.elts)
+    return False
+
+
+def _normalized_expression(expr):
+    """A stable text representation for the fingerprint."""
+    if expr is None:
+        return "bare"
+    if isinstance(expr, ast.Name):
+        return expr.id
+    if isinstance(expr, ast.Attribute):
+        return f"{_normalized_expression(expr.value)}.{expr.attr}"
+    if isinstance(expr, ast.Tuple):
+        return "(" + ", ".join(
+            _normalized_expression(el) for el in expr.elts
+        ) + ")"
+    return ast.dump(expr)
+
+
+def classify(handler, source_lines=()):
+    dumped = ast.dump(ast.Module(body=handler.body, type_ignores=[]))
+    start = max(handler.lineno - 6, 1)
+    end = handler.end_lineno or handler.lineno
+    span = "\n".join(source_lines[start - 1:end])
+    if AUDIT_MARKER in span:
+        return "Bilinçli geniş; incelendi ve kabul edildi"
+    if len(handler.body) == 1 and isinstance(handler.body[0], ast.Pass):
+        return "Kaldırılması veya loglanması gerekli"
+    if any(isinstance(node, ast.Raise) for node in ast.walk(handler)):
+        return "Yeniden fırlatılan sınır"
+    if _logs(handler):
+        return "Loglanan sınır"
+    if "toast" in dumped or "schedule_once" in dumped:
+        return "Kullanıcıya gösterilen; daraltılması incelenmeli"
+    if "print" in dumped:
+        return "Log sistemine taşınması gerekli"
+    if any(
+        isinstance(node, ast.Return)
+        and isinstance(node.value, (ast.Constant, ast.List, ast.Dict))
+        for node in ast.walk(handler)
+    ):
+        return "Fallback sonucu; veri bütünlüğü açısından incelenmeli"
+    return "Daraltılması gerekli"
+
+
+def inventory():
+    findings = []
+    for path in sorted(ROOT.rglob("*.py")):
+        if any(part in SKIP for part in path.parts):
+            continue
+        if "tests" in path.parts:
+            continue
+        try:
+            source = path.read_text(encoding="utf-8")
+            tree = ast.parse(source)
+        except (OSError, UnicodeError, SyntaxError):
+            continue
+        source_lines = source.splitlines()
+        broad_aliases = _broad_aliases(tree)
+        parents = []
+
+        class Visitor(ast.NodeVisitor):
+            def visit_FunctionDef(self, node):
+                parents.append(node.name)
+                self.generic_visit(node)
+                parents.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_ExceptHandler(self, node):
+                broad = _is_broad(node.type, broad_aliases)
+                if broad:
+
+
+                    identity = "|".join(
+                        [
+                            path.relative_to(ROOT).as_posix(),
+                            ".".join(parents) or "<module>",
+                            _normalized_expression(node.type),
+                        ]
+                    )
+                    findings.append(
+                        {
+                            "path": path.relative_to(ROOT).as_posix(),
+                            "line": node.lineno,
+                            "function": ".".join(parents) or "<module>",
+                            "kind": _normalized_expression(node.type),
+                            "classification": classify(node, source_lines),
+                            "fingerprint": hashlib.sha256(
+                                identity.encode("utf-8")
+                            ).hexdigest(),
+                        }
+                    )
+                self.generic_visit(node)
+
+        Visitor().visit(tree)
+    return findings
+
+
+def write_report(path, findings):
+    grouped = collections.defaultdict(list)
+    for finding in findings:
+        grouped[finding["classification"]].append(finding)
+    lines = [
+        "# Exception handler denetimi",
+        "",
+        f"Toplam geniş/bare handler: {len(findings)}.",
+        "",
+        "Bu envanter mevcut teknik borcu görünür kılar. CI baseline’a göre "
+        "yeni geniş handler eklenmesini engeller; mevcut kayıtlar aşamalı "
+        "olarak daraltılacaktır.",
+        "",
+    ]
+    for classification, items in sorted(grouped.items()):
+        lines.extend([f"## {classification} ({len(items)})", ""])
+        lines.extend(
+            f"- `{item['path']}:{item['line']}` — `{item['function']}` "
+            f"({item['kind']})"
+            for item in items
+        )
+        lines.append("")
+    Path(path).write_text("\n".join(lines), encoding="utf-8")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--write-baseline")
+    parser.add_argument("--write-report")
+    parser.add_argument("--check")
+    args = parser.parse_args()
+    findings = inventory()
+    if args.write_baseline:
+        Path(args.write_baseline).write_text(
+            json.dumps(
+                collections.Counter(
+                    item["fingerprint"] for item in findings
+                ),
+                indent=2,
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+    if args.write_report:
+        write_report(args.write_report, findings)
+    if args.check:
+        baseline = collections.Counter(
+            json.loads(Path(args.check).read_text(encoding="utf-8"))
+        )
+        current = collections.Counter(
+            item["fingerprint"] for item in findings
+        )
+
+
+        additions = current - baseline
+        removals = baseline - current
+        bare = [item for item in findings if item["kind"] == "bare"]
+        if additions or removals or bare:
+            print(
+                f"Yeni geniş handler={sum(additions.values())}, "
+                f"kaybolan (baseline slack)={sum(removals.values())}, "
+                f"bare except={len(bare)}"
+            )
+            if removals:
+                print(
+                    "Baseline gerçekle uyuşmuyor. Handler daraltıldıysa veya "
+                    "silindiyse baseline'ı bilinçli olarak yeniden üretin:\n"
+                    "  python scripts/audit_exception_handlers.py "
+                    "--write-baseline .github/exception-baseline.json"
+                )
+            raise SystemExit(1)
+        print(f"Exception baseline korundu: {len(findings)} handler")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,537 @@
+"""Balance ledger and time machine tests.
+
+They run against a temporary database -- the user's real finance.db is never
+touched (the DB_NAME patch pattern from tests/test_account_service.py).
+
+NOTE: tests/test_metrics.py is not a unittest but a printing script with no
+assertions; its "fetch -> compute in Python" flow was taken as a model, but the
+test skeleton follows test_account_service.py.
+
+Most of the tests set the events up SYNTHETICALLY (by writing directly into
+balance_events), which is how back-dated scenarios can be built. That real
+SavingsService calls appear in the ledger is verified separately in its own
+class -- synthetic data does not prove that production code really writes
+records.
+
+"""
+import os
+import sqlite3
+import tempfile
+import unittest
+from datetime import datetime, timedelta
+from unittest import mock
+
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+from tests.fixtures import AccountFixtureMixin
+
+
+class _LedgerTestBase(AccountFixtureMixin, unittest.TestCase):
+    """The shared skeleton of the ledger tests.
+
+    Because `initialize_database()` no longer opens default accounts (the seed
+    was removed so the user does not see a balance they did not add), tests
+    needing accounts set them up EXPLICITLY with the fixture; that way this
+    suite does not break even if the production seed changes.
+    """
+
+    def setUp(self):
+        fd, self.db_path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        self._patcher = mock.patch("database.db.DB_NAME", self.db_path)
+        self._patcher.start()
+        from database.init_db import initialize_database
+        initialize_database()
+
+
+        self.seed_account_ids = self.create_legacy_seed_accounts()
+
+    def tearDown(self):
+        self._patcher.stop()
+        os.unlink(self.db_path)
+
+
+    def _day(self, days_ago):
+        return (datetime.now() - timedelta(days=days_ago)).strftime("%Y-%m-%d")
+
+    def _add_event(self, delta, days_ago, entity_type="account", entity_id=1,
+                   source="test", resulting=None, hhmmss="12:00:00"):
+        """Writes a synthetic event straight into the ledger (for back-dated scenarios)."""
+        ts = f"{self._day(days_ago)} {hhmmss}"
+        conn = sqlite3.connect(self.db_path)
+        conn.execute(
+            "INSERT INTO balance_events (ts, entity_type, entity_id, delta,"
+            " resulting_value, source, ref_id) VALUES (?,?,?,?,?,?,NULL)",
+            (ts, entity_type, entity_id, delta, resulting, source),
+        )
+        conn.commit()
+        conn.close()
+
+    def _add_snapshot(self, days_ago, total, goals=None):
+
+
+        conn = sqlite3.connect(self.db_path)
+        import json
+        try:
+            conn.execute(
+                "INSERT INTO daily_balance_snapshot (snapshot_date,"
+                " total_balance, breakdown_json) VALUES (?,?,?)",
+                (self._day(days_ago), total,
+                 json.dumps({"accounts": {}, "savings_goals": goals or {}})),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def _clear_ledger(self):
+        """Empties the ledger -- for synthetic replay scenarios.
+
+        initialize_database used to open three default accounts along with
+        their opening events (14,000 in total). These tests measure the replay
+        ARITHMETIC, so they have to be left alone with their own events. The
+        RealWriteSitesTestCase that verifies the real write sites DELIBERATELY
+        does not clear the ledger.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DELETE FROM balance_events")
+        conn.commit()
+        conn.close()
+
+    def _events(self):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        rows = [dict(r) for r in conn.execute(
+            "SELECT * FROM balance_events ORDER BY id")]
+        conn.close()
+        return rows
+
+    def _balance(self, account_id=1):
+        conn = sqlite3.connect(self.db_path)
+        row = conn.execute("SELECT balance FROM accounts WHERE id = ?",
+                           (account_id,)).fetchone()
+        conn.close()
+        return row[0]
+
+
+class SchemaTestCase(_LedgerTestBase):
+
+    def test_tables_exist_with_expected_columns(self):
+        conn = sqlite3.connect(self.db_path)
+        names = {r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
+        ev = {r[1] for r in conn.execute("PRAGMA table_info(balance_events)")}
+        sn = {r[1] for r in conn.execute("PRAGMA table_info(daily_balance_snapshot)")}
+        conn.close()
+
+        self.assertIn("balance_events", names)
+        self.assertIn("daily_balance_snapshot", names)
+        self.assertEqual(ev, {"id", "ts", "entity_type", "entity_id", "delta",
+                              "resulting_value", "source", "ref_id"})
+        self.assertEqual(sn, {"id", "snapshot_date", "total_balance", "breakdown_json"})
+
+    def test_snapshot_date_is_unique(self):
+        self._add_snapshot(0, 100.0)
+        with self.assertRaises(sqlite3.IntegrityError):
+            self._add_snapshot(0, 200.0)
+
+
+class BaselineBackfillTestCase(_LedgerTestBase):
+    """The opening line: the ledger total must always be brought level with the real balance."""
+
+    def _ledger_total(self, entity_type="account"):
+        conn = sqlite3.connect(self.db_path)
+        total = conn.execute(
+            "SELECT COALESCE(SUM(delta),0) FROM balance_events WHERE entity_type = ?",
+            (entity_type,)).fetchone()[0]
+        conn.close()
+        return total
+
+    def test_fresh_database_ledger_matches_real_balance(self):
+        conn = sqlite3.connect(self.db_path)
+        real = conn.execute("SELECT SUM(balance) FROM accounts").fetchone()[0]
+        conn.close()
+        self.assertAlmostEqual(self._ledger_total(), real, places=2)
+
+    def test_partial_ledger_is_healed(self):
+        """A ledger with movements but no opening line must be healed.
+
+        In a database from before the ledger some movements may have been
+        recorded; the opening line must be computed by subtracting the EXISTING
+        deltas, so the total is not counted twice.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DELETE FROM balance_events")
+
+        conn.execute(
+            "INSERT INTO balance_events (ts, entity_type, entity_id, delta,"
+            " resulting_value, source) VALUES (?,?,?,?,?,?)",
+            ("2026-01-01 10:00:00", "account", 1, 500.0, None, "transaction"))
+        conn.commit()
+        real = conn.execute("SELECT SUM(balance) FROM accounts").fetchone()[0]
+        conn.close()
+
+        from database.init_db import initialize_database
+        initialize_database()
+
+        self.assertAlmostEqual(self._ledger_total(), real, places=2)
+
+    def test_backfill_is_idempotent(self):
+        from database.init_db import initialize_database
+        before = self._ledger_total()
+        initialize_database()
+        initialize_database()
+        self.assertAlmostEqual(self._ledger_total(), before, places=2)
+
+    def test_baseline_sorts_before_existing_events(self):
+        """The opening line must be dated BEFORE the existing events."""
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DELETE FROM balance_events")
+        conn.execute(
+            "INSERT INTO balance_events (ts, entity_type, entity_id, delta,"
+            " resulting_value, source) VALUES (?,?,?,?,?,?)",
+            ("2026-03-05 10:00:00", "account", 1, 100.0, None, "transaction"))
+        conn.commit()
+        conn.close()
+
+        from database.init_db import initialize_database
+        initialize_database()
+
+        conn = sqlite3.connect(self.db_path)
+        rows = conn.execute(
+            "SELECT ts, source FROM balance_events WHERE entity_id = 1"
+            " AND entity_type = 'account' ORDER BY ts").fetchall()
+        conn.close()
+        self.assertEqual(rows[0][1], "account_opened")
+        self.assertTrue(rows[0][0] < "2026-03-05 10:00:00")
+
+
+class GetBalanceAtTestCase(_LedgerTestBase):
+
+    def setUp(self):
+        super().setUp()
+        self._clear_ledger()
+
+    def test_replays_from_scratch_without_snapshot(self):
+        self._add_event(+1000.0, days_ago=10)
+        self._add_event(-250.0, days_ago=5)
+        from services.history_service import get_balance_at
+
+        result = get_balance_at(self._day(0))
+        self.assertEqual(result["total_balance"], 750.0)
+        self.assertEqual(result["basis"], "replay")
+        self.assertEqual(result["events_replayed"], 2)
+
+    def test_past_date_excludes_later_events(self):
+        """The essence of the time machine: the balance 7 days ago does not see later events."""
+        self._add_event(+1000.0, days_ago=10)
+        self._add_event(-250.0, days_ago=3)
+        from services.history_service import get_balance_at
+
+        self.assertEqual(get_balance_at(self._day(7))["total_balance"], 1000.0)
+        self.assertEqual(get_balance_at(self._day(0))["total_balance"], 750.0)
+
+    def test_same_day_events_are_included(self):
+        """Events WITHIN the target day must be included (the end-of-day boundary)."""
+        self._add_event(+500.0, days_ago=2, hhmmss="23:58:00")
+        from services.history_service import get_balance_at
+
+        self.assertEqual(get_balance_at(self._day(2))["total_balance"], 500.0)
+
+    def test_date_before_ledger_start_returns_unknown(self):
+        """For a date before the ledger starts it must return 'unknown', NOT 0.
+
+        Returning zero would mean 'you had no money on that date'; in fact the
+        application was not recording balance movements in that period -- we
+        have no data.
+        """
+        self._add_event(+500.0, days_ago=2)
+        from services.history_service import get_balance_at
+
+        result = get_balance_at(self._day(5))
+        self.assertEqual(result["basis"], "before_ledger")
+        self.assertIsNone(result["total_balance"])
+        self.assertEqual(result["ledger_start"], self._day(2))
+
+    def test_snapshot_is_used_as_starting_point(self):
+        self._add_snapshot(days_ago=5, total=1000.0)
+        self._add_event(+200.0, days_ago=2)
+        from services.history_service import get_balance_at
+
+        result = get_balance_at(self._day(0))
+        self.assertEqual(result["total_balance"], 1200.0)
+        self.assertEqual(result["basis"], "snapshot")
+        self.assertEqual(result["snapshot_date"], self._day(5))
+
+        self.assertEqual(result["events_replayed"], 1)
+
+    def test_snapshot_day_events_are_not_double_counted(self):
+        """The events on the snapshot day are already included in the snapshot.
+
+        Because a snapshot represents the MOMENT it was written, adding that
+        day's events to the replay as well would count the money twice; the
+        boundary starts at the END of the snapshot day.
+        """
+        self._add_event(+1000.0, days_ago=5, hhmmss="09:00:00")
+        self._add_snapshot(days_ago=5, total=1000.0)
+        from services.history_service import get_balance_at
+
+        result = get_balance_at(self._day(0))
+        self.assertEqual(result["total_balance"], 1000.0)
+        self.assertEqual(result["events_replayed"], 0)
+
+    def test_savings_goal_events_do_not_move_total_balance(self):
+        """Goal events DO NOT MOVE the total balance (double-counting protection)."""
+        self._add_event(-300.0, days_ago=4, entity_type="account")
+        self._add_event(+300.0, days_ago=4, entity_type="savings_goal", entity_id=7)
+        from services.history_service import get_balance_at
+
+        result = get_balance_at(self._day(0))
+        self.assertEqual(result["total_balance"], -300.0)
+        self.assertEqual(result["savings_total"], 300.0)
+
+    def test_empty_ledger_returns_zero(self):
+        from services.history_service import get_balance_at
+        result = get_balance_at(self._day(0))
+        self.assertEqual(result["total_balance"], 0.0)
+        self.assertEqual(result["events_replayed"], 0)
+
+
+class DiffBetweenTestCase(_LedgerTestBase):
+
+    def setUp(self):
+        super().setUp()
+        self._clear_ledger()
+
+    def test_reports_change_and_source_breakdown(self):
+        self._add_event(0.0, days_ago=20, source="account_opened")
+        self._add_event(+1000.0, days_ago=10, source="transaction")
+        self._add_event(-200.0, days_ago=4, source="transaction")
+        self._add_event(-300.0, days_ago=3, source="savings_deposit")
+        from services.history_service import diff_between
+
+        d = diff_between(self._day(7), self._day(0))
+        self.assertEqual(d["balance_from"], 1000.0)
+        self.assertEqual(d["balance_to"], 500.0)
+        self.assertEqual(d["balance_change"], -500.0)
+        self.assertEqual(d["by_source"]["transaction"]["delta"], -200.0)
+        self.assertEqual(d["by_source"]["savings_deposit"]["delta"], -300.0)
+        self.assertEqual(d["by_source"]["savings_deposit"]["count"], 1)
+
+    def test_argument_order_is_normalized(self):
+        """Reversing the dates must give the same result."""
+        self._add_event(0.0, days_ago=20, source="account_opened")
+        self._add_event(+100.0, days_ago=5)
+        from services.history_service import diff_between
+
+        a = diff_between(self._day(8), self._day(0))
+        b = diff_between(self._day(0), self._day(8))
+        self.assertEqual(a["balance_change"], b["balance_change"])
+        self.assertEqual(a["from"], b["from"])
+
+    def test_savings_change_is_tracked_separately(self):
+
+
+        self._add_event(0.0, days_ago=9, source="account_opened")
+        self._add_event(-500.0, days_ago=3, entity_type="account")
+        self._add_event(+500.0, days_ago=3, entity_type="savings_goal", entity_id=1)
+        from services.history_service import diff_between
+
+        d = diff_between(self._day(5), self._day(0))
+        self.assertEqual(d["balance_change"], -500.0)
+        self.assertEqual(d["savings_change"], 500.0)
+        self.assertFalse(d["truncated"])
+
+        self.assertEqual(d["by_source"]["test"]["count"], 1)
+
+    def test_diff_before_ledger_start_is_marked_truncated(self):
+        """If a start older than the ledger is requested, the change must not be invented."""
+        self._add_event(+700.0, days_ago=2, source="transaction")
+        from services.history_service import diff_between
+
+        d = diff_between(self._day(30), self._day(0))
+        self.assertTrue(d["truncated"])
+        self.assertIsNone(d["balance_change"])
+        self.assertEqual(d["ledger_start"], self._day(2))
+
+        self.assertEqual(d["by_source"]["transaction"]["delta"], 700.0)
+
+
+class SnapshotWritingTestCase(_LedgerTestBase):
+
+    def test_writes_one_snapshot_per_day(self):
+        from services.history_service import write_daily_snapshot
+
+        first = write_daily_snapshot()
+        second = write_daily_snapshot()
+
+        self.assertIsNotNone(first)
+        self.assertIsNone(second, "aynı gün ikinci snapshot yazılmamalı")
+
+        conn = sqlite3.connect(self.db_path)
+        count = conn.execute("SELECT COUNT(*) FROM daily_balance_snapshot").fetchone()[0]
+        conn.close()
+        self.assertEqual(count, 1)
+
+    def test_snapshot_captures_current_account_total(self):
+        from services.history_service import write_daily_snapshot
+
+
+        result = write_daily_snapshot()
+        self.assertEqual(result["total_balance"], 14000.0)
+
+    def test_force_updates_same_day_snapshot(self):
+        from services.history_service import write_daily_snapshot
+
+        write_daily_snapshot()
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("UPDATE accounts SET balance = 999 WHERE id = 1")
+        conn.commit()
+        conn.close()
+
+        updated = write_daily_snapshot(force=True)
+        self.assertIsNotNone(updated)
+        conn = sqlite3.connect(self.db_path)
+        rows = conn.execute("SELECT COUNT(*) FROM daily_balance_snapshot").fetchone()[0]
+        total = conn.execute("SELECT total_balance FROM daily_balance_snapshot").fetchone()[0]
+        conn.close()
+        self.assertEqual(rows, 1)
+        self.assertEqual(total, 999 + 15000 - 3500)
+
+
+class RealWriteSitesTestCase(_LedgerTestBase):
+    """Verifies that REAL production code calls, not synthetic ones, feed the ledger."""
+
+    def test_transaction_writes_ledger_entry(self):
+        """adjust_account_balance (ledger 1/6) -- a record must be written when a transaction is added."""
+        from services.transaction_service import TransactionService
+
+        TransactionService.add_transaction(
+            amount=250.0, transaction_type="expense",
+            category="Süpermarket", description="Market", account_id=1,
+        )
+        events = [e for e in self._events() if e["source"] == "transaction"]
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["delta"], -250.0)
+        self.assertEqual(events[0]["entity_type"], "account")
+        self.assertEqual(events[0]["resulting_value"], self._balance(1))
+
+    def test_savings_deposit_writes_both_sides(self):
+        """deposit_to_goal (ledger 2/6) -- the account and goal events together."""
+        from services.savings_service import SavingsService
+
+        goal_id = SavingsService.create_goal("Tatil", 5000.0)
+        SavingsService.deposit_to_goal(goal_id, 1000.0, account_id=1)
+
+        events = [e for e in self._events() if e["source"] == "savings_deposit"]
+        self.assertEqual(len(events), 2)
+        by_type = {e["entity_type"]: e for e in events}
+        self.assertEqual(by_type["account"]["delta"], -1000.0)
+        self.assertEqual(by_type["savings_goal"]["delta"], 1000.0)
+        self.assertEqual(by_type["savings_goal"]["entity_id"], goal_id)
+
+    def test_savings_withdraw_writes_both_sides(self):
+        """withdraw_from_goal (defter 3/6)."""
+        from services.savings_service import SavingsService
+
+        goal_id = SavingsService.create_goal("Tatil", 5000.0)
+        SavingsService.deposit_to_goal(goal_id, 1000.0, account_id=1)
+        SavingsService.withdraw_from_goal(goal_id, 400.0, account_id=1)
+
+        events = [e for e in self._events() if e["source"] == "savings_withdraw"]
+        self.assertEqual(len(events), 2)
+        by_type = {e["entity_type"]: e for e in events}
+        self.assertEqual(by_type["account"]["delta"], 400.0)
+        self.assertEqual(by_type["savings_goal"]["delta"], -400.0)
+
+    def test_delete_goal_refund_is_recorded(self):
+        """delete_goal (ledger 4/6) -- the refund to the account, the goal closed at 0."""
+        from services.savings_service import SavingsService
+
+        goal_id = SavingsService.create_goal("Tatil", 5000.0)
+        SavingsService.deposit_to_goal(goal_id, 800.0, account_id=1)
+        SavingsService.delete_goal(goal_id, account_id=1)
+
+        events = [e for e in self._events() if e["source"] == "savings_goal_deleted"]
+        by_type = {e["entity_type"]: e for e in events}
+        self.assertEqual(by_type["account"]["delta"], 800.0)
+        self.assertEqual(by_type["savings_goal"]["delta"], -800.0)
+        self.assertEqual(by_type["savings_goal"]["resulting_value"], 0.0)
+
+    def test_factory_reset_records_one_event_per_account(self):
+        """factory_reset (ledger 5/6) -- a bulk reset writes one event per account."""
+        from database.db import ACCOUNT, record_balance_event
+
+
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, balance FROM accounts")
+        previous = [(r["id"], r["balance"] or 0.0) for r in cursor.fetchall()]
+        cursor.execute("UPDATE accounts SET balance = 0")
+        for account_id, old in previous:
+            record_balance_event(cursor, ACCOUNT, account_id, -old, 0.0,
+                                 "admin_factory_reset")
+        conn.commit()
+        conn.close()
+
+        events = [e for e in self._events() if e["source"] == "admin_factory_reset"]
+        self.assertEqual(len(events), 3, "üç varsayılan hesap için üç olay")
+        self.assertEqual(sum(e["delta"] for e in events), -14000.0)
+        self.assertTrue(all(e["resulting_value"] == 0.0 for e in events))
+
+    def test_ledger_matches_real_balance_after_mixed_flow(self):
+        """The ledger's replay must match the real accounts.balance exactly.
+
+        This is the real evidence that every write site is covered: if one were
+        missed, the two sides would diverge.
+        """
+        from services.savings_service import SavingsService
+        from services.transaction_service import TransactionService
+        from services.history_service import get_balance_at
+
+        TransactionService.add_transaction(
+            amount=5000.0, transaction_type="income",
+            category="Maaş", description="Maas", account_id=1)
+        TransactionService.add_transaction(
+            amount=1200.0, transaction_type="expense",
+            category="Ev Kirası", description="Kira", account_id=1)
+        goal_id = SavingsService.create_goal("Acil Durum", 10000.0)
+        SavingsService.deposit_to_goal(goal_id, 2000.0, account_id=1)
+        SavingsService.withdraw_from_goal(goal_id, 500.0, account_id=1)
+
+        conn = sqlite3.connect(self.db_path)
+        real_total = conn.execute("SELECT SUM(balance) FROM accounts").fetchone()[0]
+        real_goals = conn.execute("SELECT SUM(current_amount) FROM savings_goals").fetchone()[0]
+        conn.close()
+
+        replayed = get_balance_at(datetime.now().strftime("%Y-%m-%d"))
+        self.assertAlmostEqual(replayed["total_balance"], real_total, places=2)
+        self.assertAlmostEqual(replayed["savings_total"], real_goals, places=2)
+
+    def test_deposit_beyond_balance_still_records_both_ledger_entries(self):
+        """The insufficient-balance guard was removed: the transfer happens and two
+        ledger records must be written, for the account and for the goal, even
+        if the account goes negative (atomicity: either both are written or
+        neither -- but now always both).
+        """
+        from services.savings_service import SavingsService
+
+        goal_id = SavingsService.create_goal("Büyük Hedef", 999999.0)
+        before = len(self._events())
+
+        SavingsService.deposit_to_goal(goal_id, 10_000_000.0, account_id=1)
+
+        new_events = self._events()[before:]
+        self.assertEqual(len(new_events), 2,
+                         "başarılı işlem hesap + hedef için ikişer defter kaydı bırakmalı")
+        sources = {e["source"] for e in new_events}
+        self.assertEqual(sources, {"savings_deposit"})
+        deltas = sorted(e["delta"] for e in new_events)
+        self.assertAlmostEqual(deltas[0], -10_000_000.0, places=2)
+        self.assertAlmostEqual(deltas[1], 10_000_000.0, places=2)
+
+
+if __name__ == "__main__":
+    unittest.main()

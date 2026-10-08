@@ -1,0 +1,12 @@
+# Geriye dönük uyumluluk şemsiyesi — `pip install -r requirements.txt`
+# hâlâ çalışır, tam geliştirme ortamını kurar (runtime + lint araçları).
+#
+# CI ve paketleme RUNTIME'ı ayrı kullanır (gereksiz araç kurmasın diye):
+#   .github/workflows/build-windows.yml -> requirements-runtime.txt
+#   .github/workflows/tests.yml         -> requirements-runtime.txt (test job)
+#                                           requirements-dev.txt (lint job)
+#
+# Yeni bir bağımlılık eklerken/kaldırırken asıl dosyaları (requirements-
+# runtime.txt / requirements-dev.txt) düzenle, bu dosyayı DEĞİL.
+-r requirements-runtime.txt
+-r requirements-dev.txt

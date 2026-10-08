@@ -1,0 +1,207 @@
+"""A DIAGNOSTIC TOOL -- NOT a permanent gate. Measures the drift accumulating in a `REAL` column.
+
+WHY IT EXISTS: `adjust_account_balance` updates the balance with
+`UPDATE accounts SET balance = balance + ?`, so the addition happens not in
+Python but in SQLite's `REAL` column. Even if the Python side moves entirely to
+`Decimal`, that accumulation stays in binary floating point.
+
+The question this tool answers is NOT "is REAL flawed?" -- that is already
+known. What is asked is: **can the representation error change a BUSINESS
+DECISION the application makes?** If the raw balance is 99.999999999x and the
+user cannot spend 100 lira, that is far more serious than a display problem.
+
+Deliberately not under `tests/` and not a CI gate: under the current schema
+"the raw balance must equal the Decimal exactly" would be a WRONG expectation
+and would turn the gate permanently red. A permanent test must only exercise
+the business invariant the application really guarantees -- that one is in
+`tests/test_real_balance_invariants.py`.
+
+To run:
+    python scripts/audit/measure_real_column_drift.py
+
+"""
+
+from __future__ import annotations
+
+import os
+import sqlite3
+import sys
+import tempfile
+from pathlib import Path
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from contextlib import closing
+from decimal import Decimal
+from pathlib import Path
+from unittest import mock
+
+
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError, OSError):
+        pass
+
+
+def _accumulate(step: str, times: int, sign: int = 1) -> float:
+    """The very SQL pattern the application uses, in an isolated table."""
+    with sqlite3.connect(":memory:") as conn:
+        conn.execute("CREATE TABLE a (id INTEGER PRIMARY KEY, balance REAL DEFAULT 0)")
+        conn.execute("INSERT INTO a (id, balance) VALUES (1, 0)")
+        delta = sign * float(step)
+        for _ in range(times):
+            conn.execute("UPDATE a SET balance = balance + ? WHERE id=1", (delta,))
+        return conn.execute("SELECT balance FROM a WHERE id=1").fetchone()[0]
+
+
+def _round_trip(step: str, times: int) -> float:
+    """Add the same amount and then subtract it: the symmetry drift (transfer-like)."""
+    with sqlite3.connect(":memory:") as conn:
+        conn.execute("CREATE TABLE a (id INTEGER PRIMARY KEY, balance REAL DEFAULT 0)")
+        conn.execute("INSERT INTO a (id, balance) VALUES (1, 0)")
+        delta = float(step)
+        for _ in range(times):
+            conn.execute("UPDATE a SET balance = balance + ? WHERE id=1", (delta,))
+        for _ in range(times):
+            conn.execute("UPDATE a SET balance = balance - ? WHERE id=1", (delta,))
+        return conn.execute("SELECT balance FROM a WHERE id=1").fetchone()[0]
+
+
+def measure_accumulation():
+    from utils.financial_decimal import fiat
+
+    print("\n=== 1. Birikimli sapma: balance += 0.01 ===")
+    print(f"{'n':>8} {'ham REAL':>24} {'tam':>10} {'mutlak hata':>14} {'fiat(ham)':>12} {'fiat dogru mu':>14}")
+    for times in (10, 100, 1000, 10000, 100000):
+        raw = _accumulate("0.01", times)
+        exact = Decimal("0.01") * times
+        error = abs(Decimal(repr(raw)) - exact)
+        quantised = fiat(raw)
+        print(f"{times:>8} {raw!r:>24} {str(exact):>10} {error:>14.3e} "
+              f"{str(quantised):>12} {str(quantised == exact):>14}")
+
+    print("\n=== 2. Simetri: n kez +0.01, sonra n kez -0.01 (beklenen 0) ===")
+    print(f"{'n':>8} {'ham REAL':>24} {'fiat(ham)':>12}")
+    for times in (10, 1000, 10000, 100000):
+        raw = _round_trip("0.01", times)
+        print(f"{times:>8} {raw!r:>24} {str(fiat(raw)):>12}")
+
+    print("\n=== 3. Karışık isaret: +0.07 ve -0.03 donusumlu, 10.000 tur ===")
+    with sqlite3.connect(":memory:") as conn:
+        conn.execute("CREATE TABLE a (id INTEGER PRIMARY KEY, balance REAL DEFAULT 0)")
+        conn.execute("INSERT INTO a (id, balance) VALUES (1, 0)")
+        for _ in range(10000):
+            conn.execute("UPDATE a SET balance = balance + ? WHERE id=1", (0.07,))
+            conn.execute("UPDATE a SET balance = balance - ? WHERE id=1", (0.03,))
+        raw = conn.execute("SELECT balance FROM a WHERE id=1").fetchone()[0]
+    exact = (Decimal("0.07") - Decimal("0.03")) * 10000
+    print(f"  ham={raw!r}  tam={exact}  hata={abs(Decimal(repr(raw)) - exact):.3e}  fiat={fiat(raw)}")
+
+
+def measure_business_decisions():
+    """THE REAL QUESTION: does the drift change a business decision?
+
+    Real services, a real schema, a temporary profile. In every scenario the
+    balance is built up FIRST with enough mutations to produce drift, and the
+    boundary decision attempted AFTERWARDS.
+    """
+    tempdir = tempfile.TemporaryDirectory(prefix="helysofer-realaudit-")
+    root = Path(tempdir.name)
+    db_path = root / "finance.db"
+    key = os.urandom(32)
+
+    db_patch = mock.patch("database.db.DB_NAME", str(db_path))
+    key_patch = mock.patch("utils.crypto._get_aead_key", return_value=key)
+    db_patch.start()
+    key_patch.start()
+    try:
+        from database.init_db import initialize_database
+        initialize_database()
+
+        from database.db import get_connection
+        from services.account_service import AccountService
+        from services.transaction_service import TransactionService
+
+        print("\n=== 4. Karar sinirlari (gercek servisler) ===")
+
+
+        account_id = AccountService.create_account("Drift", "checking",
+                                                   initial_balance=0.0)
+        with closing(get_connection()) as conn, conn:
+            for _ in range(10000):
+                conn.execute("UPDATE accounts SET balance = balance + ? WHERE id=?",
+                             (0.01, account_id))
+        raw = _raw_balance(account_id)
+        shown = AccountService.get_account(account_id)["balance"]
+        print(f"  4a vadesiz  ham={raw!r}  gosterilen={shown}  (beklenen 100.0)")
+
+        # --- 4b. Is spending the full balance accepted?
+        allowed, reason = AccountService.check_spending_allowed(
+            account_id, 100.00, "expense")
+        print(f"  4b tam-tutar harcama izni={allowed}  gerekce={reason!r}")
+
+        # --- 4c. Credit card: spend the entire limit
+        card_id = AccountService.create_account("Drift card", "credit_card",
+                                                credit_limit=100.0)
+        with closing(get_connection()) as conn, conn:
+            for _ in range(5000):          # 5000 x 0,01 = 50,00 borc
+                conn.execute("UPDATE accounts SET balance = balance - ? WHERE id=?",
+                             (0.01, card_id))
+        raw_card = _raw_balance(card_id)
+        card = AccountService.get_account(card_id)
+        print(f"  4c kart ham={raw_card!r}  borc={card['debt']}  "
+              f"kullanilabilir={card['available_limit']}")
+        allowed, reason = AccountService.check_spending_allowed(
+            card_id, 50.00, "expense")
+        print(f"     kalan limitin TAMAMI kadar harcama izni={allowed}  gerekce={reason!r}")
+        allowed_over, reason_over = AccountService.check_spending_allowed(
+            card_id, 50.01, "expense")
+        print(f"     bir kurus FAZLASI izni={allowed_over}  (False olmali)")
+
+        # --- 4d. Real transaction path: can the exact amount be stored?
+        try:
+            TransactionService.add_transaction(
+                card_id, 50.00, "expense", "Audit", "sinir", detect_subscription=False)
+            print("  4d gercek islem: KABUL EDILDI")
+        except ValueError as exc:
+            print(f"  4d gercek islem: REDDEDILDI -> {exc}")
+
+        # --- 4e. Savings goal: withdraw the full displayed amount
+        from services.savings_service import SavingsService
+        goal_id = SavingsService.create_goal("Drift goal", 1000.0)
+        with closing(get_connection()) as conn, conn:
+            for _ in range(30000):        # 30.000 x 0,01 = 300,00
+                conn.execute(
+                    "UPDATE savings_goals SET current_amount = current_amount + ? WHERE id=?",
+                    (0.01, goal_id))
+        raw_goal = _raw_goal(goal_id)
+        print(f"  4e hedef ham={raw_goal!r}  (beklenen 300.0)")
+        try:
+            SavingsService.withdraw_from_goal(goal_id, 300.00, account_id)
+            print("     gosterilen tutarin TAMAMINI cekme: KABUL EDILDI")
+        except ValueError as exc:
+            print(f"     gosterilen tutarin TAMAMINI cekme: REDDEDILDI -> {exc}")
+    finally:
+        key_patch.stop()
+        db_patch.stop()
+        tempdir.cleanup()
+
+
+def _raw_balance(account_id):
+    from database.db import get_connection
+    with closing(get_connection()) as conn, conn:
+        return conn.execute("SELECT balance FROM accounts WHERE id=?",
+                            (account_id,)).fetchone()[0]
+
+
+def _raw_goal(goal_id):
+    from database.db import get_connection
+    with closing(get_connection()) as conn, conn:
+        return conn.execute("SELECT current_amount FROM savings_goals WHERE id=?",
+                            (goal_id,)).fetchone()[0]
+
+
+if __name__ == "__main__":
+    measure_accumulation()
+    measure_business_decisions()
