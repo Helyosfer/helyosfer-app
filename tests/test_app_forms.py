@@ -5,7 +5,8 @@ import unittest
 
 try:
     from app.accounts import FormError, read_amount, read_date, user_message
-    from app.controllers import display_title
+    from app.assets import format_quantity, read_quantity
+    from app.controllers import display_title, short_date
 except ImportError:  # pragma: no cover - the interface toolkit is optional for core tests
     read_amount = None
 
@@ -58,6 +59,42 @@ class FormInputTest(unittest.TestCase):
             display_title("Travel card Borç Ödemesi"), "Travel card debt payment"
         )
         self.assertEqual(display_title("Weekly shop"), "Weekly shop")
+
+    def test_other_generated_descriptions_are_reworded_and_keep_the_name(self):
+        cases = {
+            "Netflix (Otomatik)": "Netflix (automatic)",
+            "Telefon (2 Taksit Ödemesi)": "Telefon (2 installments)",
+            "Telefon (1 Taksit Ödemesi)": "Telefon (1 installment)",
+            "Araba (Tamamen Kapatma)": "Araba (paid off)",
+            "Araba (Otomatik Taksit Ödemesi)": "Araba (automatic installment)",
+            "THY (THYAO) alındı — 100 adet, birim fiyat 280,40 ₺": "Bought 100 × THY (THYAO)",
+            "THY (THYAO) satıldı — 40.0 adet, birim fiyat 312,50 ₺": "Sold 40 × THY (THYAO)",
+            "Gram Altın (GC=F) alındı — 12.5 adet, birim fiyat 5.400,00 ₺":
+                "Bought 12,5 × Gram gold (GC=F)",
+        }
+        for stored, shown in cases.items():
+            with self.subTest(stored=stored):
+                self.assertEqual(display_title(stored), shown)
+
+    def test_quantities_accept_small_fractions_and_turkish_separators(self):
+        self.assertEqual(read_quantity("0,015"), 0.015)
+        self.assertEqual(read_quantity("0.00012"), 0.00012)
+        self.assertEqual(read_quantity("1.250,5"), 1250.5)
+        for bad in ("", "abc", "0", "-3"):
+            with self.subTest(bad=bad):
+                with self.assertRaises(FormError):
+                    read_quantity(bad)
+
+    def test_quantities_are_shown_without_trailing_zeros(self):
+        self.assertEqual(format_quantity(100.0), "100")
+        self.assertEqual(format_quantity(12.5), "12,5")
+        self.assertEqual(format_quantity(0.015), "0,015")
+        self.assertEqual(format_quantity(1250.5), "1.250,5")
+
+    def test_dates_in_either_stored_format_are_shortened(self):
+        self.assertEqual(short_date("2026-10-08 10:00:00"), "08 Oct")
+        self.assertEqual(short_date("08/10/2026"), "08 Oct")
+        self.assertEqual(short_date("not a date"), "not a date")
 
 
 if __name__ == "__main__":

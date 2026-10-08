@@ -9,6 +9,7 @@ the result comes back through `Dispatcher` on the interface thread.
 from __future__ import annotations
 
 import datetime
+import re
 from decimal import Decimal
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
@@ -47,18 +48,52 @@ def format_signed(value) -> str:
     return f"{sign}{format_amount(value)} ₺"
 
 
-def short_date(iso_date: str) -> str:
-    day = datetime.date.fromisoformat(iso_date[:10])
-    return f"{day.day:02d} {_MONTHS[day.month - 1]}"
+def short_date(text: str) -> str:
+    """'2026-10-08 ...' or '08/10/2026' -> '08 Oct'; anything else unchanged."""
+    head = (text or "")[:10]
+    for pattern in ("%Y-%m-%d", "%d/%m/%Y"):
+        try:
+            day = datetime.datetime.strptime(head, pattern).date()
+        except ValueError:
+            continue
+        return f"{day.day:02d} {_MONTHS[day.month - 1]}"
+    return text or ""
 
 
-_DEBT_PAYMENT_SUFFIX = " Borç Ödemesi"
+# Descriptions the services generate are stored in Turkish. They are data, so
+# they are recognised by shape and reworded for display; the user's own part
+# (a name) is carried over untouched and never passes through the catalog.
+_GENERATED_SUFFIXES = (
+    (" Borç Ödemesi", " debt payment"),
+    (" (Otomatik Taksit Ödemesi)", " (automatic installment)"),
+    (" (Tamamen Kapatma)", " (paid off)"),
+    (" (Otomatik)", " (automatic)"),
+)
+_INSTALLMENTS = re.compile(r" \((\d+) Taksit Ödemesi\)$")
+_ASSET_TRADE = re.compile(r"^(.*) \((.+)\) (alındı|satıldı) — ([\d.,]+) adet\b")
+_GOLD_LABELS = {
+    "Gram Altın": "Gram gold", "Çeyrek Altın": "Quarter gold coin",
+    "Yarım Altın": "Half gold coin", "Tam Altın": "Full gold coin",
+    "Ons Altın": "Ounce of gold",
+}
 
 
 def display_title(text: str) -> str:
     """Stored descriptions as shown: generated ones are put into English."""
-    if text.endswith(_DEBT_PAYMENT_SUFFIX):
-        return text[: -len(_DEBT_PAYMENT_SUFFIX)] + " debt payment"
+    for suffix, replacement in _GENERATED_SUFFIXES:
+        if text.endswith(suffix):
+            return text[: -len(suffix)] + replacement
+    match = _INSTALLMENTS.search(text)
+    if match:
+        count = int(match.group(1))
+        noun = "installment" if count == 1 else "installments"
+        return f"{text[: match.start()]} ({count} {noun})"
+    match = _ASSET_TRADE.match(text)
+    if match:
+        name, code, verb, quantity = match.groups()
+        quantity = quantity.rstrip("0").rstrip(".") if "." in quantity else quantity
+        action = "Bought" if verb == "alındı" else "Sold"
+        return f"{action} {quantity.replace('.', ',')} × {_GOLD_LABELS.get(name, name)} ({code})"
     return tr(text)
 
 

@@ -7,6 +7,7 @@ failure: a binding that silently stops working is how a blank screen ships.
 import datetime
 import os
 import tempfile
+import threading
 import time
 import unittest
 from unittest import mock
@@ -21,6 +22,26 @@ except ImportError:  # pragma: no cover - the interface toolkit is optional for 
     QGuiApplication = None
 
 STRONG = "Guclu-Parola-2026!"
+PRICES = {"THYAO": 312.5}
+
+
+def _fixed_prices(assets, callback, item_callback=None, cache_callback=None,
+                  force_refresh=False):
+    """Stands in for the price service: fixed quotes, no network, no child process."""
+    from services.asset_service import calculate_pnl
+
+    enriched = []
+    for asset in assets:
+        entry = dict(asset)
+        price = PRICES.get(asset["asset_code"])
+        if price is None:
+            entry.update({"current_price": None, "pnl_amount": None, "pnl_pct": None,
+                          "total_value": None, "total_cost": None, "signal": "error"})
+        else:
+            entry.update(calculate_pnl(price, asset["purchase_price"], asset["quantity"]))
+            entry["current_price"] = price
+        enriched.append(entry)
+    threading.Thread(target=lambda: callback(enriched), daemon=True).start()
 
 
 def _pump(until=None, seconds=8.0):
@@ -51,8 +72,12 @@ class InterfaceSmokeTest(unittest.TestCase):
             "utils.config_store.default_config_path",
             lambda: os.path.join(cls._tmp.name, "config.json"),
         )
+        cls._prices = mock.patch(
+            "services.asset_service.fetch_portfolio_with_prices", _fixed_prices
+        )
         cls._db.start()
         cls._config.start()
+        cls._prices.start()
 
         cls.messages = []
         qInstallMessageHandler(
@@ -73,6 +98,7 @@ class InterfaceSmokeTest(unittest.TestCase):
         cls.debts = context.contextProperty("debts")
         cls.recurring = context.contextProperty("recurring")
         cls.settings = context.contextProperty("settings")
+        cls.assets = context.contextProperty("assets")
         _pump(seconds=0.2)
 
     @classmethod
@@ -86,6 +112,7 @@ class InterfaceSmokeTest(unittest.TestCase):
         _pump(seconds=0.2)
         set_main_thread_scheduler(None)
         qInstallMessageHandler(None)
+        cls._prices.stop()
         cls._config.stop()
         cls._db.stop()
         cls._tmp.cleanup()
@@ -100,7 +127,7 @@ class InterfaceSmokeTest(unittest.TestCase):
         _pump(lambda: not (
             self.accounts.busy or self.transactions.busy or self.debts.busy
             or self.recurring.busy or self.settings.busy or self.auth.busy
-            or self.dashboard.loading
+            or self.assets.busy or self.dashboard.loading
         ))
         # Let the reloads a write triggers come back before reading state.
         deadline = time.time() + 0.15
@@ -212,6 +239,35 @@ class InterfaceSmokeTest(unittest.TestCase):
         self._settle()
         self.assertEqual(self.debts.debts, [])
         self.assertEqual(self.accounts.accounts[0]["balanceText"], "500,00 ₺")
+
+        # -- assets ---------------------------------------------------------
+        shell.setProperty("section", "assets")
+        self._settle()
+        self.assets.buy("Hisse", "", "", "10", "250", main["id"], True)
+        self._settle()
+        self.assertEqual(self.assets.message, "Enter the symbol.")
+        self.assets.buy("Hisse", "thyao", "Turkish Airlines", "2", "100", main["id"], True)
+        self._settle()
+        _pump(lambda: not self.assets.pricing and len(self.assets.holdings) == 1)
+        self._settle()
+        holding = self.assets.holdings[0]
+        self.assertEqual(holding["code"], "THYAO")
+        self.assertEqual(holding["valueText"], "625,00 ₺")
+        self.assertEqual(self.assets.pnlDirection, 1)
+        self.assertEqual(self.accounts.accounts[0]["balanceText"], "300,00 ₺")
+        self.assets.lookUp("Hisse", "THYAO")
+        _pump(lambda: not self.assets.quoteBusy)
+        self.assertEqual(self.assets.quote, "312,50")
+        shows("addAsset", "openFresh")
+        shows("sellAsset", "openFor", holding)
+        self.assets.sell(holding["id"], "5", "312,50", main["id"])
+        self._settle()
+        self.assertEqual(self.assets.message, "You cannot sell more than you hold.")
+        self.assets.sell(holding["id"], "", "100", main["id"])
+        self._settle()
+        self.assertEqual(self.assets.holdings, [])
+        self.assertEqual(self.accounts.accounts[0]["balanceText"], "500,00 ₺")
+        self.assertEqual(self.assets.history[0]["title"], "Sold 2 × Turkish Airlines (THYAO)")
 
         # -- recurring payments --------------------------------------------
         shell.setProperty("section", "subscriptions")

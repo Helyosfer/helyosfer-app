@@ -13,6 +13,7 @@ Rectangle {
         || payDebt.visible || confirmDelete.visible || addDebt.visible
         || payInstallments.visible || addRecurring.visible || stopRecurring.visible
         || autoPayDay.visible || reschedule.visible || changeAmount.visible
+        || addAsset.visible || sellAsset.visible
     color: Theme.page
 
     readonly property var sections: [
@@ -125,7 +126,8 @@ Rectangle {
             : root.section === "cards" ? cards
             : root.section === "debts" ? debtsSection
             : root.section === "subscriptions" ? subscriptionsSection
-            : root.section === "settings" ? settingsSection : pending
+            : root.section === "settings" ? settingsSection
+            : root.section === "assets" ? assetsSection : pending
     }
 
     Component {
@@ -163,6 +165,17 @@ Rectangle {
     }
 
     Component { id: settingsSection; Settings {} }
+
+    Component {
+        id: assetsSection
+        Assets {
+            onAddRequested: addAsset.openFresh()
+            onSellRequested: function (holding) { sellAsset.openFor(holding) }
+        }
+    }
+
+    AddAsset { id: addAsset; objectName: "addAsset" }
+    SellAsset { id: sellAsset; objectName: "sellAsset" }
 
     AddDebt { id: addDebt; objectName: "addDebt" }
     PayInstallments { id: payInstallments; objectName: "payInstallments" }
