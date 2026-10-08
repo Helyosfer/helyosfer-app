@@ -12,6 +12,8 @@ Sheet {
     property string fieldLabel: ""
     property string fieldPlaceholder: ""
     property string confirmText: "Save"
+    property bool secret: false
+    property bool danger: false
     signal submitted(string text)
 
     function openFor(item, initialText) {
@@ -33,6 +35,7 @@ Sheet {
         width: parent.width
         label: root.fieldLabel
         placeholder: root.fieldPlaceholder
+        echoMode: root.secret ? TextInput.Password : TextInput.Normal
         onAccepted: root.submitted(text)
     }
 
@@ -44,6 +47,8 @@ Sheet {
     footer: [
         PrimaryButton { quiet: true; text: "Cancel"; onClicked: root.close() },
         PrimaryButton {
+            quiet: root.danger
+            danger: root.danger
             text: root.confirmText
             enabled: root.source ? !root.source.busy : false
             onClicked: root.submitted(field.text)

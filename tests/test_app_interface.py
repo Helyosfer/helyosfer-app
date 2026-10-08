@@ -72,6 +72,7 @@ class InterfaceSmokeTest(unittest.TestCase):
         cls.transactions = context.contextProperty("transactions")
         cls.debts = context.contextProperty("debts")
         cls.recurring = context.contextProperty("recurring")
+        cls.settings = context.contextProperty("settings")
         _pump(seconds=0.2)
 
     @classmethod
@@ -98,7 +99,8 @@ class InterfaceSmokeTest(unittest.TestCase):
     def _settle(self):
         _pump(lambda: not (
             self.accounts.busy or self.transactions.busy or self.debts.busy
-            or self.recurring.busy or self.dashboard.loading
+            or self.recurring.busy or self.settings.busy or self.auth.busy
+            or self.dashboard.loading
         ))
         # Let the reloads a write triggers come back before reading state.
         deadline = time.time() + 0.15
@@ -240,6 +242,52 @@ class InterfaceSmokeTest(unittest.TestCase):
         shell.setProperty("section", "overview")
         self._settle()
 
+    def _settings(self):
+        from PySide6.QtCore import QObject
+
+        window = self.engine.rootObjects()[0]
+        window.findChild(QObject, "shell").setProperty("section", "settings")
+        self._settle()
+        folder = self._tmp.name
+
+        backup = os.path.join(folder, "copy")
+        self.settings.createBackup(backup, "short", "short")
+        self._settle()
+        self.assertIn("at least 12", self.settings.message)
+        self.settings.createBackup(backup, "yedek-parolasi-uzun", "yedek-parolasi-uzun")
+        self._settle()
+        self.assertEqual(self.settings.message, "")
+        self.assertTrue(os.path.exists(backup + ".helysofer-backup"))
+
+        self.settings.restoreBackup(backup + ".helysofer-backup", "yanlis-parola-uzun")
+        self._settle()
+        self.assertIn("could not be restored", self.settings.message)
+        self.assertEqual(self.app.screen, "home")
+
+        export = os.path.join(folder, "rows")
+        self.settings.exportCsv(export)
+        self._settle()
+        self.assertTrue(os.path.exists(export + ".csv"))
+        self.assertIn("Exported", self.settings.notice)
+
+        self.settings.changePassword("wrong", "Baska-Parola-2027?", "Baska-Parola-2027?")
+        self._settle()
+        self.assertEqual(self.settings.message, "Incorrect password!")
+        self.settings.changePassword(STRONG, "Baska-Parola-2027?", "Baska-Parola-2027?")
+        self._settle()
+        self.assertEqual(self.app.screen, "login")
+        self.auth.login("Baska-Parola-2027?")
+        _pump(lambda: self.app.screen == "home")
+        self._settle()
+
+        self.settings.resetAll("no")
+        self._settle()
+        self.assertIn("DELETE", self.settings.message)
+        self.settings.resetAll("delete")
+        self._settle()
+        self.assertEqual(self.app.screen, "setup")
+        self.assertEqual(self.accounts.accounts, [])
+
     def test_the_whole_first_run_path_works_without_qml_warnings(self):
         self.assertEqual(self.app.screen, "setup")
 
@@ -277,6 +325,7 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertEqual(self.app.screen, "home")
 
         self._accounts_and_transactions()
+        self._settings()
 
         self.app.fail("Geri yükleme tamamlanamadı", "Veritabanı doğrulanamadı")
         _pump(seconds=0.1)

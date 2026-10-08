@@ -11,7 +11,7 @@ AuthFrame {
     Notice {
         width: parent.width
         problem: false
-        text: "Nothing was changed. Close this window when you are ready."
+        text: app.failureNote
     }
 
     PrimaryButton {

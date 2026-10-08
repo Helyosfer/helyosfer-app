@@ -124,7 +124,8 @@ Rectangle {
         sourceComponent: root.section === "overview" ? overview
             : root.section === "cards" ? cards
             : root.section === "debts" ? debtsSection
-            : root.section === "subscriptions" ? subscriptionsSection : pending
+            : root.section === "subscriptions" ? subscriptionsSection
+            : root.section === "settings" ? settingsSection : pending
     }
 
     Component {
@@ -160,6 +161,8 @@ Rectangle {
             onStopRequested: function (item) { stopRecurring.openFor(item) }
         }
     }
+
+    Component { id: settingsSection; Settings {} }
 
     AddDebt { id: addDebt; objectName: "addDebt" }
     PayInstallments { id: payInstallments; objectName: "payInstallments" }

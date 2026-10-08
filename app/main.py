@@ -14,6 +14,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 
 from app.accounts import AccountsController, TransactionFormController
 from app.payments import DebtsController, RecurringController
+from app.settings import SettingsController
 from app.controllers import (
     AppController, AuthController, DashboardController, Dispatcher,
 )
@@ -118,8 +119,10 @@ def build(app: QGuiApplication):
 
     if failure:
         auth = dashboard = accounts = transactions = debts = recurring = None
+        settings = None
     else:
-        auth = AuthController(controller, AuthService(store), tasks, app)
+        auth_service = AuthService(store)
+        auth = AuthController(controller, auth_service, tasks, app)
         dashboard = DashboardController(tasks, app)
         accounts = AccountsController(tasks, app)
         transactions = TransactionFormController(tasks, app)
@@ -151,12 +154,25 @@ def build(app: QGuiApplication):
 
         auth.signedIn.connect(refresh_all)
         auth.signedIn.connect(settle_due_items)
+
+        settings = SettingsController(auth_service, store, tasks, app)
+        settings.dataChanged.connect(refresh_all)
+        settings.passwordChanged.connect(auth.logout)
+        settings.wiped.connect(auth.start)
+        settings.wiped.connect(refresh_all)
+        settings.restored.connect(lambda: controller.halt(
+            "Backup restored",
+            "Your records, encryption key and settings were replaced with the "
+            "ones in the backup.",
+            "Close Helysofer and open it again to continue.",
+        ))
     context.setContextProperty("auth", auth)
     context.setContextProperty("dashboard", dashboard)
     context.setContextProperty("accounts", accounts)
     context.setContextProperty("transactions", transactions)
     context.setContextProperty("debts", debts)
     context.setContextProperty("recurring", recurring)
+    context.setContextProperty("settings", settings)
 
     engine.load(QUrl.fromLocalFile(os.path.join(QML_DIR, "Main.qml")))
     if not engine.rootObjects():

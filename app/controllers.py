@@ -91,6 +91,7 @@ class AppController(QObject):
         self._dark = True
         self._failure_title = ""
         self._failure_message = ""
+        self._failure_note = ""
         if store is not None:
             self._dark = store.get("display").get("style", "Dark") != "Light"
 
@@ -125,10 +126,22 @@ class AppController(QObject):
     def failureMessage(self):
         return self._failure_message
 
+    @Property(str, notify=failureChanged)
+    def failureNote(self):
+        return self._failure_note
+
     def fail(self, title: str, message: str) -> None:
         """Fail-closed startup surface: only fixed, safe text reaches the user."""
-        self._failure_title = tr(title)
-        self._failure_message = tr(message)
+        self.halt(
+            tr(title), tr(message),
+            "Nothing was changed. Close this window when you are ready.",
+        )
+
+    def halt(self, title: str, message: str, note: str = "") -> None:
+        """Replaces the application with a notice that can only be closed."""
+        self._failure_title = title
+        self._failure_message = message
+        self._failure_note = note
         self.failureChanged.emit()
         self.show("failure")
 
