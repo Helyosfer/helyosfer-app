@@ -6,9 +6,9 @@ import datetime
 
 from PySide6.QtCore import Property, Signal, Slot
 
-from app.accounts import FormError, _Mutating, read_amount
+from app.accounts import FormError, read_amount
 from app.controllers import format_amount, short_date
-from app.payments import _Listing, read_count, read_day
+from app.payments import _Listing, read_day
 from services.background_task_manager import BackgroundTaskManager
 
 
@@ -141,99 +141,3 @@ class SavingsController(_Listing):
             )
 
         self._mutate(work)
-
-
-class LoanController(_Mutating):
-    resultChanged = Signal()
-
-    def __init__(self, tasks: BackgroundTaskManager, parent=None):
-        super().__init__(tasks, parent)
-        self._result: dict | None = None
-        self._added = ""
-        self.saved.connect(self._note_added)
-
-    @Property(bool, notify=resultChanged)
-    def hasResult(self):
-        return self._result is not None
-
-    @Property(str, notify=resultChanged)
-    def monthlyText(self):
-        return f"{format_amount(self._result['monthly_payment'])} ₺" if self._result else "—"
-
-    @Property(str, notify=resultChanged)
-    def totalText(self):
-        return f"{format_amount(self._result['total_repayment'])} ₺" if self._result else "—"
-
-    @Property(str, notify=resultChanged)
-    def costText(self):
-        return f"{format_amount(self._result['total_cost'])} ₺" if self._result else "—"
-
-    @Property("QVariantList", notify=resultChanged)
-    def schedule(self):
-        if not self._result:
-            return []
-        return [
-            {
-                "month": row["month"],
-                "payment": format_amount(row["payment"]),
-                "principal": format_amount(row["principal"]),
-                "interest": format_amount(row["interest"]),
-                "balance": format_amount(row["balance"]),
-            }
-            for row in self._result["schedule"]
-        ]
-
-    @Property(str, notify=resultChanged)
-    def addedNote(self):
-        return self._added
-
-    @Slot(str, str, str, bool)
-    def calculate(self, amount_text, rate_text, months_text, include_taxes):
-        from app.accounts import user_message
-        from services.loan_service import MAX_MONTHS, calculate_loan
-
-        self._added = ""
-        try:
-            rate_clean = (rate_text or "").strip().replace(",", ".")
-            try:
-                rate = float(rate_clean)
-            except ValueError:
-                raise FormError("Enter the monthly interest rate, for example 3,49.") from None
-            self._result = calculate_loan(
-                read_amount(amount_text, "loan amount"), rate,
-                read_count(months_text, "number of months", 1, MAX_MONTHS),
-                include_taxes,
-            )
-            self._set_message("")
-        except ValueError as error:
-            self._result = None
-            self._set_message(user_message(error))
-        self.resultChanged.emit()
-
-    @Slot(str)
-    def addToDebts(self, name):
-        result = self._result
-        if result is None:
-            return
-
-        def work():
-            from services.debt_payment_service import DebtPaymentService
-
-            if not (name or "").strip():
-                raise FormError("Enter a name for the debt.")
-            DebtPaymentService.create_debt(
-                name.strip(), result["monthly_payment"], result["months"]
-            )
-
-        self._mutate(work)
-
-    def _note_added(self) -> None:
-        self._added = "Added to your debts."
-        self.resultChanged.emit()
-
-    @Slot()
-    def clear(self):
-        self._result = None
-        self._added = ""
-        self._set_message("")
-        self.resultChanged.emit()

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 import ".."
 import "../components"
 
@@ -8,11 +9,15 @@ Column {
     spacing: Theme.gap
 
     readonly property int colMonth: 60
-    readonly property int colMoney: 150
+    readonly property int colMoney: 138
 
-    function calculate() { loan.calculate(amount.text, rate.text, months.text, taxes.checked) }
+    function calculate() {
+        loan.calculate(amount.text, rate.text, months.text, taxes.checked, detailed.checked,
+                       kind.currentKey === undefined ? "" : kind.currentKey)
+    }
 
-    // -- Loan calculator ------------------------------------------------
+    Component.onCompleted: kind.select("consumer")
+
     Card {
         width: parent.width
 
@@ -24,7 +29,7 @@ Column {
                 width: parent.width
                 spacing: 3
                 Text {
-                    text: "Loan calculator"
+                    text: "Loan"
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -78,10 +83,140 @@ Column {
                 }
             }
 
-            Toggle {
-                id: taxes
-                checked: true
-                text: "Include KKDF and BSMV (15 % each on the interest)"
+            Flow {
+                width: parent.width
+                spacing: 24
+
+                Toggle {
+                    id: taxes
+                    checked: true
+                    text: "Include KKDF and BSMV (15 % each on the interest)"
+                }
+                Toggle {
+                    id: detailed
+                    text: "Include bank fees and my own charges"
+                }
+            }
+
+            // -- Detailed mode ------------------------------------------------
+            Column {
+                width: parent.width
+                spacing: 12
+                visible: detailed.checked
+
+                Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+
+                Choice {
+                    id: kind
+                    width: 300
+                    label: "Kind of loan"
+                    model: loan.kinds
+                }
+
+                Text {
+                    width: parent.width
+                    text: "An allocation fee (0,5 % plus tax) and life insurance (about 0,8 %) are deducted up front. Add anything else the bank charges below."
+                    color: Theme.muted
+                    font.family: Theme.uiFont
+                    font.pixelSize: 12
+                    wrapMode: Text.WordWrap
+                }
+
+                Flow {
+                    width: parent.width
+                    spacing: 12
+
+                    Field {
+                        id: chargeName
+                        width: 220
+                        label: "Charge"
+                        placeholder: "Appraisal fee"
+                    }
+                    Field {
+                        id: chargeAmount
+                        width: 150
+                        label: "Amount (₺)"
+                        placeholder: "0,00"
+                    }
+                    Item {
+                        width: spreadToggle.width
+                        height: chargeName.height
+                        Toggle {
+                            id: spreadToggle
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: 10
+                            text: "Spread over months"
+                        }
+                    }
+                    Field {
+                        id: chargeMonths
+                        visible: spreadToggle.checked
+                        width: 110
+                        label: "Months"
+                        placeholder: "12"
+                        input.inputMethodHints: Qt.ImhDigitsOnly
+                    }
+                    Item {
+                        width: addCharge.width
+                        height: chargeName.height
+                        PrimaryButton {
+                            id: addCharge
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: 2
+                            quiet: true
+                            text: "Add charge"
+                            onClicked: {
+                                var before = loan.charges.length
+                                loan.addCharge(chargeName.text, chargeAmount.text,
+                                               spreadToggle.checked, chargeMonths.text)
+                                if (loan.charges.length > before) {
+                                    chargeName.text = ""
+                                    chargeAmount.text = ""
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Column {
+                    width: parent.width
+                    Repeater {
+                        model: loan.charges
+                        Item {
+                            id: chargeRow
+                            required property var modelData
+                            required property int index
+                            width: parent.width
+                            height: 38
+
+                            Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: chargeRow.modelData.name + "  ·  " + chargeRow.modelData.detail
+                                color: Theme.text
+                                font.family: Theme.uiFont
+                                font.pixelSize: 13
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.right: removeCharge.left
+                                anchors.rightMargin: 16
+                                text: chargeRow.modelData.amount
+                                color: Theme.text
+                                font.family: Theme.dataFont
+                                font.pixelSize: 13
+                            }
+                            PrimaryButton {
+                                id: removeCharge
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                compact: true; quiet: true; danger: true
+                                text: "Remove"
+                                onClicked: loan.removeCharge(chargeRow.index)
+                            }
+                        }
+                    }
+                }
             }
 
             Notice {
@@ -91,32 +226,56 @@ Column {
 
             Rectangle { width: parent.width; height: 1; color: Theme.lineSoft; visible: loan.hasResult }
 
-            Row {
+            Figures {
                 width: parent.width
                 visible: loan.hasResult
+                rows: loan.hasDeductions
+                    ? [
+                        { label: "Monthly installment", value: loan.monthlyText, tone: 0 },
+                        { label: "Total repaid", value: loan.totalText, tone: 0 },
+                        { label: "Cost with all charges", value: loan.costText, tone: 0 },
+                        { label: "Cash you receive", value: loan.netCashText, tone: 0 }
+                      ]
+                    : [
+                        { label: "Monthly installment", value: loan.monthlyText, tone: 0 },
+                        { label: "Total repaid", value: loan.totalText, tone: 0 },
+                        { label: "Cost of borrowing", value: loan.costText, tone: 0 }
+                      ]
+            }
 
+            Column {
+                width: parent.width
+                visible: loan.hasDeductions
+
+                Text {
+                    bottomPadding: 6
+                    text: "Deducted up front"
+                    color: Theme.muted
+                    font.family: Theme.uiFont
+                    font.pixelSize: 12
+                }
                 Repeater {
-                    model: [
-                        { label: "Monthly installment", value: loan.monthlyText },
-                        { label: "Total repaid", value: loan.totalText },
-                        { label: "Cost of borrowing", value: loan.costText }
-                    ]
-                    Column {
+                    model: loan.deductions
+                    Item {
+                        id: deduction
                         required property var modelData
-                        width: parent.width / 3
-                        spacing: 2
+                        width: parent.width
+                        height: 30
+                        Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
                         Text {
-                            text: modelData.label
-                            color: Theme.muted
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: deduction.modelData.label
+                            color: Theme.text
                             font.family: Theme.uiFont
                             font.pixelSize: 12
                         }
                         Text {
-                            text: modelData.value
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            text: deduction.modelData.value
                             color: Theme.text
-                            font.family: Theme.displayFont
-                            font.pixelSize: 24
-                            font.weight: Font.Light
+                            font.family: Theme.dataFont
+                            font.pixelSize: 12
                         }
                     }
                 }
@@ -135,23 +294,32 @@ Column {
                     onAccepted: loan.addToDebts(text)
                 }
                 Item {
-                    width: addButton.width
+                    width: actions.width
                     height: debtName.height
-                    PrimaryButton {
-                        id: addButton
+                    Row {
+                        id: actions
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: 2
-                        quiet: true
-                        text: loan.busy ? "Adding…" : "Add to debts"
-                        enabled: !loan.busy && debtName.text.trim().length > 0
-                        onClicked: loan.addToDebts(debtName.text)
+                        spacing: 10
+                        PrimaryButton {
+                            quiet: true
+                            text: "Add to debts"
+                            enabled: !loan.busy && debtName.text.trim().length > 0
+                            onClicked: loan.addToDebts(debtName.text)
+                        }
+                        PrimaryButton {
+                            quiet: true
+                            text: "Save schedule as PDF"
+                            enabled: !loan.busy
+                            onClicked: pdfFile.open()
+                        }
                     }
                 }
                 Text {
                     height: debtName.height
                     verticalAlignment: Text.AlignBottom
                     bottomPadding: 10
-                    text: loan.addedNote
+                    text: loan.note
                     color: Theme.up
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -160,13 +328,32 @@ Column {
         }
     }
 
-    // -- Repayment schedule ---------------------------------------------
+    // -- Repayment schedule -------------------------------------------------
     Card {
         width: parent.width
         visible: loan.hasResult
 
         Column {
+            id: table
             width: parent.width
+
+            readonly property var columns: loan.hasExtras
+                ? [
+                    { label: "Month", key: "month", width: root.colMonth, left: true },
+                    { label: "Installment", key: "payment", width: root.colMoney },
+                    { label: "Extra charges", key: "extra", width: root.colMoney },
+                    { label: "Total", key: "total", width: root.colMoney },
+                    { label: "Principal", key: "principal", width: root.colMoney },
+                    { label: "Interest and tax", key: "interest", width: root.colMoney },
+                    { label: "Remaining", key: "balance", width: root.colMoney }
+                  ]
+                : [
+                    { label: "Month", key: "month", width: root.colMonth, left: true },
+                    { label: "Installment", key: "payment", width: root.colMoney },
+                    { label: "Principal", key: "principal", width: root.colMoney },
+                    { label: "Interest and tax", key: "interest", width: root.colMoney },
+                    { label: "Remaining", key: "balance", width: root.colMoney }
+                  ]
 
             Text {
                 bottomPadding: 10
@@ -180,13 +367,7 @@ Column {
             Row {
                 height: 26
                 Repeater {
-                    model: [
-                        { label: "Month", width: root.colMonth, left: true },
-                        { label: "Installment", width: root.colMoney },
-                        { label: "Principal", width: root.colMoney },
-                        { label: "Interest and tax", width: root.colMoney },
-                        { label: "Remaining", width: root.colMoney }
-                    ]
+                    model: table.columns
                     Text {
                         required property var modelData
                         width: modelData.width
@@ -218,18 +399,12 @@ Column {
                     Row {
                         anchors.verticalCenter: parent.verticalCenter
                         Repeater {
-                            model: [
-                                { text: line.modelData.month, width: root.colMonth, left: true },
-                                { text: line.modelData.payment, width: root.colMoney },
-                                { text: line.modelData.principal, width: root.colMoney },
-                                { text: line.modelData.interest, width: root.colMoney },
-                                { text: line.modelData.balance, width: root.colMoney }
-                            ]
+                            model: table.columns
                             Text {
                                 required property var modelData
                                 width: modelData.width
                                 horizontalAlignment: modelData.left ? Text.AlignLeft : Text.AlignRight
-                                text: modelData.text
+                                text: line.modelData[modelData.key]
                                 color: modelData.left ? Theme.faint : Theme.text
                                 font.family: Theme.dataFont
                                 font.pixelSize: 12
@@ -239,5 +414,14 @@ Column {
                 }
             }
         }
+    }
+
+    FileDialog {
+        id: pdfFile
+        title: "Save repayment schedule"
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["PDF (*.pdf)"]
+        defaultSuffix: "pdf"
+        onAccepted: loan.exportPdf(selectedFile)
     }
 }

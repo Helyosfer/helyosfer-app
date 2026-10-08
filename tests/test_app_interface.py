@@ -101,6 +101,7 @@ class InterfaceSmokeTest(unittest.TestCase):
         cls.assets = context.contextProperty("assets")
         cls.savings = context.contextProperty("savings")
         cls.loan = context.contextProperty("loan")
+        cls.calc = context.contextProperty("calc")
         cls.budget = context.contextProperty("budget")
         cls.calendar = context.contextProperty("calendar")
         cls.insights = context.contextProperty("insights")
@@ -136,6 +137,7 @@ class InterfaceSmokeTest(unittest.TestCase):
             or self.recurring.busy or self.settings.busy or self.auth.busy
             or self.assets.busy or self.savings.busy or self.loan.busy
             or self.budget.busy or self.insights.busy or self.scenario.busy
+            or self.calc.busy
             or self.history.busy
             or self.dashboard.loading
         ))
@@ -313,16 +315,49 @@ class InterfaceSmokeTest(unittest.TestCase):
         # -- loan calculator ------------------------------------------------
         shell.setProperty("section", "tools")
         self._settle()
-        self.loan.calculate("100.000", "x", "12", True)
+        self.loan.calculate("100.000", "x", "12", True, False, "")
         self.assertFalse(self.loan.hasResult)
         self.assertTrue(self.loan.message)
-        self.loan.calculate("100.000", "3,49", "12", True)
+        self.loan.calculate("100.000", "3,49", "12", True, False, "")
         self.assertTrue(self.loan.hasResult)
         self.assertEqual(self.loan.monthlyText, "10.989,84 ₺")
         self.assertEqual(len(self.loan.schedule), 12)
+        self.assertFalse(self.loan.hasDeductions)
+        self.loan.addCharge("Insurance", "2.400", True, "12")
+        self.loan.calculate("100.000", "3,49", "48", True, True, "consumer")
+        self.assertIn("longer than this kind of loan allows", self.loan.message)
+        self.loan.calculate("100.000", "3,49", "24", True, True, "consumer")
+        self.assertTrue(self.loan.hasDeductions)
+        self.assertTrue(self.loan.hasExtras)
+        self.assertEqual(self.loan.schedule[0]["extra"], "200,00")
+        plan = os.path.join(self._tmp.name, "plan")
+        self.loan.exportPdf(plan)
+        self._settle()
+        self.assertTrue(os.path.exists(plan + ".pdf"))
+        self.loan.removeCharge(0)
+        self.loan.calculate("100.000", "3,49", "12", True, False, "")
         self.loan.addToDebts("Car loan")
         self._settle()
-        self.assertEqual(self.loan.addedNote, "Added to your debts.")
+        self.assertEqual(self.loan.note, "Added to your debts.")
+
+        window.findChild(QObject, "tools").setProperty("tool", "loan")
+        self._settle()
+        calculators = window.findChild(QObject, "calculators")
+        for key in ("interest", "growth", "goal", "plain", "loan"):
+            calculators.setProperty("calculator", key)
+            self._settle()
+        self.calc.interest("100.000", "45", "32")
+        self.assertEqual(self.calc.interestRows[0]["value"], "+3.747,95 ₺")
+        self.calc.growth("1.000", "10", "2", "")
+        self.assertEqual(self.calc.growthSeries, [1000.0, 1100.0, 1210.0])
+        self.calc.goalTime("1.000", "250", False)
+        self.assertEqual(self.calc.goalRows[0]["value"], "4 months")
+        self.calc.evaluate("(2 + 3) * 4")
+        self.assertEqual(self.calc.answer, "20")
+        self.calc.evaluate("__import__('os')")
+        self.assertEqual(self.calc.answer, "")
+        self.assertTrue(self.calc.message)
+        self.calc.clearMessage()
         self.assertEqual(self.debts.debts[0]["monthlyText"], "10.989,84 ₺")
 
         # -- budget plan and calendar ---------------------------------------

@@ -40,7 +40,7 @@ Flickable {
                 model: [
                     { key: "budget", label: "Budget plan" },
                     { key: "calendar", label: "Calendar" },
-                    { key: "loan", label: "Loan calculator" },
+                    { key: "loan", label: "Calculators" },
                     { key: "insights", label: "Insights" },
                     { key: "scenario", label: "What if" },
                     { key: "history", label: "Past balance" }
@@ -66,7 +66,7 @@ Flickable {
         BudgetTool { onAddRequested: root.addPlanItemRequested() }
     }
     Component { id: calendarTool; CalendarTool {} }
-    Component { id: loanTool; LoanTool {} }
+    Component { id: loanTool; CalculatorsTool { objectName: "calculators" } }
     Component { id: insightsTool; InsightsTool {} }
     Component { id: scenarioTool; ScenarioTool {} }
     Component { id: historyTool; HistoryTool {} }
