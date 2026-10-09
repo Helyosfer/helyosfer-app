@@ -39,23 +39,94 @@ CATEGORY_TYPES = ("income", "expense")
 
 
 def list_categories():
-    """Every category as {category, type, importance}, in stored order."""
+    """Every category as {category, type, importance, custom}, in stored order."""
     with managed_connection() as conn:
         rows = conn.execute(
-            "SELECT name, type, IFNULL(importance, 'extra') FROM categories ORDER BY id"
+            "SELECT name, type, IFNULL(importance, 'extra'), custom FROM categories ORDER BY id"
         ).fetchall()
-    return [{"category": row[0], "type": row[1], "importance": row[2]} for row in rows]
+    return [
+        {"category": row[0], "type": row[1], "importance": row[2], "custom": bool(row[3])}
+        for row in rows
+    ]
+
+
+def _clean_category_name(name):
+    name = " ".join(str(name or "").split())
+    if not name:
+        raise ValueError("Kategori adı boş olamaz.")
+    if len(name) > MAX_CATEGORY_NAME_LENGTH:
+        raise ValueError("Kategori adı en fazla 40 karakter olabilir.")
+    return name
+
+
+def _own_category(conn, name):
+    """The stored row of a category the user added; refuses anything else."""
+    row = conn.execute(
+        "SELECT id, name, custom FROM categories WHERE name = ?", (name,)
+    ).fetchone()
+    if row is None:
+        raise ValueError("Kategori bulunamadı.")
+    if not row[2]:
+        raise ValueError("Hazır kategoriler değiştirilemez.")
+    return row
+
+
+# Every place a category is stored by name.
+_CATEGORY_COLUMNS = (
+    ("transactions", "category"),
+    ("monthly_budget_plan", "category_name"),
+    ("recurring_payments", "category"),
+)
+
+
+def rename_category(name, new_name):
+    """Renames a category the user added, everywhere it is used."""
+    from services.search_service import normalize
+
+    new_name = _clean_category_name(new_name)
+    wanted = normalize(new_name)
+    with managed_connection() as conn:
+        row = _own_category(conn, name)
+        others = conn.execute(
+            "SELECT name FROM categories WHERE id != ?", (row[0],)
+        ).fetchall()
+        if any(normalize(other[0]) == wanted for other in others):
+            raise ValueError("Bu adda bir kategori zaten var.")
+        conn.execute("UPDATE categories SET name = ? WHERE id = ?", (new_name, row[0]))
+        for table, column in _CATEGORY_COLUMNS:
+            conn.execute(
+                f"UPDATE {table} SET {column} = ? WHERE {column} = ?",  # nosec B608
+                (new_name, name),
+            )
+        conn.commit()
+    from services.asset_service import mark_financial_data_changed
+
+    mark_financial_data_changed()
+    return new_name
+
+
+def delete_category(name):
+    """Removes a category the user added, as long as nothing is filed under it."""
+    with managed_connection() as conn:
+        row = _own_category(conn, name)
+        for table, column in _CATEGORY_COLUMNS:
+            used = conn.execute(
+                f"SELECT 1 FROM {table} WHERE {column} = ? LIMIT 1", (name,)  # nosec B608
+            ).fetchone()
+            if used is not None:
+                raise ValueError(
+                    "Bu kategori kullanımda olduğu için silinemez. Yeniden adlandırabilirsiniz."
+                )
+        conn.execute("DELETE FROM categories WHERE id = ?", (row[0],))
+        conn.commit()
+    return True
 
 
 def add_category(name, category_type, essential=False):
     """Adds a category the user names. Names are unique regardless of case."""
     from services.search_service import normalize
 
-    name = " ".join(str(name or "").split())
-    if not name:
-        raise ValueError("Kategori adı boş olamaz.")
-    if len(name) > MAX_CATEGORY_NAME_LENGTH:
-        raise ValueError("Kategori adı en fazla 40 karakter olabilir.")
+    name = _clean_category_name(name)
     if category_type not in CATEGORY_TYPES:
         raise ValueError("Kategori türü geçersiz.")
     wanted = normalize(name)
@@ -64,7 +135,7 @@ def add_category(name, category_type, essential=False):
         if any(normalize(row[0]) == wanted for row in existing):
             raise ValueError("Bu adda bir kategori zaten var.")
         conn.execute(
-            "INSERT INTO categories(name, type, importance) VALUES(?,?,?)",
+            "INSERT INTO categories(name, type, importance, custom) VALUES(?,?,?,1)",
             (name, category_type, "main" if essential else "extra"),
         )
         conn.commit()

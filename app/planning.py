@@ -172,10 +172,13 @@ class CategoriesController(_Listing):
                     "name": tr(row["category"]),
                     "kind": row["type"],
                     "essential": row["importance"] == "main",
+                    "custom": row["custom"],
                 }
                 for row in rows
             ),
-            key=lambda item: item["name"].casefold(),
+            # The user's own categories lead: they are the ones that can be
+            # renamed or removed, and would otherwise be lost among fifty.
+            key=lambda item: (not item["custom"], item["name"].casefold()),
         )
 
     @Slot(str, str, bool)
@@ -183,6 +186,18 @@ class CategoriesController(_Listing):
         from services.queries import add_category
 
         self._mutate(lambda: add_category(name, kind, essential))
+
+    @Slot(str, str)
+    def rename(self, key, name):
+        from services.queries import rename_category
+
+        self._mutate(lambda: rename_category(key, name))
+
+    @Slot(str)
+    def remove(self, key):
+        from services.queries import delete_category
+
+        self._mutate(lambda: delete_category(key), announce=False)
 
     @Slot(str, bool)
     def setEssential(self, key, essential):

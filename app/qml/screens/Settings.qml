@@ -250,13 +250,36 @@ Item {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.left: parent.left
-                            anchors.right: essential.left
+                            anchors.right: own.left
                             anchors.rightMargin: 16
                             text: categoryRow.modelData.name
                             color: Theme.text
                             font.family: Theme.uiFont
                             font.pixelSize: 13
                             elide: Text.ElideRight
+                        }
+                        Row {
+                            id: own
+                            anchors.right: essential.left
+                            anchors.rightMargin: 20
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 8
+                            visible: categoryRow.modelData.custom
+
+                            PrimaryButton {
+                                quiet: true
+                                compact: true
+                                text: "Rename"
+                                onClicked: renamePrompt.openFor(categoryRow.modelData, categoryRow.modelData.name)
+                            }
+                            PrimaryButton {
+                                quiet: true
+                                danger: true
+                                compact: true
+                                text: "Remove"
+                                enabled: !categories.busy
+                                onClicked: categories.remove(categoryRow.modelData.key)
+                            }
                         }
                         Toggle {
                             id: essential
@@ -468,6 +491,16 @@ Item {
         fileMode: FileDialog.OpenFile
         nameFilters: ["Helysofer backup (*" + settings.backupSuffix + ")", "All files (*)"]
         onAccepted: restorePrompt.openFor({ file: selectedFile.toString() }, "")
+    }
+
+    Prompt {
+        id: renamePrompt
+        objectName: "renamePrompt"
+        source: categories
+        title: "Rename category"
+        subtitle: "Everything filed under it moves to the new name."
+        fieldLabel: "Name"
+        onSubmitted: function (text) { categories.rename(subject.key, text) }
     }
 
     Prompt {

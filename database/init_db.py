@@ -283,6 +283,11 @@ def _initialize_database(conn):
             importance TEXT DEFAULT 'extra'
         )
     """)
+    cursor.execute("PRAGMA table_info(categories)")
+    if "custom" not in {row[1] for row in cursor.fetchall()}:
+        # 1 for a category the user added; the built-in ones are catalog
+        # values and can be neither renamed nor removed.
+        cursor.execute("ALTER TABLE categories ADD COLUMN custom INTEGER NOT NULL DEFAULT 0")
 
 
     cursor.execute("""

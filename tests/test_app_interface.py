@@ -561,11 +561,18 @@ class InterfaceSmokeTest(unittest.TestCase):
         hit = next(r for r in self.search.results if r["kind"] == "Transaction")
         self.assertEqual(hit["title"], "Weekly shop")
         self.assertEqual(hit["target"], "calendar")
-        self.search.search("main")
+        self.search.search("main acc")
         self._settle()
         self.assertEqual(
             [(r["kind"], r["title"], r["target"]) for r in self.search.results],
             [("Account", "Main account", "cards")],
+        )
+        # A built-in category is found by the name shown on screen as well.
+        self.search.search("groceries")
+        self._settle()
+        self.assertEqual(
+            [(r["kind"], r["title"]) for r in self.search.results if r["kind"] == "Category"],
+            [("Category", "Groceries")],
         )
         self.search.search("nothing-matches-this")
         self._settle()
@@ -615,6 +622,21 @@ class InterfaceSmokeTest(unittest.TestCase):
         self._settle()
         self.assertIn("already exists", self.categories.message)
         self.categories.clearMessage()
+        self.assertTrue(added["custom"])
+        self.assertFalse(next(c for c in self.categories.items if c["key"] == "Taksi")["custom"])
+        self.categories.rename("Pet sitter", "Dog walker")
+        self._settle()
+        self.assertEqual(self.categories.message, "")
+        self.assertIn("Dog walker", [c["key"] for c in self.transactions.categories("expense")])
+        self.categories.rename("Taksi", "Cab")
+        self._settle()
+        self.assertIn("Built-in", self.categories.message)
+        self.categories.clearMessage()
+        self.categories.remove("Dog walker")
+        self._settle()
+        self.assertNotIn("Dog walker", [c["key"] for c in self.categories.items])
+        self.categories.add("expense", "Pet sitter", True)
+        self._settle()
         self.categories.setEssential("Pet sitter", False)
         self._settle()
         added = next(c for c in self.categories.items if c["key"] == "Pet sitter")

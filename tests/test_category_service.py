@@ -58,6 +58,89 @@ class CategoryServiceTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     add_category(name, kind)
 
+    # -- renaming and removing ---------------------------------------------
+    def _file_under(self, category):
+        from services.account_service import AccountService
+        from services.transaction_service import TransactionService
+
+        account = AccountService.create_account("Main", "checking", 1000.0)
+        TransactionService.add_transaction(
+            account, 50.0, "expense", category, "x", detect_subscription=False)
+        return account
+
+    def test_only_added_categories_are_marked_as_the_users_own(self):
+        from services.queries import add_category
+
+        add_category("Evcil bakıcı", "expense")
+        self.assertTrue(self._category("Evcil bakıcı")["custom"])
+        self.assertFalse(self._category("Maaş")["custom"])
+
+    def test_renaming_moves_everything_filed_under_the_category(self):
+        from database.db import get_connection
+        from services.queries import add_category, rename_category
+
+        add_category("Evcil bakıcı", "expense", True)
+        self._file_under("Evcil bakıcı")
+        conn = get_connection()
+        try:
+            conn.execute(
+                "INSERT INTO monthly_budget_plan(type, name, amount, target_month,"
+                " target_year, category_name) VALUES('expense', 'Bakım', 300, 1, 2026, ?)",
+                ("Evcil bakıcı",))
+            conn.commit()
+        finally:
+            conn.close()
+
+        self.assertEqual(rename_category("Evcil bakıcı", "  Köpek   gezdirme "), "Köpek gezdirme")
+        self.assertIsNone(self._category("Evcil bakıcı"))
+        renamed = self._category("Köpek gezdirme")
+        self.assertEqual((renamed["type"], renamed["importance"], renamed["custom"]),
+                         ("expense", "main", True))
+        conn = get_connection()
+        try:
+            filed = conn.execute("SELECT category FROM transactions").fetchall()
+            planned = conn.execute("SELECT category_name FROM monthly_budget_plan").fetchall()
+        finally:
+            conn.close()
+        self.assertEqual([row[0] for row in filed], ["Köpek gezdirme"])
+        self.assertEqual([row[0] for row in planned], ["Köpek gezdirme"])
+
+    def test_a_rename_may_change_only_the_letter_case(self):
+        from services.queries import add_category, rename_category
+
+        add_category("evcil bakıcı", "expense")
+        self.assertEqual(rename_category("evcil bakıcı", "Evcil Bakıcı"), "Evcil Bakıcı")
+
+    def test_bad_renames_are_refused(self):
+        from services.queries import add_category, rename_category
+
+        add_category("Evcil bakıcı", "expense")
+        for old, new in (("Evcil bakıcı", ""), ("Evcil bakıcı", "x" * 41),
+                         ("Evcil bakıcı", "MAAŞ"), ("Maaş", "Ücret"), ("Yok", "Var")):
+            with self.subTest(old=old, new=new):
+                with self.assertRaises(ValueError):
+                    rename_category(old, new)
+        self.assertIsNotNone(self._category("Evcil bakıcı"))
+        self.assertIsNotNone(self._category("Maaş"))
+
+    def test_an_unused_category_of_the_users_can_be_removed(self):
+        from services.queries import add_category, delete_category
+
+        add_category("Evcil bakıcı", "expense")
+        self.assertTrue(delete_category("Evcil bakıcı"))
+        self.assertIsNone(self._category("Evcil bakıcı"))
+
+    def test_a_category_in_use_or_built_in_stays(self):
+        from services.queries import add_category, delete_category
+
+        add_category("Evcil bakıcı", "expense")
+        self._file_under("Evcil bakıcı")
+        for name in ("Evcil bakıcı", "Maaş", "Yok"):
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError):
+                    delete_category(name)
+        self.assertIsNotNone(self._category("Evcil bakıcı"))
+
     def test_changing_importance_ages_the_derived_figures(self):
         from services.asset_service import get_financial_data_revision
         from services.queries import set_category_importance

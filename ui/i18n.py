@@ -288,6 +288,10 @@ EN = {
     "İşlem tarihi gelecekte olamaz.": "The date cannot be in the future. Add a new transaction to plan one.",
     "İşlem tarihi geçersiz.": "Enter a valid date.",
     "Bu kategori bu işlem türü için kullanılamaz.": "Choose a category from the list.",
+    "Kategori bulunamadı.": "This category no longer exists.",
+    "Hazır kategoriler değiştirilemez.": "Built-in categories cannot be renamed or removed.",
+    "Bu kategori kullanımda olduğu için silinemez. Yeniden adlandırabilirsiniz.":
+        "This category is in use, so it cannot be removed. You can rename it instead.",
     "Kategori adı boş olamaz.": "Enter a name for the category.",
     "Kategori adı en fazla 40 karakter olabilir.": "A category name can be at most 40 characters.",
     "Kategori türü geçersiz.": "Choose income or spending.",
