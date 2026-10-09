@@ -30,7 +30,7 @@ Flickable {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Tools"
+                text: qsTr("Tools")
                 color: Theme.text
                 font.family: Theme.displayFont
                 font.pixelSize: 22
@@ -40,12 +40,12 @@ Flickable {
                 id: tabs
                 anchors.right: parent.right
                 model: [
-                    { key: "budget", label: "Budget plan" },
-                    { key: "calendar", label: "Calendar" },
-                    { key: "loan", label: "Calculators" },
-                    { key: "insights", label: "Insights" },
-                    { key: "scenario", label: "What if" },
-                    { key: "history", label: "Past balance" }
+                    { key: "budget", label: qsTr("Budget plan") },
+                    { key: "calendar", label: qsTr("Calendar") },
+                    { key: "loan", label: qsTr("Calculators") },
+                    { key: "insights", label: qsTr("Insights") },
+                    { key: "scenario", label: qsTr("What if") },
+                    { key: "history", label: qsTr("Past balance") }
                 ]
                 current: root.tool
                 onChosen: function (key) { root.tool = key }

@@ -8,8 +8,8 @@ Sheet {
     property var item: null
     property string charge: ""
 
-    title: item ? "Stop " + item.name + "?" : ""
-    subtitle: "It will no longer be charged or shown here. Past transactions stay as they are."
+    title: item ? qsTr("Stop %1?").arg(item.name) : ""
+    subtitle: qsTr("It will no longer be charged or shown here. Past transactions stay as they are.")
 
     function openFor(payment) {
         item = payment
@@ -27,7 +27,7 @@ Sheet {
     Toggle {
         id: refund
         visible: root.charge.length > 0
-        text: "Add this month's " + root.charge + " back to the account"
+        text: qsTr("Add this month's %1 back to the account").arg(root.charge)
     }
 
     Notice {
@@ -36,11 +36,11 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: "Keep"; onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Keep"); onClicked: root.close() },
         PrimaryButton {
             quiet: true
             danger: true
-            text: recurring.busy ? "Stopping…" : "Stop"
+            text: recurring.busy ? qsTr("Stopping…") : qsTr("Stop")
             enabled: !recurring.busy
             onClicked: recurring.cancel(root.item.id, refund.visible && refund.checked)
         }

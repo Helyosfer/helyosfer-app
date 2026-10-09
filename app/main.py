@@ -21,6 +21,7 @@ from app.calculators import CalculatorController, LoanController
 from app.planning import CategoriesController, SavingsController
 from app.search import SearchController
 from app.settings import SettingsController
+from app.language import Translator, say
 from app.controllers import (
     AppController, AuthController, DashboardController, Dispatcher,
 )
@@ -119,6 +120,9 @@ def build(app: QGuiApplication):
 
     store = None if failure else ConfigStore(config_path)
     controller = AppController(store, app)
+    # QML's qsTr() asks this for its text, in the language the controller set.
+    translator = Translator(app)
+    app.installTranslator(translator)
     engine = QQmlApplicationEngine(app)
     context = engine.rootContext()
     context.setContextProperty("app", controller)
@@ -182,11 +186,13 @@ def build(app: QGuiApplication):
         settings.wiped.connect(auth.start)
         settings.wiped.connect(refresh_all)
         settings.restored.connect(lambda: controller.halt(
-            "Backup restored",
-            "Your records, encryption key and settings were replaced with the "
-            "ones in the backup.",
-            "Close Helysofer and open it again to continue.",
+            say("Backup restored"),
+            say("Your records, encryption key and settings were replaced with the "
+                "ones in the backup."),
+            say("Close Helysofer and open it again to continue."),
         ))
+        # Text the controllers hold was built in the old language.
+        controller.languageChanged.connect(refresh_all)
     context.setContextProperty("auth", auth)
     context.setContextProperty("dashboard", dashboard)
     context.setContextProperty("accounts", accounts)

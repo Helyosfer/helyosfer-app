@@ -4,8 +4,8 @@ import ".."
 import "../components"
 
 AuthFrame {
-    title: "Add your first account"
-    subtitle: "Start with the account you use most. You can add cards and other accounts later."
+    title: qsTr("Add your first account")
+    subtitle: qsTr("Start with the account you use most. You can add cards and other accounts later.")
 
     function submit() { auth.createFirstAccount(name.text, balance.text) }
 
@@ -17,8 +17,8 @@ AuthFrame {
     Field {
         id: name
         width: parent.width
-        label: "Account name"
-        placeholder: "Main account"
+        label: qsTr("Account name")
+        placeholder: qsTr("Main account")
         onAccepted: balance.input.forceActiveFocus()
         Component.onCompleted: input.forceActiveFocus()
     }
@@ -26,7 +26,7 @@ AuthFrame {
     Field {
         id: balance
         width: parent.width
-        label: "Current balance (₺)"
+        label: qsTr("Current balance (₺)")
         placeholder: "0,00"
         money: true
         input.inputMethodHints: Qt.ImhFormattedNumbersOnly
@@ -41,7 +41,7 @@ AuthFrame {
 
     PrimaryButton {
         width: parent.width
-        text: "Open Helysofer"
+        text: qsTr("Open Helysofer")
         enabled: name.text.trim().length > 0
         onClicked: submit()
     }

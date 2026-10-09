@@ -15,7 +15,7 @@ Row {
         width: 32
         leftPadding: 0; rightPadding: 0
         text: "‹"
-        Accessible.name: "Previous month"
+        Accessible.name: qsTr("Previous month")
         onClicked: root.previous()
     }
     Text {
@@ -33,7 +33,7 @@ Row {
         width: 32
         leftPadding: 0; rightPadding: 0
         text: "›"
-        Accessible.name: "Next month"
+        Accessible.name: qsTr("Next month")
         onClicked: root.next()
     }
 }

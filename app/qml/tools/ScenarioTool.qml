@@ -25,7 +25,7 @@ Column {
                 width: parent.width
                 spacing: 3
                 Text {
-                    text: "What if"
+                    text: qsTr("What if")
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -33,7 +33,7 @@ Column {
                 }
                 Text {
                     width: parent.width
-                    text: "Compare where your balance is heading with a change you are considering. Nothing here is saved."
+                    text: qsTr("Compare where your balance is heading with a change you are considering. Nothing here is saved.")
                     color: Theme.muted
                     font.family: Theme.uiFont
                     font.pixelSize: 12
@@ -48,21 +48,21 @@ Column {
                 Field {
                     id: income
                     width: 170
-                    label: "Income change (%)"
+                    label: qsTr("Income change (%)")
                     placeholder: "0"
                     onAccepted: root.run()
                 }
                 Field {
                     id: expense
                     width: 170
-                    label: "Spending change (%)"
+                    label: qsTr("Spending change (%)")
                     placeholder: "0"
                     onAccepted: root.run()
                 }
                 Field {
                     id: oneTime
                     width: 220
-                    label: "One-time amount (₺, minus to spend)"
+                    label: qsTr("One-time amount (₺, minus to spend)")
                     placeholder: "0"
                     money: true
                     signed: true
@@ -71,7 +71,7 @@ Column {
                 Choice {
                     id: horizon
                     width: 150
-                    label: "Over"
+                    label: qsTr("Over")
                     model: scenario.horizons
                 }
                 Item {
@@ -81,7 +81,7 @@ Column {
                         id: runButton
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: 2
-                        text: scenario.busy ? "Working…" : "Compare"
+                        text: scenario.busy ? qsTr("Working…") : qsTr("Compare")
                         enabled: !scenario.busy
                         onClicked: root.run()
                     }
@@ -108,9 +108,9 @@ Column {
 
                 Repeater {
                     model: [
-                        { label: "As things are", value: scenario.baseText, tone: 0 },
-                        { label: "With the change", value: scenario.scenarioText, tone: 0 },
-                        { label: "Difference", value: scenario.differenceText, tone: scenario.differenceDirection }
+                        { label: qsTr("As things are"), value: scenario.baseText, tone: 0 },
+                        { label: qsTr("With the change"), value: scenario.scenarioText, tone: 0 },
+                        { label: qsTr("Difference"), value: scenario.differenceText, tone: scenario.differenceDirection }
                     ]
                     Column {
                         required property var modelData
@@ -143,7 +143,7 @@ Column {
 
             Text {
                 width: parent.width
-                text: "The brighter line is the change; the fainter one is how things are now.  " + scenario.note
+                text: qsTr("The brighter line is the change; the fainter one is how things are now.") + "  " + scenario.note
                 color: Theme.faint
                 font.family: Theme.uiFont
                 font.pixelSize: 12
@@ -153,7 +153,7 @@ Column {
             Text {
                 width: parent.width
                 visible: scenario.goesNegative
-                text: "With this change the balance drops below zero at some point in the period."
+                text: qsTr("With this change the balance drops below zero at some point in the period.")
                 color: Theme.warn
                 font.family: Theme.uiFont
                 font.pixelSize: 13

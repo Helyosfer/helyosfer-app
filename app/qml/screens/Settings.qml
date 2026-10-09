@@ -94,7 +94,7 @@ Item {
             spacing: Theme.gap
 
             Text {
-                text: "Settings"
+                text: qsTr("Settings")
                 color: Theme.text
                 font.family: Theme.displayFont
                 font.pixelSize: 22
@@ -124,54 +124,64 @@ Item {
             }
 
             Section {
-                heading: "Appearance"
+                heading: qsTr("Appearance")
                 SettingRow {
-                    title: "Dark theme"
-                    detail: "Applies immediately and is remembered on this device."
+                    title: qsTr("Dark theme")
+                    detail: qsTr("Applies immediately and is remembered on this device.")
                     Toggle {
                         checked: app.dark
                         onToggled: app.toggleTheme()
                     }
                 }
+                SettingRow {
+                    title: qsTr("Language")
+                    detail: qsTr("Amounts and dates are written the same way in both.")
+                    Segmented {
+                        objectName: "languageChoice"
+                        model: app.languages
+                        current: app.language
+                        onChosen: function (key) { app.setLanguage(key) }
+                    }
+                }
             }
 
             Section {
-                heading: "Security"
+                heading: qsTr("Security")
                 SettingRow {
-                    title: "Password"
-                    detail: "You will be asked to sign in again after changing it."
+                    title: qsTr("Password")
+                    detail: qsTr("You will be asked to sign in again after changing it.")
                     PrimaryButton {
                         compact: true; quiet: true
-                        text: "Change password"
+                        text: qsTr("Change password")
                         onClicked: passwordDialog.openFresh()
                     }
                 }
                 SettingRow {
-                    title: "Encryption key"
+                    title: qsTr("Encryption key")
                     detail: settings.keyWarning.length > 0
                         ? settings.keyProtection + " — " + settings.keyWarning
-                        : "Protected by " + settings.keyProtection + "."
+                        : qsTr("Protected by %1.").arg(settings.keyProtection)
                     warning: settings.keyWarning.length > 0
                 }
             }
 
             Section {
-                heading: "Backup"
+                heading: qsTr("Backup")
                 SettingRow {
-                    title: "Create a backup"
-                    detail: "One encrypted file with your records, the encryption key and your settings. It is protected by a separate backup password."
+                    title: qsTr("Create a backup")
+                    detail: qsTr("One encrypted file with your records, the encryption key and your settings. It is protected by a separate backup password.")
                     PrimaryButton {
                         compact: true; quiet: true
-                        text: "Create backup"
+                        text: qsTr("Create backup")
                         onClicked: backupDialog.openFresh()
                     }
                 }
                 SettingRow {
-                    title: "Restore from a backup"
-                    detail: "Replaces everything on this device with the backup's contents. A safety copy of the current state is kept next to your data."
+                    title: qsTr("Restore from a backup")
+                    detail: qsTr("Replaces everything on this device with the backup's contents. A safety copy of the current state is kept next to your data.")
                     PrimaryButton {
                         compact: true; quiet: true
-                        text: "Restore"
+                        text: qsTr("Restore")
                         enabled: !settings.busy
                         onClicked: restoreFile.open()
                     }
@@ -179,23 +189,23 @@ Item {
             }
 
             Section {
-                heading: "Import and export"
+                heading: qsTr("Import and export")
                 SettingRow {
-                    title: "Export to CSV"
-                    detail: "Transactions, assets, debts and recurring payments in one spreadsheet file. The file is not encrypted."
+                    title: qsTr("Export to CSV")
+                    detail: qsTr("Transactions, assets, debts and recurring payments in one spreadsheet file. The file is not encrypted.")
                     PrimaryButton {
                         compact: true; quiet: true
-                        text: "Export"
+                        text: qsTr("Export")
                         enabled: !settings.busy
                         onClicked: exportFile.open()
                     }
                 }
                 SettingRow {
-                    title: "Import transactions from CSV"
-                    detail: "Adds the transactions in a CSV file to one of your accounts. Rows that cannot be read are skipped."
+                    title: qsTr("Import transactions from CSV")
+                    detail: qsTr("Adds the transactions in a CSV file to one of your accounts. Rows that cannot be read are skipped.")
                     PrimaryButton {
                         compact: true; quiet: true
-                        text: "Import"
+                        text: qsTr("Import")
                         enabled: !settings.busy
                         onClicked: importFile.open()
                     }
@@ -204,7 +214,7 @@ Item {
 
             Section {
                 id: categorySection
-                heading: "Categories"
+                heading: qsTr("Categories")
                 property string kind: "expense"
 
                 Component.onCompleted: categories.refresh()
@@ -216,7 +226,7 @@ Item {
                     Text {
                         anchors.verticalCenter: kindChoice.verticalCenter
                         width: parent.width - kindChoice.width - 24
-                        text: "Essential categories are counted as needs in summaries and the health score; the rest as extras."
+                        text: qsTr("Essential categories are counted as needs in summaries and the health score; the rest as extras.")
                         color: Theme.muted
                         font.family: Theme.uiFont
                         font.pixelSize: 12
@@ -225,7 +235,7 @@ Item {
                     Segmented {
                         id: kindChoice
                         anchors.right: parent.right
-                        model: [{ key: "expense", label: "Spending" }, { key: "income", label: "Income" }]
+                        model: [{ key: "expense", label: qsTr("Spending") }, { key: "income", label: qsTr("Income") }]
                         current: categorySection.kind
                         onChosen: function (key) { categorySection.kind = key }
                     }
@@ -269,14 +279,14 @@ Item {
                             PrimaryButton {
                                 quiet: true
                                 compact: true
-                                text: "Rename"
+                                text: qsTr("Rename")
                                 onClicked: renamePrompt.openFor(categoryRow.modelData, categoryRow.modelData.name)
                             }
                             PrimaryButton {
                                 quiet: true
                                 danger: true
                                 compact: true
-                                text: "Remove"
+                                text: qsTr("Remove")
                                 enabled: !categories.busy
                                 onClicked: categories.remove(categoryRow.modelData.key)
                             }
@@ -286,7 +296,7 @@ Item {
                             anchors.right: parent.right
                             anchors.rightMargin: 14
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "Essential"
+                            text: qsTr("Essential")
                             checked: categoryRow.modelData.essential
                             onToggled: categories.setEssential(categoryRow.modelData.key, checked)
                         }
@@ -306,8 +316,8 @@ Item {
                         Field {
                             id: newCategory
                             width: 260
-                            label: categorySection.kind === "income" ? "New income category" : "New spending category"
-                            placeholder: "Name"
+                            label: categorySection.kind === "income" ? qsTr("New income category") : qsTr("New spending category")
+                            placeholder: qsTr("Name")
                             onAccepted: categories.add(categorySection.kind, text, newEssential.checked)
                         }
                         Item {
@@ -317,7 +327,7 @@ Item {
                                 id: newEssential
                                 anchors.bottom: parent.bottom
                                 anchors.bottomMargin: 10
-                                text: "Essential"
+                                text: qsTr("Essential")
                             }
                         }
                         Item {
@@ -328,7 +338,7 @@ Item {
                                 anchors.bottom: parent.bottom
                                 anchors.bottomMargin: 2
                                 quiet: true
-                                text: "Add category"
+                                text: qsTr("Add category")
                                 enabled: !categories.busy && newCategory.text.trim().length > 0
                                 onClicked: categories.add(categorySection.kind, newCategory.text, newEssential.checked)
                             }
@@ -348,27 +358,27 @@ Item {
             }
 
             Section {
-                heading: "Danger zone"
+                heading: qsTr("Danger zone")
                 SettingRow {
-                    title: "Delete all data"
-                    detail: "Erases every account, transaction, debt and setting, and your password. This cannot be undone; create a backup first."
+                    title: qsTr("Delete all data")
+                    detail: qsTr("Erases every account, transaction, debt and setting, and your password. This cannot be undone; create a backup first.")
                     PrimaryButton {
                         compact: true; quiet: true; danger: true
-                        text: "Delete everything"
+                        text: qsTr("Delete everything")
                         onClicked: resetDialog.openFor(null, "")
                     }
                 }
             }
 
             Section {
-                heading: "About"
+                heading: qsTr("About")
                 SettingRow {
                     title: "Helysofer " + app.version
-                    detail: "Questions, feedback and bug reports: " + settings.projectUrl
+                    detail: qsTr("Questions, feedback and bug reports: %1").arg(settings.projectUrl)
                         + "  ·  " + settings.contactEmail
                 }
                 SettingRow {
-                    title: "Where your data is kept"
+                    title: qsTr("Where your data is kept")
                     detail: settings.dataFolder
                 }
             }
@@ -379,7 +389,7 @@ Item {
     Sheet {
         id: passwordDialog
         objectName: "passwordDialog"
-        title: "Change password"
+        title: qsTr("Change password")
 
         function openFresh() {
             current.text = ""; next.text = ""; again.text = ""
@@ -397,21 +407,21 @@ Item {
         Field {
             id: current
             width: parent.width
-            label: "Current password"
+            label: qsTr("Current password")
             echoMode: TextInput.Password
             onAccepted: next.input.forceActiveFocus()
         }
         Field {
             id: next
             width: parent.width
-            label: "New password"
+            label: qsTr("New password")
             echoMode: TextInput.Password
             onAccepted: again.input.forceActiveFocus()
         }
         Field {
             id: again
             width: parent.width
-            label: "Repeat new password"
+            label: qsTr("Repeat new password")
             echoMode: TextInput.Password
             onAccepted: passwordDialog.submit()
         }
@@ -419,14 +429,14 @@ Item {
             width: parent.width
             problem: false
             visible: settings.message.length === 0
-            text: "At least 12 characters, with upper and lower case letters, a digit and a symbol."
+            text: qsTr("At least 12 characters, with upper and lower case letters, a digit and a symbol.")
         }
         Notice { width: parent.width; text: settings.message }
 
         footer: [
-            PrimaryButton { quiet: true; text: "Cancel"; onClicked: passwordDialog.close() },
+            PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: passwordDialog.close() },
             PrimaryButton {
-                text: settings.busy ? "Saving…" : "Change password"
+                text: settings.busy ? qsTr("Saving…") : qsTr("Change password")
                 enabled: !settings.busy
                 onClicked: passwordDialog.submit()
             }
@@ -436,8 +446,8 @@ Item {
     Sheet {
         id: backupDialog
         objectName: "backupDialog"
-        title: "Create a backup"
-        subtitle: "Choose a password for this backup file. It is separate from your sign-in password and cannot be recovered."
+        title: qsTr("Create a backup")
+        subtitle: qsTr("Choose a password for this backup file. It is separate from your sign-in password and cannot be recovered.")
 
         function openFresh() {
             phrase.text = ""; phraseAgain.text = ""
@@ -454,22 +464,22 @@ Item {
         Field {
             id: phrase
             width: parent.width
-            label: "Backup password (at least 12 characters)"
+            label: qsTr("Backup password (at least 12 characters)")
             echoMode: TextInput.Password
             onAccepted: phraseAgain.input.forceActiveFocus()
         }
         Field {
             id: phraseAgain
             width: parent.width
-            label: "Repeat backup password"
+            label: qsTr("Repeat backup password")
             echoMode: TextInput.Password
         }
         Notice { width: parent.width; text: settings.message }
 
         footer: [
-            PrimaryButton { quiet: true; text: "Cancel"; onClicked: backupDialog.close() },
+            PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: backupDialog.close() },
             PrimaryButton {
-                text: settings.busy ? "Creating…" : "Choose where to save"
+                text: settings.busy ? qsTr("Creating…") : qsTr("Choose where to save")
                 enabled: !settings.busy && phrase.text.length > 0
                 onClicked: backupFile.open()
             }
@@ -478,18 +488,18 @@ Item {
 
     FileDialog {
         id: backupFile
-        title: "Save backup"
+        title: qsTr("Save backup")
         fileMode: FileDialog.SaveFile
-        nameFilters: ["Helysofer backup (*" + settings.backupSuffix + ")"]
+        nameFilters: [qsTr("Helysofer backup") + " (*" + settings.backupSuffix + ")"]
         defaultSuffix: settings.backupSuffix.substring(1)
         onAccepted: settings.createBackup(selectedFile, phrase.text, phraseAgain.text)
     }
 
     FileDialog {
         id: restoreFile
-        title: "Choose a backup to restore"
+        title: qsTr("Choose a backup to restore")
         fileMode: FileDialog.OpenFile
-        nameFilters: ["Helysofer backup (*" + settings.backupSuffix + ")", "All files (*)"]
+        nameFilters: [qsTr("Helysofer backup") + " (*" + settings.backupSuffix + ")", qsTr("All files") + " (*)"]
         onAccepted: restorePrompt.openFor({ file: selectedFile.toString() }, "")
     }
 
@@ -497,9 +507,9 @@ Item {
         id: renamePrompt
         objectName: "renamePrompt"
         source: categories
-        title: "Rename category"
-        subtitle: "Everything filed under it moves to the new name."
-        fieldLabel: "Name"
+        title: qsTr("Rename category")
+        subtitle: qsTr("Everything filed under it moves to the new name.")
+        fieldLabel: qsTr("Name")
         onSubmitted: function (text) { categories.rename(subject.key, text) }
     }
 
@@ -507,18 +517,18 @@ Item {
         id: restorePrompt
         objectName: "restorePrompt"
         source: settings
-        title: "Restore this backup?"
-        subtitle: "Everything on this device is replaced, then Helysofer closes so it can start from the restored data."
-        fieldLabel: "Backup password"
+        title: qsTr("Restore this backup?")
+        subtitle: qsTr("Everything on this device is replaced, then Helysofer closes so it can start from the restored data.")
+        fieldLabel: qsTr("Backup password")
         secret: true
         danger: true
-        confirmText: "Restore"
+        confirmText: qsTr("Restore")
         onSubmitted: function (text) { settings.restoreBackup(subject.file, text) }
     }
 
     FileDialog {
         id: exportFile
-        title: "Export to CSV"
+        title: qsTr("Export to CSV")
         fileMode: FileDialog.SaveFile
         nameFilters: ["CSV (*.csv)"]
         defaultSuffix: "csv"
@@ -527,9 +537,9 @@ Item {
 
     FileDialog {
         id: importFile
-        title: "Choose a CSV file"
+        title: qsTr("Choose a CSV file")
         fileMode: FileDialog.OpenFile
-        nameFilters: ["CSV (*.csv)", "All files (*)"]
+        nameFilters: ["CSV (*.csv)", qsTr("All files") + " (*)"]
         onAccepted: importDialog.openFor(selectedFile.toString())
     }
 
@@ -537,8 +547,8 @@ Item {
         id: importDialog
         objectName: "importDialog"
         property string file: ""
-        title: "Import transactions"
-        subtitle: "Each row is added as a transaction with its original date and changes the account's balance."
+        title: qsTr("Import transactions")
+        subtitle: qsTr("Each row is added as a transaction with its original date and changes the account's balance.")
 
         function openFor(url) {
             file = url
@@ -556,16 +566,16 @@ Item {
         Choice {
             id: target
             width: parent.width
-            label: "Add to account"
-            placeholder: "Choose an account"
+            label: qsTr("Add to account")
+            placeholder: qsTr("Choose an account")
             model: accounts.options
         }
         Notice { width: parent.width; text: settings.message }
 
         footer: [
-            PrimaryButton { quiet: true; text: "Cancel"; onClicked: importDialog.close() },
+            PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: importDialog.close() },
             PrimaryButton {
-                text: settings.busy ? "Importing…" : "Import"
+                text: settings.busy ? qsTr("Importing…") : qsTr("Import")
                 enabled: !settings.busy
                 onClicked: settings.importCsv(importDialog.file,
                                               target.currentKey === undefined ? -1 : target.currentKey)
@@ -577,11 +587,11 @@ Item {
         id: resetDialog
         objectName: "resetDialog"
         source: settings
-        title: "Delete all data?"
-        subtitle: "Every account, transaction, debt, recurring payment and your password are erased from this device. This cannot be undone."
-        fieldLabel: "Type " + settings.confirmationWord + " to confirm"
+        title: qsTr("Delete all data?")
+        subtitle: qsTr("Every account, transaction, debt, recurring payment and your password are erased from this device. This cannot be undone.")
+        fieldLabel: qsTr("Type %1 to confirm").arg(settings.confirmationWord)
         danger: true
-        confirmText: "Delete everything"
+        confirmText: qsTr("Delete everything")
         onSubmitted: function (text) { settings.resetAll(text) }
     }
 }

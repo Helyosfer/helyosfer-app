@@ -6,10 +6,10 @@ import "../components"
 AuthFrame {
     property bool renewal: false
 
-    title: renewal ? "Choose a new password" : "Create your password"
+    title: renewal ? qsTr("Choose a new password") : qsTr("Create your password")
     subtitle: renewal
-        ? "Your current password is older than today's rules. Set a stronger one to continue."
-        : "This password protects your records on this device. It is never sent anywhere, and it cannot be recovered if you forget it."
+        ? qsTr("Your current password is older than today's rules. Set a stronger one to continue.")
+        : qsTr("This password protects your records on this device. It is never sent anywhere, and it cannot be recovered if you forget it.")
 
     function submit() { auth.setup(password.text, confirmation.text) }
 
@@ -21,7 +21,7 @@ AuthFrame {
     Field {
         id: password
         width: parent.width
-        label: "Password"
+        label: qsTr("Password")
         echoMode: TextInput.Password
         input.enabled: !auth.busy
         onAccepted: confirmation.input.forceActiveFocus()
@@ -31,7 +31,7 @@ AuthFrame {
     Field {
         id: confirmation
         width: parent.width
-        label: "Repeat password"
+        label: qsTr("Repeat password")
         echoMode: TextInput.Password
         input.enabled: !auth.busy
         onAccepted: submit()
@@ -41,7 +41,7 @@ AuthFrame {
         width: parent.width
         problem: false
         visible: auth.message.length === 0
-        text: "At least 12 characters, with upper and lower case letters, a digit and a symbol."
+        text: qsTr("At least 12 characters, with upper and lower case letters, a digit and a symbol.")
     }
 
     Notice {
@@ -52,7 +52,7 @@ AuthFrame {
 
     PrimaryButton {
         width: parent.width
-        text: auth.busy ? "Saving…" : "Continue"
+        text: auth.busy ? qsTr("Saving…") : qsTr("Continue")
         enabled: !auth.busy && password.text.length > 0 && confirmation.text.length > 0
         onClicked: submit()
     }

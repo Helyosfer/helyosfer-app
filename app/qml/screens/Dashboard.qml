@@ -33,7 +33,7 @@ Flickable {
                 objectName: "searchBox"
                 anchors.verticalCenter: parent.verticalCenter
                 width: Math.min(420, parent.width - addButton.width - 24)
-                placeholder: "Search transactions, accounts and categories   Ctrl+K"
+                placeholder: qsTr("Search transactions, accounts and categories   Ctrl+K")
                 onTextChanged: search.search(text)
                 Keys.onEscapePressed: text = ""
             }
@@ -44,7 +44,7 @@ Flickable {
             PrimaryButton {
                 id: addButton
                 anchors.right: parent.right
-                text: "Add transaction"
+                text: qsTr("Add transaction")
                 ToolTip.visible: hovered
                 ToolTip.delay: 600
                 ToolTip.text: "Ctrl+N"
@@ -62,7 +62,7 @@ Flickable {
 
                 Text {
                     visible: search.results.length === 0
-                    text: search.searching ? "Searching…" : "Nothing matches."
+                    text: search.searching ? qsTr("Searching…") : qsTr("Nothing matches.")
                     color: Theme.faint
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -156,7 +156,7 @@ Flickable {
                         spacing: 4
 
                         Text {
-                            text: "Total balance"
+                            text: qsTr("Total balance")
                             color: Theme.muted
                             font.family: Theme.uiFont
                             font.pixelSize: 12
@@ -212,9 +212,9 @@ Flickable {
 
                     Repeater {
                         model: [
-                            { label: "Income", value: dashboard.incomeText, tone: 0 },
-                            { label: "Spending", value: dashboard.expenseText, tone: 0 },
-                            { label: "Net", value: dashboard.netText, tone: dashboard.netDirection }
+                            { label: qsTr("Income"), value: dashboard.incomeText, tone: 0 },
+                            { label: qsTr("Spending"), value: dashboard.expenseText, tone: 0 },
+                            { label: qsTr("Net"), value: dashboard.netText, tone: dashboard.netDirection }
                         ]
                         Column {
                             required property var modelData
@@ -249,7 +249,7 @@ Flickable {
 
                 Text {
                     bottomPadding: 10
-                    text: "Coming up"
+                    text: qsTr("Coming up")
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -340,7 +340,7 @@ Flickable {
 
                 Text {
                     bottomPadding: 10
-                    text: "Recent transactions"
+                    text: qsTr("Recent transactions")
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -350,7 +350,7 @@ Flickable {
                 Text {
                     visible: dashboard.recent.length === 0
                     topPadding: 6
-                    text: "Transactions you add will appear here."
+                    text: qsTr("Transactions you add will appear here.")
                     color: Theme.faint
                     font.family: Theme.uiFont
                     font.pixelSize: 13

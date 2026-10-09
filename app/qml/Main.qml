@@ -13,10 +13,14 @@ ApplicationWindow {
     title: "Helysofer"
     color: Theme.page
 
+    // Where the main screen was, so that it comes back there when it is rebuilt.
+    property string resumeSection: "overview"
+
     Binding { target: Theme; property: "dark"; value: app.dark }
 
     // Screens are created on demand, so an unopened screen costs no memory.
     Loader {
+        id: screens
         anchors.fill: parent
         sourceComponent: {
             switch (app.screen) {
@@ -28,6 +32,16 @@ ApplicationWindow {
             case "failure": return failureScreen
             default: return null
             }
+        }
+    }
+
+    // Text is looked up when a screen is created, so a new language means
+    // creating the screen again.
+    Connections {
+        target: app
+        function onLanguageChanged() {
+            screens.active = false
+            screens.active = true
         }
     }
 

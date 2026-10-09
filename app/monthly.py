@@ -12,10 +12,8 @@ from app.payments import read_count
 from app.controllers import display_title, format_amount
 from app.payments import _Listing
 from services.background_task_manager import BackgroundTaskManager
-from ui.i18n import tr
+from app.language import month_name, say, tr
 
-_MONTH_NAMES = ("January", "February", "March", "April", "May", "June", "July",
-                "August", "September", "October", "November", "December")
 _INCOME_TYPES = ("income", "Gelir")
 _BLANK = {"day": 0, "count": 0, "today": False}
 
@@ -34,7 +32,7 @@ class _Monthly(_Listing):
         self.refresh()
 
     def _title(self) -> str:
-        return f"{_MONTH_NAMES[self._month - 1]} {self._year}"
+        return f"{month_name(self._month)} {self._year}"
 
 
 class BudgetController(_Monthly):
@@ -154,12 +152,12 @@ class BudgetController(_Monthly):
         near = not over and used >= row["alert_threshold_pct"]
         carried = limit - float(row["planned"])
         note = (
-            f"{format_amount(-left)} ₺ over" if over else f"{format_amount(left)} ₺ left"
+            say("{0} ₺ over", format_amount(-left)) if over else say("{0} ₺ left", format_amount(left))
         )
         if abs(carried) >= 0.005:
             note += (
                 f"  ·  {format_amount(abs(carried))} ₺ "
-                + ("carried over" if carried > 0 else "overspent last month")
+                + (say("carried over") if carried > 0 else say("overspent last month"))
             )
         return {
             "category": tr(row["category"]),
@@ -194,13 +192,13 @@ class BudgetController(_Monthly):
 
             save_plan_item(
                 item_type=kind, name=name,
-                amount=read_amount(amount_text, "amount"),
+                amount=read_amount(amount_text, say("amount")),
                 month=month, year=year,
                 category=category or None,
                 rollover_enabled=rollover and bool(category) and kind == "expense",
                 is_template=every_month,
                 alert_threshold_pct=read_count(
-                    threshold_text or "80", "warning level", 1, 100
+                    threshold_text or "80", say("warning level"), 1, 100
                 ),
                 item_id=item_id if item_id >= 0 else None,
                 editing_a_template=was_repeating,
@@ -232,8 +230,8 @@ class BudgetController(_Monthly):
         def done(copied):
             self._set_busy(False)
             self._set_notice(
-                f"Copied {copied} items to the rest of {year}." if copied
-                else "The rest of the year already has these items."
+                say("Copied {0} items to the rest of {1}.", copied, year) if copied
+                else say("The rest of the year already has these items.")
             )
 
         def failed(error):
@@ -340,7 +338,7 @@ class CalendarController(_Monthly):
             loaded_day, items = result
             if loaded_day != datetime.date(self._year, self._month, self._day):
                 return
-            self._day_title = f"{loaded_day.day} {_MONTH_NAMES[loaded_day.month - 1]}"
+            self._day_title = f"{loaded_day.day} {month_name(loaded_day.month)}"
             self._day_items = [
                 {
                     "id": item["id"],

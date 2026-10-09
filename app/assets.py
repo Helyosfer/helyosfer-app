@@ -13,21 +13,27 @@ from PySide6.QtCore import Property, Signal, Slot
 from app.accounts import FormError, _Mutating, read_amount
 from app.controllers import display_title, format_amount, short_date
 from services.background_task_manager import BackgroundTaskManager
-from ui.i18n import tr
+from app.language import later, say, tr
 from utils.logging_config import get_logger
 from utils.ui_dispatch import run_on_main_thread
 
 ASSET_TYPES = ("Hisse", "Altın", "Döviz", "Kripto", "Tahvil", "Diğer")
 GOLD_KINDS = (
-    ("GC=F", "Gram Altın", "Gram gold"),
-    ("GOLD-CEYREK", "Çeyrek Altın", "Quarter gold coin"),
-    ("GOLD-YARIM", "Yarım Altın", "Half gold coin"),
-    ("GOLD-TAM", "Tam Altın", "Full gold coin"),
-    ("GOLD-ONS", "Ons Altın", "Ounce of gold"),
+    ("GC=F", "Gram Altın", later("Gram gold")),
+    ("GOLD-CEYREK", "Çeyrek Altın", later("Quarter gold coin")),
+    ("GOLD-YARIM", "Yarım Altın", later("Half gold coin")),
+    ("GOLD-TAM", "Tam Altın", later("Full gold coin")),
+    ("GOLD-ONS", "Ons Altın", later("Ounce of gold")),
 )
 _GOLD_NAMES = {stored: label for _code, stored, label in GOLD_KINDS}
+
+
+def gold_name(stored: str) -> str:
+    """A gold holding's stored kind as shown; any other name is the user's own."""
+    label = _GOLD_NAMES.get(stored)
+    return say(label) if label else stored
 _CODE_HINTS = {
-    "Hisse": "THYAO", "Döviz": "USD", "Kripto": "BTC", "Tahvil": "Symbol", "Diğer": "Symbol",
+    "Hisse": "THYAO", "Döviz": "USD", "Kripto": "BTC", "Tahvil": later("Symbol"), "Diğer": later("Symbol"),
 }
 
 
@@ -39,9 +45,9 @@ def read_quantity(text: str) -> float:
     try:
         value = float(cleaned)
     except ValueError:
-        raise FormError("Enter a valid quantity, for example 2 or 0,5.") from None
+        raise FormError(say("Enter a valid quantity, for example 2 or 0,5.")) from None
     if not 0 < value < 1e12:
-        raise FormError("The quantity must be greater than 0.")
+        raise FormError(say("The quantity must be greater than 0."))
     return value
 
 
@@ -112,11 +118,11 @@ class AssetsController(_Mutating):
 
     @Property("QVariantList", constant=True)
     def goldKinds(self):
-        return [{"key": code, "label": label} for code, _stored, label in GOLD_KINDS]
+        return [{"key": code, "label": say(label)} for code, _stored, label in GOLD_KINDS]
 
     @Slot(str, result=str)
     def codeHint(self, asset_type):
-        return _CODE_HINTS.get(asset_type, "Symbol")
+        return say(_CODE_HINTS.get(asset_type, "Symbol"))
 
     @Property(str, notify=quoteChanged)
     def quote(self):
@@ -161,7 +167,7 @@ class AssetsController(_Mutating):
                 "Varlıklar yüklenemedi.",
                 exc_info=(type(error), error, error.__traceback__),
             )
-            self._set_message("Your assets could not be loaded.")
+            self._set_message(say("Your assets could not be loaded."))
 
         self._tasks.submit(
             "assets", lambda _cancel: fetch(),
@@ -217,7 +223,7 @@ class AssetsController(_Mutating):
                 unpriced += 1
             views.append({
                 "id": asset["id"],
-                "name": _GOLD_NAMES.get(asset["asset_name"], asset["asset_name"]),
+                "name": gold_name(asset["asset_name"]),
                 "code": asset["asset_code"],
                 "kind": tr(asset["asset_type"]),
                 "quantityText": format_quantity(quantity),
@@ -230,7 +236,7 @@ class AssetsController(_Mutating):
                     format_signed_amount(pnl)
                     + (f"  ·  {'−' if pct < 0 else '+'}{abs(pct):.1f} %".replace(".", ",")
                        if pct is not None else "")
-                ) if priced else "No price",
+                ) if priced else say("No price"),
                 "direction": ((pnl > 0) - (pnl < 0)) if priced else 0,
                 "priced": priced,
             })
@@ -268,7 +274,7 @@ class AssetsController(_Mutating):
 
         code = (code or "").strip().upper()
         if not code:
-            self._set_message("Enter a symbol first.")
+            self._set_message(say("Enter a symbol first."))
             return
         self._quote_generation += 1
         generation = self._quote_generation
@@ -286,7 +292,7 @@ class AssetsController(_Mutating):
                 self.quoteChanged.emit()
                 if not price:
                     self._set_message(
-                        "No price was found for this symbol. You can still enter one yourself."
+                        say("No price was found for this symbol. You can still enter one yourself.")
                     )
             run_on_main_thread(apply)
 
@@ -310,21 +316,21 @@ class AssetsController(_Mutating):
 
             symbol = (code or "").strip().upper()
             if asset_type not in ASSET_TYPES:
-                raise FormError("Choose the kind of asset.")
+                raise FormError(say("Choose the kind of asset."))
             if not symbol:
-                raise FormError("Enter the symbol.")
+                raise FormError(say("Enter the symbol."))
             label = (name or "").strip()
             if asset_type == "Altın":
                 label = next(
                     (stored for gold, stored, _label in GOLD_KINDS if gold == symbol), label
                 )
             if deduct and account_id < 0:
-                raise FormError("Choose the account to pay from.")
+                raise FormError(say("Choose the account to pay from."))
             AssetPurchaseService.create_purchase(
                 asset_name=label or symbol,
                 asset_code=symbol,
                 asset_type=asset_type,
-                purchase_price=read_amount(price_text, "unit price"),
+                purchase_price=read_amount(price_text, say("unit price")),
                 quantity=read_quantity(quantity_text),
                 account_id=account_id if deduct else None,
                 deduct_from_balance=deduct,
@@ -338,10 +344,10 @@ class AssetsController(_Mutating):
             from services.asset_sale_service import AssetSaleService
 
             if account_id < 0:
-                raise FormError("Choose the account that receives the money.")
+                raise FormError(say("Choose the account that receives the money."))
             quantity = read_quantity(quantity_text) if (quantity_text or "").strip() else None
             AssetSaleService.sell(
-                asset_id, read_amount(price_text, "unit price"), account_id,
+                asset_id, read_amount(price_text, say("unit price")), account_id,
                 quantity=quantity,
             )
 

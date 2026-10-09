@@ -15,7 +15,7 @@ AuthFrame {
     }
 
     PrimaryButton {
-        text: "Close"
+        text: qsTr("Close")
         onClicked: Qt.quit()
     }
 }

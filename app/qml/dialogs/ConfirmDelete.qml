@@ -7,8 +7,8 @@ Sheet {
     id: root
     property var card: null
 
-    title: card ? "Delete " + card.name + "?" : ""
-    subtitle: "The card, its transactions and its installment plans are removed. This cannot be undone."
+    title: card ? qsTr("Delete %1?").arg(card.name) : ""
+    subtitle: qsTr("The card, its transactions and its installment plans are removed. This cannot be undone.")
 
     function openFor(account) {
         card = account
@@ -27,11 +27,11 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: "Keep card"; onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Keep card"); onClicked: root.close() },
         PrimaryButton {
             quiet: true
             danger: true
-            text: accounts.busy ? "Deleting…" : "Delete card"
+            text: accounts.busy ? qsTr("Deleting…") : qsTr("Delete card")
             enabled: !accounts.busy
             onClicked: accounts.deleteCard(root.card.id)
         }

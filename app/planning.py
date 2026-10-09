@@ -8,6 +8,7 @@ from PySide6.QtCore import Property, Signal, Slot
 
 from app.accounts import FormError, read_amount
 from app.controllers import format_amount, short_date
+from app.language import say, tr
 from app.payments import _Listing, read_day
 from services.background_task_manager import BackgroundTaskManager
 
@@ -62,12 +63,12 @@ class SavingsController(_Listing):
                 except ValueError:
                     day = None
                 if day:
-                    due = f"by {short_date(day.isoformat())} {day.year}"
+                    due = say("by {0} {1}", short_date(day.isoformat()), day.year)
                     months = months_between(today, day)
                     if not done and months > 0:
-                        pace = f"{format_amount(remaining / months)} ₺ a month reaches it in time"
+                        pace = say("{0} ₺ a month reaches it in time", format_amount(remaining / months))
                     elif not done:
-                        pace = "The target date has passed"
+                        pace = say("The target date has passed")
             views.append({
                 "id": goal["id"],
                 "uid": goal["goal_uid"] or "",
@@ -93,15 +94,15 @@ class SavingsController(_Listing):
             from services.savings_service import SavingsService
 
             if not (name or "").strip():
-                raise FormError("Enter a name for the goal.")
+                raise FormError(say("Enter a name for the goal."))
             target_date = None
             if (date_text or "").strip():
                 day = read_day(date_text)
                 if day <= datetime.date.today():
-                    raise FormError("Choose a target date after today.")
+                    raise FormError(say("Choose a target date after today."))
                 target_date = day.isoformat()
             SavingsService.create_goal(
-                name.strip(), read_amount(target_text, "target amount"), target_date
+                name.strip(), read_amount(target_text, say("target amount")), target_date
             )
 
         self._mutate(work)
@@ -113,8 +114,8 @@ class SavingsController(_Listing):
             from services.savings_service import SavingsService
 
             if account_id < 0:
-                raise FormError("Choose an account.")
-            amount = read_amount(amount_text, "amount")
+                raise FormError(say("Choose an account."))
+            amount = read_amount(amount_text, say("amount"))
             action = (
                 SavingsService.deposit_to_goal if deposit
                 else SavingsService.withdraw_from_goal
@@ -134,7 +135,7 @@ class SavingsController(_Listing):
             )
             holds_money = bool(goal and float(goal["current_amount"] or 0) > 0)
             if holds_money and account_id < 0:
-                raise FormError("Choose the account that receives the saved money.")
+                raise FormError(say("Choose the account that receives the saved money."))
             SavingsService.delete_goal(
                 goal_id, account_id if holds_money else None,
                 refund=holds_money, goal_uid=goal_uid or None,
@@ -161,8 +162,6 @@ class CategoriesController(_Listing):
         return list_categories()
 
     def _show(self, rows) -> None:
-        from ui.i18n import tr
-
         self._items = sorted(
             (
                 {

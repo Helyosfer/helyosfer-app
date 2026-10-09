@@ -7,8 +7,8 @@ Sheet {
     id: root
     property var holding: null
 
-    title: holding ? "Sell " + holding.name : ""
-    subtitle: holding ? "You hold " + holding.quantityText + ", bought at " + holding.costText + " each." : ""
+    title: holding ? qsTr("Sell %1").arg(holding.name) : ""
+    subtitle: holding ? qsTr("You hold %1, bought at %2 each.").arg(holding.quantityText).arg(holding.costText) : ""
 
     function openFor(item) {
         holding = item
@@ -38,13 +38,13 @@ Sheet {
         Field {
             id: quantity
             width: (parent.width - 12) / 2
-            label: "Quantity to sell"
+            label: qsTr("Quantity to sell")
             onAccepted: root.submit()
         }
         Field {
             id: price
             width: (parent.width - 12) / 2
-            label: "Unit price (₺)"
+            label: qsTr("Unit price (₺)")
             placeholder: "0,00"
             onAccepted: root.submit()
         }
@@ -53,8 +53,8 @@ Sheet {
     Choice {
         id: account
         width: parent.width
-        label: "Add the money to"
-        placeholder: "Choose an account"
+        label: qsTr("Add the money to")
+        placeholder: qsTr("Choose an account")
         model: accounts.checkingOptions
     }
 
@@ -64,9 +64,9 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: "Cancel"; onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: root.close() },
         PrimaryButton {
-            text: assets.busy ? "Selling…" : "Sell"
+            text: assets.busy ? qsTr("Selling…") : qsTr("Sell")
             enabled: !assets.busy
             onClicked: root.submit()
         }

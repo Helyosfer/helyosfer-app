@@ -10,6 +10,34 @@ Rectangle {
 
     color: Theme.page
 
+    // The other language, one click away, before anything has to be read.
+    Row {
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: 20
+        spacing: 14
+
+        Repeater {
+            model: app.languages
+
+            Text {
+                required property var modelData
+                text: modelData.label
+                color: app.language === modelData.key ? Theme.text : Theme.faint
+                font.family: Theme.uiFont
+                font.pixelSize: 12
+                font.weight: app.language === modelData.key ? Font.DemiBold : Font.Normal
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -6
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: app.setLanguage(parent.modelData.key)
+                }
+            }
+        }
+    }
+
     Column {
         id: column
         anchors.centerIn: parent

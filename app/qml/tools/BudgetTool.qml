@@ -26,13 +26,13 @@ Column {
             spacing: 8
             PrimaryButton {
                 compact: true; quiet: true
-                text: "Copy to the rest of the year"
+                text: qsTr("Copy to the rest of the year")
                 enabled: !budget.busy && budget.items.length > 0
                 onClicked: budget.applyToYearEnd()
             }
             PrimaryButton {
                 compact: true
-                text: "Add plan item"
+                text: qsTr("Add plan item")
                 onClicked: root.addRequested()
             }
         }
@@ -53,10 +53,10 @@ Column {
 
             Repeater {
                 model: [
-                    { label: "Planned income", value: budget.incomeText, tone: 0 },
-                    { label: "Planned spending", value: budget.expenseText, tone: 0 },
-                    { label: "Reserved for recurring payments", value: budget.reservedText, tone: 0 },
-                    { label: "Left to plan", value: budget.leftText, tone: budget.leftDirection }
+                    { label: qsTr("Planned income"), value: budget.incomeText, tone: 0 },
+                    { label: qsTr("Planned spending"), value: budget.expenseText, tone: 0 },
+                    { label: qsTr("Reserved for recurring payments"), value: budget.reservedText, tone: 0 },
+                    { label: qsTr("Left to plan"), value: budget.leftText, tone: budget.leftDirection }
                 ]
                 Column {
                     required property var modelData
@@ -92,7 +92,7 @@ Column {
 
             Text {
                 bottomPadding: 10
-                text: "Spending against the plan"
+                text: qsTr("Spending against the plan")
                 color: Theme.text
                 font.family: Theme.uiFont
                 font.pixelSize: 13
@@ -128,7 +128,7 @@ Column {
                             }
                             Text {
                                 anchors.right: parent.right
-                                text: row.modelData.spentText + " of " + row.modelData.plannedText
+                                text: qsTr("%1 of %2").arg(row.modelData.spentText).arg(row.modelData.plannedText)
                                     + "  ·  " + row.modelData.note
                                 color: row.modelData.over ? Theme.down
                                     : row.modelData.near ? Theme.warn : Theme.muted
@@ -164,7 +164,7 @@ Column {
 
             Text {
                 bottomPadding: 10
-                text: "Plan items"
+                text: qsTr("Plan items")
                 color: Theme.text
                 font.family: Theme.uiFont
                 font.pixelSize: 13
@@ -175,7 +175,7 @@ Column {
                 width: parent.width
                 visible: budget.items.length === 0
                 topPadding: 6
-                text: "Nothing planned for this month. Add your expected income and the spending you want to cap."
+                text: qsTr("Nothing planned for this month. Add your expected income and the spending you want to cap.")
                 color: Theme.faint
                 font.family: Theme.uiFont
                 font.pixelSize: 13
@@ -200,8 +200,8 @@ Column {
                         anchors.rightMargin: 16
                         text: line.modelData.name
                             + (line.modelData.category.length > 0 ? "  ·  " + line.modelData.category : "")
-                            + (line.modelData.everyMonth ? "  ·  every month" : "")
-                            + (line.modelData.rollover ? "  ·  carries over" : "")
+                            + (line.modelData.everyMonth ? "  ·  " + qsTr("every month") : "")
+                            + (line.modelData.rollover ? "  ·  " + qsTr("carries over") : "")
                         color: Theme.text
                         font.family: Theme.uiFont
                         font.pixelSize: 13
@@ -224,12 +224,12 @@ Column {
                         spacing: 8
                         PrimaryButton {
                             compact: true; quiet: true
-                            text: "Edit"
+                            text: qsTr("Edit")
                             onClicked: root.editRequested(line.modelData)
                         }
                         PrimaryButton {
                             compact: true; quiet: true; danger: true
-                            text: "Remove"
+                            text: qsTr("Remove")
                             enabled: !budget.busy
                             onClicked: budget.deleteItem(line.modelData.id)
                         }

@@ -10,10 +10,10 @@ Sheet {
     readonly property bool tracked: kind === "expense" && category.currentKey !== undefined
         && category.currentKey !== ""
 
-    title: editing ? "Edit plan item" : "Add plan item"
+    title: editing ? qsTr("Edit plan item") : qsTr("Add plan item")
     subtitle: editing && editing.everyMonth
-        ? "This item repeats every month. Your change applies to " + budget.monthTitle + " only."
-        : "For " + budget.monthTitle + ". Give spending a category to track it against what you actually spend."
+        ? qsTr("This item repeats every month. Your change applies to %1 only.").arg(budget.monthTitle)
+        : qsTr("For %1. Give spending a category to track it against what you actually spend.").arg(budget.monthTitle)
 
     function openFresh() {
         editing = null
@@ -57,7 +57,7 @@ Sheet {
     }
 
     Segmented {
-        model: [{ key: "expense", label: "Spending" }, { key: "income", label: "Income" }]
+        model: [{ key: "expense", label: qsTr("Spending") }, { key: "income", label: qsTr("Income") }]
         current: root.kind
         onChosen: function (key) { root.kind = key }
     }
@@ -69,14 +69,14 @@ Sheet {
         Field {
             id: name
             width: (parent.width - 12) * 0.6
-            label: "Name"
-            placeholder: root.kind === "income" ? "Salary" : "Groceries"
+            label: qsTr("Name")
+            placeholder: root.kind === "income" ? qsTr("Salary") : qsTr("Groceries")
             onAccepted: root.submit()
         }
         Field {
             id: amount
             width: (parent.width - 12) * 0.4
-            label: "Amount (₺)"
+            label: qsTr("Amount (₺)")
             placeholder: "0,00"
             money: true
             onAccepted: root.submit()
@@ -86,15 +86,15 @@ Sheet {
     Choice {
         id: category
         width: parent.width
-        label: "Category (optional)"
-        placeholder: "No category"
+        label: qsTr("Category (optional)")
+        placeholder: qsTr("No category")
         model: (transactions.categoryRevision, transactions.categories(root.kind))
     }
 
     Toggle {
         id: everyMonth
         visible: root.editing === null
-        text: "Use this for every month"
+        text: qsTr("Use this for every month")
     }
 
     Row {
@@ -106,12 +106,12 @@ Sheet {
             id: rollover
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 10
-            text: "Carry what is left into next month"
+            text: qsTr("Carry what is left into next month")
         }
         Field {
             id: threshold
             width: 120
-            label: "Warn at (%)"
+            label: qsTr("Warn at (%)")
             placeholder: "80"
             input.inputMethodHints: Qt.ImhDigitsOnly
             onAccepted: root.submit()
@@ -124,9 +124,9 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: "Cancel"; onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: root.close() },
         PrimaryButton {
-            text: budget.busy ? "Saving…" : (root.editing ? "Save" : "Add")
+            text: budget.busy ? qsTr("Saving…") : (root.editing ? qsTr("Save") : qsTr("Add"))
             enabled: !budget.busy
             onClicked: root.submit()
         }

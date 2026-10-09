@@ -4,8 +4,8 @@ import ".."
 import "../components"
 
 AuthFrame {
-    title: "Welcome back"
-    subtitle: "Your records are encrypted on this device. Enter your password to open them."
+    title: qsTr("Welcome back")
+    subtitle: qsTr("Your records are encrypted on this device. Enter your password to open them.")
 
     function submit() {
         auth.login(password.text)
@@ -20,7 +20,7 @@ AuthFrame {
     Field {
         id: password
         width: parent.width
-        label: "Password"
+        label: qsTr("Password")
         echoMode: TextInput.Password
         input.enabled: !auth.busy
         onAccepted: submit()
@@ -35,7 +35,7 @@ AuthFrame {
 
     PrimaryButton {
         width: parent.width
-        text: auth.busy ? "Checking…" : "Unlock"
+        text: auth.busy ? qsTr("Checking…") : qsTr("Unlock")
         enabled: !auth.busy && password.text.length > 0
         onClicked: submit()
     }

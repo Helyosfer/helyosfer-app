@@ -6,11 +6,11 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from app.controllers import display_title, short_date
 from services.background_task_manager import BackgroundTaskManager
-from ui.i18n import tr
+from app.language import later, say, tr
 from utils.logging_config import get_logger
 
 MAX_RESULTS = 12
-_KIND_LABELS = {"account": "Account", "category": "Category", "transaction": "Transaction"}
+_KIND_LABELS = {"account": later("Account"), "category": later("Category"), "transaction": later("Transaction")}
 
 
 class SearchController(QObject):
@@ -92,17 +92,17 @@ class SearchController(QObject):
         elif kind == "account":
             # The account's name is the user's own text and is shown as typed.
             title = row["name"]
-            detail = "Credit card" if row.get("detail") == "credit_card" else "Cash or checking"
+            detail = say("Credit card") if row.get("detail") == "credit_card" else say("Cash or checking")
             target, argument = "cards", ""
         else:
             # A category result carries the category itself in its name field:
             # a controlled value, translated like every other category label.
             category = row["name"]
             title = tr(category)
-            detail = "Income category" if row.get("detail") == "income" else "Spending category"
+            detail = say("Income category") if row.get("detail") == "income" else say("Spending category")
             target, argument = "", ""
         return {
-            "kind": _KIND_LABELS.get(kind, kind),
+            "kind": say(_KIND_LABELS.get(kind, kind)),
             "title": title,
             "detail": detail,
             "target": target,

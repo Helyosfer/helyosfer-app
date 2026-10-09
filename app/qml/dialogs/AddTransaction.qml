@@ -5,7 +5,7 @@ import "../components"
 
 Sheet {
     id: root
-    title: editing >= 0 ? "Edit transaction" : "Add transaction"
+    title: editing >= 0 ? qsTr("Edit transaction") : qsTr("Add transaction")
 
     property string kind: "expense"
     // The transaction being changed, or -1 while adding a new one.
@@ -78,7 +78,7 @@ Sheet {
     }
 
     Segmented {
-        model: [{ key: "expense", label: "Expense" }, { key: "income", label: "Income" }]
+        model: [{ key: "expense", label: qsTr("Expense") }, { key: "income", label: qsTr("Income") }]
         current: root.kind
         // The direction and the account of a saved transaction stay as they are.
         enabled: root.editing < 0
@@ -90,7 +90,7 @@ Sheet {
         id: amount
         width: parent.width
         enabled: root.locked.length === 0
-        label: "Amount (₺)"
+        label: qsTr("Amount (₺)")
         placeholder: "0,00"
         money: true
         input.inputMethodHints: Qt.ImhFormattedNumbersOnly
@@ -104,8 +104,8 @@ Sheet {
         Choice {
             id: account
             width: (parent.width - 12) / 2
-            label: "Account"
-            placeholder: "Choose an account"
+            label: qsTr("Account")
+            placeholder: qsTr("Choose an account")
             model: accounts.options
             enabled: root.editing < 0
             opacity: enabled ? 1 : 0.55
@@ -113,8 +113,8 @@ Sheet {
         Choice {
             id: category
             width: (parent.width - 12) / 2
-            label: "Category"
-            placeholder: "Choose a category"
+            label: qsTr("Category")
+            placeholder: qsTr("Choose a category")
             model: (transactions.categoryRevision, transactions.categories(root.kind))
             enabled: root.locked.length === 0
         }
@@ -124,11 +124,11 @@ Sheet {
         id: installments
         width: parent.width
         visible: root.onCard && root.editing < 0
-        label: "Installments"
+        label: qsTr("Installments")
         model: {
-            var options = [{ key: 1, label: "Single payment" }]
+            var options = [{ key: 1, label: qsTr("Single payment") }]
             for (var count = 2; count <= 12; count++)
-                options.push({ key: count, label: count + " installments" })
+                options.push({ key: count, label: qsTr("%1 installments").arg(count) })
             return options
         }
     }
@@ -140,16 +140,16 @@ Sheet {
         Field {
             id: description
             width: (parent.width - 12) * 0.62
-            label: "Description (optional)"
+            label: qsTr("Description (optional)")
             enabled: root.locked.length === 0
             onAccepted: root.submit()
         }
         Field {
             id: date
             width: (parent.width - 12) * 0.38
-            label: "Date"
+            label: qsTr("Date")
             enabled: root.locked.length === 0
-            placeholder: "DD.MM.YYYY"
+            placeholder: qsTr("DD.MM.YYYY")
             onAccepted: root.submit()
         }
     }
@@ -158,7 +158,7 @@ Sheet {
         width: parent.width
         problem: false
         visible: transactions.message.length === 0 && root.editing < 0
-        text: "A future date is saved as a pending transaction and applied on that day."
+        text: qsTr("A future date is saved as a pending transaction and applied on that day.")
     }
 
     Notice {
@@ -178,7 +178,7 @@ Sheet {
             quiet: true
             danger: true
             visible: root.editing >= 0 && root.locked.length === 0
-            text: root.confirming ? "Delete for good" : "Delete"
+            text: root.confirming ? qsTr("Delete for good") : qsTr("Delete")
             enabled: !transactions.busy
             onClicked: {
                 if (root.confirming) transactions.remove(root.editing)
@@ -187,12 +187,12 @@ Sheet {
         },
         PrimaryButton {
             quiet: true
-            text: root.locked.length > 0 ? "Close" : "Cancel"
+            text: root.locked.length > 0 ? qsTr("Close") : qsTr("Cancel")
             onClicked: root.close()
         },
         PrimaryButton {
             visible: root.locked.length === 0
-            text: transactions.busy ? "Saving…" : "Save"
+            text: transactions.busy ? qsTr("Saving…") : qsTr("Save")
             enabled: !transactions.busy
             onClicked: root.submit()
         }

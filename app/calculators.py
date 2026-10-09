@@ -10,15 +10,16 @@ from app.accounts import FormError, _Mutating, read_amount, user_message
 from app.controllers import format_amount, short_date
 from app.payments import read_count
 from app.settings import local_path
+from app.language import later, say
 from services.background_task_manager import BackgroundTaskManager
 from utils.logging_config import get_logger
 
-LOAN_KINDS = (("consumer", "Consumer (up to 36 months)"),
-              ("vehicle", "Vehicle (up to 48 months)"),
-              ("housing", "Housing (up to 120 months)"))
+LOAN_KINDS = (("consumer", later("Consumer (up to 36 months)")),
+              ("vehicle", later("Vehicle (up to 48 months)")),
+              ("housing", later("Housing (up to 120 months)")))
 _UPFRONT_LABELS = {
-    "allocation_fee": "Allocation fee (with tax)",
-    "insurance": "Life insurance (estimate)",
+    "allocation_fee": later("Allocation fee (with tax)"),
+    "insurance": later("Life insurance (estimate)"),
 }
 
 
@@ -27,9 +28,9 @@ def read_rate(text: str, label: str) -> float:
     try:
         value = float(cleaned)
     except ValueError:
-        raise FormError(f"Enter the {label}, for example 3,49.") from None
+        raise FormError(say("Enter the {0}, for example 3,49.", label)) from None
     if not 0 < value <= 1000:
-        raise FormError(f"The {label} must be greater than 0.")
+        raise FormError(say("The {0} must be greater than 0.", label))
     return value
 
 
@@ -86,7 +87,7 @@ class LoanController(_Mutating):
         if not self._result:
             return []
         return [
-            {"label": _UPFRONT_LABELS.get(item["name"], item["name"]),
+            {"label": say(_UPFRONT_LABELS.get(item["name"], item["name"])),
              "value": money(item["amount"])}
             for item in self._result["upfront"]
         ]
@@ -120,7 +121,7 @@ class LoanController(_Mutating):
     # -- charges -------------------------------------------------------------
     @Property("QVariantList", constant=True)
     def kinds(self):
-        return [{"key": key, "label": label} for key, label in LOAN_KINDS]
+        return [{"key": key, "label": say(label)} for key, label in LOAN_KINDS]
 
     @Property("QVariantList", notify=chargesChanged)
     def charges(self):
@@ -128,8 +129,8 @@ class LoanController(_Mutating):
             {
                 "name": charge["name"],
                 "detail": (
-                    "once, up front" if charge["kind"] == "upfront"
-                    else f"spread over {charge['months']} months"
+                    say("once, up front") if charge["kind"] == "upfront"
+                    else say("spread over {0} months", charge['months'])
                 ),
                 "amount": money(charge["amount"]),
             }
@@ -140,12 +141,12 @@ class LoanController(_Mutating):
     def addCharge(self, name, amount_text, spread, months_text):
         try:
             if not (name or "").strip():
-                raise FormError("Enter a name for the charge.")
+                raise FormError(say("Enter a name for the charge."))
             charge = {
                 "name": name.strip(),
-                "amount": read_amount(amount_text, "charge amount"),
+                "amount": read_amount(amount_text, say("charge amount")),
                 "kind": "spread" if spread else "upfront",
-                "months": read_count(months_text, "number of months", 1, 360) if spread else 1,
+                "months": read_count(months_text, say("number of months"), 1, 360) if spread else 1,
             }
         except ValueError as error:
             self._set_message(user_message(error))
@@ -167,11 +168,11 @@ class LoanController(_Mutating):
 
         self._note = ""
         try:
-            principal = read_amount(amount_text, "loan amount")
+            principal = read_amount(amount_text, say("loan amount"))
             self._result = calculate_loan(
                 principal,
-                read_rate(rate_text, "monthly interest rate"),
-                read_count(months_text, "number of months", 1, MAX_MONTHS),
+                read_rate(rate_text, say("monthly interest rate")),
+                read_count(months_text, say("number of months"), 1, MAX_MONTHS),
                 include_taxes,
                 loan_kind=(kind or None) if detailed else None,
                 bank_fees=detailed,
@@ -194,7 +195,7 @@ class LoanController(_Mutating):
             from services.debt_payment_service import DebtPaymentService
 
             if not (name or "").strip():
-                raise FormError("Enter a name for the debt.")
+                raise FormError(say("Enter a name for the debt."))
             DebtPaymentService.create_debt(
                 name.strip(), result["monthly_payment"], result["months"]
             )
@@ -202,7 +203,7 @@ class LoanController(_Mutating):
         self._mutate(work)
 
     def _note_added(self) -> None:
-        self._set_note("Added to your debts.")
+        self._set_note(say("Added to your debts."))
 
     @Slot(str)
     def exportPdf(self, url):
@@ -221,7 +222,7 @@ class LoanController(_Mutating):
 
             self._set_busy(False)
             self._set_message("")
-            self._set_note(f"Saved {os.path.basename(path)}.")
+            self._set_note(say("Saved {0}.", os.path.basename(path)))
 
         def failed(error):
             self._set_busy(False)
@@ -233,7 +234,7 @@ class LoanController(_Mutating):
                 )
             self._set_message(
                 user_message(error) if isinstance(error, ValueError)
-                else "The file could not be saved there. Choose another location."
+                else say("The file could not be saved there. Choose another location.")
             )
 
         self._tasks.submit(
@@ -270,7 +271,7 @@ class CalculatorController(_Mutating):
 
     @Property("QVariantList", notify=changed)
     def growthLabels(self):
-        return [f"Year {year}" for year in range(len(self._growth_series))]
+        return [say("Year {0}", year) for year in range(len(self._growth_series))]
 
     @Property("QVariantList", notify=changed)
     def goalRows(self):
@@ -303,14 +304,14 @@ class CalculatorController(_Mutating):
             from services.calculator_service import deposit_interest
 
             result = deposit_interest(
-                read_amount(principal_text, "deposit amount"),
-                read_rate(rate_text, "yearly interest rate"),
-                read_count(days_text, "number of days", 1, 36500),
+                read_amount(principal_text, say("deposit amount")),
+                read_rate(rate_text, say("yearly interest rate")),
+                read_count(days_text, say("number of days"), 1, 36500),
             )
             self._interest = [
-                {"label": "Interest after tax", "value": "+" + money(result["net_interest"]), "tone": 1},
-                {"label": "At maturity", "value": money(result["maturity_value"]), "tone": 0},
-                {"label": "Withholding tax (5 %)", "value": money(result["tax"]), "tone": 0},
+                {"label": say("Interest after tax"), "value": "+" + money(result["net_interest"]), "tone": 1},
+                {"label": say("At maturity"), "value": money(result["maturity_value"]), "tone": 0},
+                {"label": say("Withholding tax (5 %)"), "value": money(result["tax"]), "tone": 0},
             ]
 
         if not self._guard(action):
@@ -323,15 +324,15 @@ class CalculatorController(_Mutating):
             from services.calculator_service import compound_growth
 
             result = compound_growth(
-                read_amount(principal_text, "starting amount"),
-                read_rate(rate_text, "yearly return"),
-                read_count(years_text, "number of years", 1, 100),
-                read_amount(deposit_text, "monthly contribution", optional=True),
+                read_amount(principal_text, say("starting amount")),
+                read_rate(rate_text, say("yearly return")),
+                read_count(years_text, say("number of years"), 1, 100),
+                read_amount(deposit_text, say("monthly contribution"), optional=True),
             )
             self._growth = [
-                {"label": "You put in", "value": money(result["invested"]), "tone": 0},
-                {"label": "Growth", "value": "+" + money(result["gain"]), "tone": 1},
-                {"label": "Final value", "value": money(result["final_value"]), "tone": 0},
+                {"label": say("You put in"), "value": money(result["invested"]), "tone": 0},
+                {"label": say("Growth"), "value": "+" + money(result["gain"]), "tone": 1},
+                {"label": say("Final value"), "value": money(result["final_value"]), "tone": 0},
             ]
             self._growth_series = result["series"]
 
@@ -346,17 +347,20 @@ class CalculatorController(_Mutating):
         def action():
             from services.calculator_service import DAILY, MONTHLY, time_to_goal
 
-            target = read_amount(target_text, "target amount")
+            target = read_amount(target_text, say("target amount"))
             result = time_to_goal(
-                target, read_amount(deposit_text, "regular amount"),
+                target, read_amount(deposit_text, say("regular amount")),
                 DAILY if daily else MONTHLY,
             )
             reached = datetime.date.today() + datetime.timedelta(days=result["days"])
-            unit = "day" if daily else "month"
             count = result["deposits"]
+            if daily:
+                needed = say("1 day") if count == 1 else say("{0} days", count)
+            else:
+                needed = say("1 month") if count == 1 else say("{0} months", count)
             self._goal = [
-                {"label": "Time needed", "value": f"{count} {unit}{'' if count == 1 else 's'}", "tone": 0},
-                {"label": "Reached around",
+                {"label": say("Time needed"), "value": needed, "tone": 0},
+                {"label": say("Reached around"),
                  "value": f"{short_date(reached.isoformat())} {reached.year}", "tone": 0},
             ]
             self._goal_plan = {"target": target, "date": reached}
@@ -375,7 +379,7 @@ class CalculatorController(_Mutating):
             from services.savings_service import SavingsService
 
             if not (name or "").strip():
-                raise FormError("Enter a name for the goal.")
+                raise FormError(say("Enter a name for the goal."))
             target_date = plan["date"] if plan["date"] > datetime.date.today() else None
             SavingsService.create_goal(
                 name.strip(), plan["target"],
@@ -385,7 +389,7 @@ class CalculatorController(_Mutating):
         self._mutate(work)
 
     def _goal_created(self) -> None:
-        self._goal_note = "Added to your savings goals."
+        self._goal_note = say("Added to your savings goals.")
         self.changed.emit()
 
     @Slot(str)
@@ -402,5 +406,5 @@ class CalculatorController(_Mutating):
             self._set_message("")
         except (ValueError, SyntaxError, ZeroDivisionError, OverflowError, TypeError):
             self._answer = ""
-            self._set_message("This cannot be calculated. Check the expression.")
+            self._set_message(say("This cannot be calculated. Check the expression."))
         self.changed.emit()

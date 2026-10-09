@@ -5,7 +5,7 @@ import "../components"
 
 Sheet {
     id: root
-    title: "Add recurring payment"
+    title: qsTr("Add recurring payment")
 
     property string kind: "expense"
 
@@ -40,7 +40,7 @@ Sheet {
     }
 
     Segmented {
-        model: [{ key: "expense", label: "Payment" }, { key: "income", label: "Income" }]
+        model: [{ key: "expense", label: qsTr("Payment") }, { key: "income", label: qsTr("Income") }]
         current: root.kind
         onChosen: function (key) { root.kind = key }
     }
@@ -52,14 +52,14 @@ Sheet {
         Field {
             id: name
             width: (parent.width - 12) * 0.6
-            label: "Name"
-            placeholder: root.kind === "income" ? "Salary" : "Music subscription"
+            label: qsTr("Name")
+            placeholder: root.kind === "income" ? qsTr("Salary") : qsTr("Music subscription")
             onAccepted: root.submit()
         }
         Field {
             id: amount
             width: (parent.width - 12) * 0.4
-            label: "Amount (₺)"
+            label: qsTr("Amount (₺)")
             placeholder: "0,00"
             money: true
             onAccepted: root.submit()
@@ -73,15 +73,15 @@ Sheet {
         Choice {
             id: account
             width: (parent.width - 12) / 2
-            label: "Account"
-            placeholder: "Choose an account"
+            label: qsTr("Account")
+            placeholder: qsTr("Choose an account")
             model: accounts.options
         }
         Choice {
             id: category
             width: (parent.width - 12) / 2
-            label: "Category"
-            placeholder: "Choose a category"
+            label: qsTr("Category")
+            placeholder: qsTr("Choose a category")
             model: (transactions.categoryRevision, transactions.categories(root.kind))
         }
     }
@@ -93,22 +93,22 @@ Sheet {
         Choice {
             id: frequency
             width: (parent.width - 12) * 0.6
-            label: "Repeats"
+            label: qsTr("Repeats")
             model: recurring.frequencies
         }
         Field {
             id: firstDue
             width: (parent.width - 12) * 0.4
-            label: "Next due"
-            placeholder: "DD.MM.YYYY"
+            label: qsTr("Next due")
+            placeholder: qsTr("DD.MM.YYYY")
             onAccepted: root.submit()
         }
     }
 
     Toggle {
         id: automatic
-        text: root.kind === "income" ? "Add to the account automatically when due"
-                                     : "Take from the account automatically when due"
+        text: root.kind === "income" ? qsTr("Add to the account automatically when due")
+                                     : qsTr("Take from the account automatically when due")
     }
 
     Notice {
@@ -117,9 +117,9 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: "Cancel"; onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: root.close() },
         PrimaryButton {
-            text: recurring.busy ? "Saving…" : "Add"
+            text: recurring.busy ? qsTr("Saving…") : qsTr("Add")
             enabled: !recurring.busy
             onClicked: root.submit()
         }

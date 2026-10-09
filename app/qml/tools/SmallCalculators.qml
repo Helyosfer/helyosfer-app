@@ -53,7 +53,7 @@ Column {
             id: button
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 2
-            text: "Calculate"
+            text: qsTr("Calculate")
             onClicked: parent.clicked()
         }
     }
@@ -69,17 +69,17 @@ Column {
     Component {
         id: interestCalculator
         CalculatorCard {
-            heading: "Deposit interest"
-            summary: "What a term deposit pays after the 5 % withholding tax."
+            heading: qsTr("Deposit interest")
+            summary: qsTr("What a term deposit pays after the 5 % withholding tax.")
 
             function run() { calc.interest(principal.text, rate.text, days.text) }
 
             Flow {
                 width: parent.width
                 spacing: 12
-                Field { id: principal; width: 220; label: "Deposit (₺)"; placeholder: "0,00"; money: true; onAccepted: run() }
-                Field { id: rate; width: 180; label: "Yearly interest (%)"; placeholder: "45"; onAccepted: run() }
-                Field { id: days; width: 130; label: "Days"; placeholder: "32"; onAccepted: run() }
+                Field { id: principal; width: 220; label: qsTr("Deposit (₺)"); placeholder: "0,00"; money: true; onAccepted: run() }
+                Field { id: rate; width: 180; label: qsTr("Yearly interest (%)"); placeholder: "45"; onAccepted: run() }
+                Field { id: days; width: 130; label: qsTr("Days"); placeholder: "32"; onAccepted: run() }
                 RunButton { fieldHeight: principal.height; onClicked: run() }
             }
             Notice { width: parent.width; text: calc.message }
@@ -91,18 +91,18 @@ Column {
     Component {
         id: growthCalculator
         CalculatorCard {
-            heading: "Compound growth"
-            summary: "How a starting amount grows at a yearly return, with an optional monthly contribution."
+            heading: qsTr("Compound growth")
+            summary: qsTr("How a starting amount grows at a yearly return, with an optional monthly contribution.")
 
             function run() { calc.growth(principal.text, rate.text, years.text, deposit.text) }
 
             Flow {
                 width: parent.width
                 spacing: 12
-                Field { id: principal; width: 200; label: "Starting amount (₺)"; placeholder: "0,00"; money: true; onAccepted: run() }
-                Field { id: rate; width: 160; label: "Yearly return (%)"; placeholder: "30"; onAccepted: run() }
-                Field { id: years; width: 110; label: "Years"; placeholder: "5"; onAccepted: run() }
-                Field { id: deposit; width: 220; label: "Monthly contribution (₺, optional)"; placeholder: "0,00"; money: true; onAccepted: run() }
+                Field { id: principal; width: 200; label: qsTr("Starting amount (₺)"); placeholder: "0,00"; money: true; onAccepted: run() }
+                Field { id: rate; width: 160; label: qsTr("Yearly return (%)"); placeholder: "30"; onAccepted: run() }
+                Field { id: years; width: 110; label: qsTr("Years"); placeholder: "5"; onAccepted: run() }
+                Field { id: deposit; width: 220; label: qsTr("Monthly contribution (₺, optional)"); placeholder: "0,00"; money: true; onAccepted: run() }
                 RunButton { fieldHeight: principal.height; onClicked: run() }
             }
             Notice { width: parent.width; text: calc.message }
@@ -121,8 +121,8 @@ Column {
     Component {
         id: goalCalculator
         CalculatorCard {
-            heading: "Time to a goal"
-            summary: "How long regular saving takes to reach an amount. The result can become a savings goal."
+            heading: qsTr("Time to a goal")
+            summary: qsTr("How long regular saving takes to reach an amount. The result can become a savings goal.")
 
             property string period: "monthly"
             function run() { calc.goalTime(target.text, deposit.text, period === "daily") }
@@ -130,8 +130,8 @@ Column {
             Flow {
                 width: parent.width
                 spacing: 12
-                Field { id: target; width: 220; label: "Target amount (₺)"; placeholder: "0,00"; money: true; onAccepted: run() }
-                Field { id: deposit; width: 200; label: "Amount saved each time (₺)"; placeholder: "0,00"; money: true; onAccepted: run() }
+                Field { id: target; width: 220; label: qsTr("Target amount (₺)"); placeholder: "0,00"; money: true; onAccepted: run() }
+                Field { id: deposit; width: 200; label: qsTr("Amount saved each time (₺)"); placeholder: "0,00"; money: true; onAccepted: run() }
                 Item {
                     width: periodChoice.width
                     height: target.height
@@ -139,7 +139,7 @@ Column {
                         id: periodChoice
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: 4
-                        model: [{ key: "monthly", label: "Every month" }, { key: "daily", label: "Every day" }]
+                        model: [{ key: "monthly", label: qsTr("Every month") }, { key: "daily", label: qsTr("Every day") }]
                         current: period
                         onChosen: function (key) { period = key }
                     }
@@ -157,13 +157,13 @@ Column {
                 Field {
                     id: goalName
                     width: 260
-                    label: "Create a savings goal named"
-                    placeholder: "Holiday fund"
+                    label: qsTr("Create a savings goal named")
+                    placeholder: qsTr("Holiday fund")
                     onAccepted: calc.createGoal(text)
                 }
                 RunButton {
                     fieldHeight: goalName.height
-                    text: "Create goal"
+                    text: qsTr("Create goal")
                     onClicked: calc.createGoal(goalName.text)
                 }
                 Text {
@@ -183,8 +183,8 @@ Column {
     Component {
         id: plainCalculator
         CalculatorCard {
-            heading: "Calculator"
-            summary: "Type an expression and press Enter. You can use + − × ÷, brackets, ^ for powers, and sqrt( )."
+            heading: qsTr("Calculator")
+            summary: qsTr("Type an expression and press Enter. You can use + − × ÷, brackets, ^ for powers, and sqrt( ).")
 
             Flow {
                 width: parent.width
@@ -192,7 +192,7 @@ Column {
                 Field {
                     id: expression
                     width: Math.min(parent.width - runPlain.width - 12, 520)
-                    label: "Expression"
+                    label: qsTr("Expression")
                     placeholder: "(1250 + 480) * 1,2"
                     onAccepted: calc.evaluate(text)
                     Component.onCompleted: input.forceActiveFocus()

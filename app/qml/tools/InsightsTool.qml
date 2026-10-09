@@ -28,7 +28,7 @@ Column {
                 spacing: 12
 
                 Text {
-                    text: "Financial health"
+                    text: qsTr("Financial health")
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -48,7 +48,7 @@ Column {
                     }
                     Text {
                         anchors.baseline: scoreText.baseline
-                        text: "out of 100  ·  " + insights.scoreLabel
+                        text: qsTr("out of 100") + "  ·  " + insights.scoreLabel
                         color: Theme.muted
                         font.family: Theme.uiFont
                         font.pixelSize: 13
@@ -122,7 +122,7 @@ Column {
                 spacing: 10
 
                 Text {
-                    text: "Month-end forecast"
+                    text: qsTr("Month-end forecast")
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -164,7 +164,7 @@ Column {
 
             Text {
                 bottomPadding: 10
-                text: "Unusual spending"
+                text: qsTr("Unusual spending")
                 color: Theme.text
                 font.family: Theme.uiFont
                 font.pixelSize: 13
@@ -173,7 +173,7 @@ Column {
             Text {
                 visible: insights.anomalies.length === 0
                 topPadding: 6
-                text: "Nothing stands out from your usual spending in the last 90 days."
+                text: qsTr("Nothing stands out from your usual spending in the last 90 days.")
                 color: Theme.faint
                 font.family: Theme.uiFont
                 font.pixelSize: 13
@@ -224,7 +224,7 @@ Column {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         compact: true; quiet: true
-                        text: "This is fine"
+                        text: qsTr("This is fine")
                         enabled: !insights.busy
                         onClicked: insights.dismissAnomaly(line.modelData.id)
                     }
@@ -242,7 +242,7 @@ Column {
 
             Text {
                 bottomPadding: 10
-                text: "Payments that look recurring"
+                text: qsTr("Payments that look recurring")
                 color: Theme.text
                 font.family: Theme.uiFont
                 font.pixelSize: 13
@@ -251,7 +251,7 @@ Column {
             Text {
                 visible: insights.candidates.length === 0
                 topPadding: 6
-                text: "No repeating payments were found that you are not already tracking."
+                text: qsTr("No repeating payments were found that you are not already tracking.")
                 color: Theme.faint
                 font.family: Theme.uiFont
                 font.pixelSize: 13
@@ -307,7 +307,7 @@ Column {
                             compact: true; quiet: true
                             visible: row.modelData.canTrack
                             enabled: !insights.busy
-                            text: "Track"
+                            text: qsTr("Track")
                             onClicked: insights.trackCandidate(
                                 row.modelData.key,
                                 accounts.options.length > 0 ? accounts.options[0].key : -1)
@@ -315,7 +315,7 @@ Column {
                         PrimaryButton {
                             compact: true; quiet: true
                             enabled: !insights.busy
-                            text: "Ignore"
+                            text: qsTr("Ignore")
                             onClicked: insights.dismissCandidate(row.modelData.key)
                         }
                     }

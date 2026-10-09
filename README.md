@@ -23,6 +23,8 @@ and portfolio tracking.
 - Portfolio tracking for stocks, precious metals, foreign currencies, and
   cryptocurrencies.
 - Subscription detection, balance history, insights, and scenario projections.
+- English and Turkish, switched in Settings or on the sign-in screen. It starts
+  in Turkish on a computer set to Turkish and in English everywhere else.
 
 ## Principles
 
@@ -71,12 +73,12 @@ computer, create a backup in **Settings** and restore it there.
 ## Repository layout
 
 ```text
-app/         Desktop interface: Qt Quick views and their controllers
+app/         Desktop interface: Qt Quick views, their controllers, and its Turkish text
 database/    SQLite schema, migrations, connections, and ledger
 services/    Domain operations, pricing, insights, projections, backup, recovery
 security/    Local authentication, password policy, and login throttling
 utils/       Decimal policy, encryption, key storage, paths, logging, formatting
-ui/          English text catalog and chart localization
+ui/          English catalog for the services' Turkish messages
 tests/       Unit, integration, security, and recovery tests
 scripts/     Audit and benchmark tools
 ```

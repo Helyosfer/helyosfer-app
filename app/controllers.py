@@ -16,25 +16,25 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from services import auth_service
 from services.background_task_manager import BackgroundTaskManager
-from ui.i18n import tr
+from app import language
+from app.language import later, month_short, say, tr, turkish
 from utils.errors import FinancialDataIntegrityError
 from utils.logging_config import get_logger, log_integrity_error
 from utils.version import APP_VERSION
 
 PERIODS = (
-    ("Bugün", "Today"),
-    ("1 Hafta", "1W"),
-    ("1 Ay", "1M"),
-    ("1 Yıl", "1Y"),
+    ("Bugün", later("Today")),
+    ("1 Hafta", later("1W")),
+    ("1 Ay", later("1M")),
+    ("1 Yıl", later("1Y")),
 )
 _PERIOD_PHRASES = {
-    "Bugün": "today",
-    "1 Hafta": "past week",
-    "1 Ay": "past month",
-    "1 Yıl": "past year",
+    "Bugün": later("today"),
+    "1 Hafta": later("past week"),
+    "1 Ay": later("past month"),
+    "1 Yıl": later("past year"),
 }
-_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
-           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
 
 
 def format_amount(value) -> str:
@@ -56,7 +56,7 @@ def short_date(text: str) -> str:
             day = datetime.datetime.strptime(head, pattern).date()
         except ValueError:
             continue
-        return f"{day.day:02d} {_MONTHS[day.month - 1]}"
+        return f"{day.day:02d} {month_short(day.month)}"
     return text or ""
 
 
@@ -79,7 +79,12 @@ _GOLD_LABELS = {
 
 
 def display_title(text: str) -> str:
-    """Stored descriptions as shown: generated ones are put into English."""
+    """Stored descriptions as shown: generated ones are put into English.
+
+    They are stored in Turkish, so a Turkish interface shows them as they are.
+    """
+    if turkish():
+        return text or ""
     for suffix, replacement in _GENERATED_SUFFIXES:
         if text.endswith(suffix):
             return text[: -len(suffix)] + replacement
@@ -129,6 +134,7 @@ class AppController(QObject):
     screenChanged = Signal()
     darkChanged = Signal()
     failureChanged = Signal()
+    languageChanged = Signal()
 
     def __init__(self, store, parent=None):
         super().__init__(parent)
@@ -138,8 +144,13 @@ class AppController(QObject):
         self._failure_title = ""
         self._failure_message = ""
         self._failure_note = ""
+        chosen = None
         if store is not None:
-            self._dark = store.get("display").get("style", "Dark") != "Light"
+            display = store.get("display")
+            self._dark = display.get("style", "Dark") != "Light"
+            chosen = display.get("language")
+        # Until a language is chosen the computer's own decides.
+        language.set_language(chosen or language.system_language())
 
     @Property(str, notify=screenChanged)
     def screen(self):
@@ -159,11 +170,33 @@ class AppController(QObject):
         """Amount text as it should read while being typed: '1000' -> '1.000'."""
         return mask_amount(text, signed)
 
+    def _remember(self, **changes) -> None:
+        """Writes display settings without dropping the ones not mentioned."""
+        if self._store is not None:
+            self._store.put("display", **{**self._store.get("display"), **changes})
+
     @Slot()
     def toggleTheme(self):
         self._dark = not self._dark
-        self._store.put("display", style="Dark" if self._dark else "Light")
+        self._remember(style="Dark" if self._dark else "Light")
         self.darkChanged.emit()
+
+    @Property(str, notify=languageChanged)
+    def language(self):
+        return language.language()
+
+    @Property("QVariantList", constant=True)
+    def languages(self):
+        return [{"key": code, "label": name} for code, name in language.LANGUAGES]
+
+    @Slot(str)
+    def setLanguage(self, code):
+        """Switches the interface language; the screens are built again in it."""
+        if code == language.language() or code not in dict(language.LANGUAGES):
+            return
+        language.set_language(code)
+        self._remember(language=code)
+        self.languageChanged.emit()
 
     @Property(str, constant=True)
     def version(self):
@@ -185,7 +218,7 @@ class AppController(QObject):
         """Fail-closed startup surface: only fixed, safe text reaches the user."""
         self.halt(
             tr(title), tr(message),
-            "Nothing was changed. Close this window when you are ready.",
+            say("Nothing was changed. Close this window when you are ready."),
         )
 
     def halt(self, title: str, message: str, note: str = "") -> None:
@@ -260,7 +293,7 @@ class AuthController(QObject):
             "Oturum işlemi başarısız.",
             exc_info=(type(error), error, error.__traceback__),
         )
-        self._set_message("Something went wrong. Try again.")
+        self._set_message(say("Something went wrong. Try again."))
         self.rejected.emit()
 
     @Slot(str)
@@ -326,7 +359,7 @@ class DashboardController(QObject):
     # -- properties ----------------------------------------------------------
     @Property("QVariantList", constant=True)
     def periods(self):
-        return [{"key": key, "label": label} for key, label in PERIODS]
+        return [{"key": key, "label": say(label)} for key, label in PERIODS]
 
     @Property(str, notify=periodChanged)
     def period(self):
@@ -430,9 +463,9 @@ class DashboardController(QObject):
 
         change = metrics["balance_change"]
         rate = metrics["change_rate"]
-        label = _PERIOD_PHRASES[data["period"]]
+        label = say(_PERIOD_PHRASES[data["period"]])
         if change is None:
-            change_text, direction = "No history for this period yet", 0
+            change_text, direction = say("No history for this period yet"), 0
         else:
             direction = (change > 0) - (change < 0)
             change_text = format_signed(change)
@@ -464,13 +497,13 @@ class DashboardController(QObject):
         day = datetime.date.fromisoformat(item["date"][:10]) if item["date"] else today
         delta = (day - today).days
         if delta < 0:
-            when = "1 day overdue" if delta == -1 else f"{-delta} days overdue"
+            when = say("1 day overdue") if delta == -1 else say("{0} days overdue", -delta)
         elif delta == 0:
-            when = "today"
+            when = say("today")
         elif delta == 1:
-            when = "tomorrow"
+            when = say("tomorrow")
         else:
-            when = f"in {delta} days"
+            when = say("in {0} days", delta)
         pending = item["kind"] == "pending"
         amount = "—"
         if item["amount"] is not None:
@@ -479,10 +512,10 @@ class DashboardController(QObject):
             # Names are the user's own text; only generated ones are reworded.
             "title": display_title(item["name"]) if pending else item["name"],
             "day": f"{day.day:02d}",
-            "month": _MONTHS[day.month - 1],
+            "month": month_short(day.month),
             "when": when,
-            "note": "Pending transaction" if pending
-            else ("Taken automatically" if item["automatic"] else "Pay by hand"),
+            "note": say("Pending transaction") if pending
+            else (say("Taken automatically") if item["automatic"] else say("Pay by hand")),
             "amount": amount,
             "income": item["income"],
             "overdue": delta < 0,
@@ -496,7 +529,7 @@ class DashboardController(QObject):
             amount = ("+" if income else "−") + format_amount(item["amount"]) + " ₺"
             title = display_title(item["description"] or item["category"])
         else:
-            amount, title = "—", "Unreadable record"
+            amount, title = "—", say("Unreadable record")
         return {
             "id": item["id"],
             "date": short_date(item["date"]),
@@ -513,14 +546,14 @@ class DashboardController(QObject):
             error_id = log_integrity_error(error)
             state["error"] = (
                 tr("Bazı kayıtlar okunamadığı için gösterilemiyor")
-                + f" (Error: {error_id})"
+                + say(" (Error: {0})", error_id)
             )
         else:
             get_logger().exception(
                 "Dashboard görevi başarısız.",
                 exc_info=(type(error), error, error.__traceback__),
             )
-            state["error"] = "The overview could not be loaded."
+            state["error"] = say("The overview could not be loaded.")
         self._state = state
         self._done()
 

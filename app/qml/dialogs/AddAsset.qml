@@ -5,8 +5,8 @@ import "../components"
 
 Sheet {
     id: root
-    title: "Add asset"
-    subtitle: "Record something you bought. Prices are entered and shown in lira."
+    title: qsTr("Add asset")
+    subtitle: qsTr("Record something you bought. Prices are entered and shown in lira.")
 
     readonly property string kind: type.currentKey === undefined ? "" : type.currentKey
     readonly property bool gold: kind === "Altın"
@@ -47,14 +47,14 @@ Sheet {
         Choice {
             id: type
             width: (parent.width - 12) * 0.4
-            label: "Kind"
+            label: qsTr("Kind")
             model: assets.types
         }
         Field {
             id: code
             visible: !root.gold
             width: (parent.width - 12) * 0.6
-            label: "Symbol"
+            label: qsTr("Symbol")
             placeholder: assets.codeHint(root.kind)
             onAccepted: root.submit()
         }
@@ -62,7 +62,7 @@ Sheet {
             id: goldKind
             visible: root.gold
             width: (parent.width - 12) * 0.6
-            label: "Type of gold"
+            label: qsTr("Type of gold")
             model: assets.goldKinds
         }
     }
@@ -71,8 +71,8 @@ Sheet {
         id: name
         visible: !root.gold
         width: parent.width
-        label: "Name (optional)"
-        placeholder: "Shown in your list instead of the symbol"
+        label: qsTr("Name (optional)")
+        placeholder: qsTr("Shown in your list instead of the symbol")
         onAccepted: root.submit()
     }
 
@@ -83,14 +83,14 @@ Sheet {
         Field {
             id: quantity
             width: (parent.width - 24) * 0.3
-            label: "Quantity"
+            label: qsTr("Quantity")
             placeholder: "0"
             onAccepted: root.submit()
         }
         Field {
             id: price
             width: (parent.width - 24) * 0.4
-            label: "Unit price (₺)"
+            label: qsTr("Unit price (₺)")
             placeholder: "0,00"
             onAccepted: root.submit()
         }
@@ -99,7 +99,7 @@ Sheet {
             anchors.bottomMargin: 2
             width: (parent.width - 24) * 0.3
             quiet: true
-            text: assets.quoteBusy ? "Looking up…" : "Current price"
+            text: assets.quoteBusy ? qsTr("Looking up…") : qsTr("Current price")
             enabled: !assets.quoteBusy
             onClicked: assets.lookUp(root.kind, root.symbol())
         }
@@ -107,15 +107,15 @@ Sheet {
 
     Toggle {
         id: deduct
-        text: "Take the cost from an account"
+        text: qsTr("Take the cost from an account")
     }
 
     Choice {
         id: account
         visible: deduct.checked
         width: parent.width
-        label: "Pay from"
-        placeholder: "Choose an account"
+        label: qsTr("Pay from")
+        placeholder: qsTr("Choose an account")
         model: accounts.checkingOptions
     }
 
@@ -125,9 +125,9 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: "Cancel"; onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: root.close() },
         PrimaryButton {
-            text: assets.busy ? "Saving…" : "Add asset"
+            text: assets.busy ? qsTr("Saving…") : qsTr("Add asset")
             enabled: !assets.busy
             onClicked: root.submit()
         }

@@ -10,21 +10,22 @@ import database.db
 
 from app.accounts import FormError, _Mutating
 from app.controllers import format_amount
+from app.language import later, say
 from services.background_task_manager import BackgroundTaskManager
 from utils.logging_config import get_logger
 
 BACKUP_SUFFIX = ".helysofer-backup"
 CONTACT_EMAIL = "cakirgozmehmetc@proton.me"
 PROJECT_URL = "github.com/Helysofer/helysofer"
-UNWRITABLE = "The file could not be saved there. Choose another location."
-UNREADABLE_CSV = "This file could not be read. Choose a CSV file exported from Helysofer."
+UNWRITABLE = later("The file could not be saved there. Choose another location.")
+UNREADABLE_CSV = later("This file could not be read. Choose a CSV file exported from Helysofer.")
 
 
 def local_path(url: str, suffix: str = "") -> str:
     """A file dialog's URL as a local path, with `suffix` ensured."""
     path = QUrl(url).toLocalFile() if "://" in (url or "") else (url or "")
     if not path:
-        raise FormError("Choose a file first.")
+        raise FormError(say("Choose a file first."))
     if suffix and not path.lower().endswith(suffix):
         path += suffix
     return path
@@ -109,12 +110,12 @@ class SettingsController(_Mutating):
             self.saved.emit()
 
         def failed(error):
-            from app.accounts import GENERIC_FAILURE, user_message
+            from app.accounts import is_explained, user_message
 
             self._set_busy(False)
             text = user_message(error)
-            if problem and text == GENERIC_FAILURE:
-                text = problem
+            if problem and not is_explained(error):
+                text = say(problem)
             if not isinstance(error, ValueError):
                 get_logger().exception(
                     "Ayar işlemi başarısız.",
@@ -149,9 +150,9 @@ class SettingsController(_Mutating):
             from services.backup_service import create_backup
 
             if len(passphrase) < 12:
-                raise FormError("The backup password must be at least 12 characters.")
+                raise FormError(say("The backup password must be at least 12 characters."))
             if passphrase != confirmation:
-                raise FormError("The two backup passwords do not match.")
+                raise FormError(say("The two backup passwords do not match."))
             destination = local_path(url, BACKUP_SUFFIX)
             create_backup(
                 destination, passphrase,
@@ -160,8 +161,7 @@ class SettingsController(_Mutating):
             return destination
 
         self._run(work, lambda path: self._set_notice(
-            f"Backup saved to {os.path.basename(path)}. Keep its password safe: "
-            "without it the backup cannot be opened."
+            say("Backup saved to {0}. Keep its password safe: without it the backup cannot be opened.", os.path.basename(path))
         ), UNWRITABLE)
 
     @Slot(str, str)
@@ -179,8 +179,8 @@ class SettingsController(_Mutating):
             except (HelysoferError, ValueError, OSError) as error:
                 get_logger().warning("Yedek geri yüklenemedi: %s", type(error).__name__)
                 raise FormError(
-                    "This backup could not be restored. Check the backup "
-                    "password and that the file is a Helysofer backup."
+                    say("This backup could not be restored. Check the backup "
+                    "password and that the file is a Helysofer backup.")
                 ) from error
 
         self._run(work, lambda _result: self.restored.emit())
@@ -194,8 +194,7 @@ class SettingsController(_Mutating):
             return export_all_to_csv(local_path(url, ".csv"))
 
         self._run(work, lambda result: self._set_notice(
-            f"Exported {result[1]} rows to {os.path.basename(result[0])}. "
-            "The file is not encrypted; store it carefully."
+            say("Exported {0} rows to {1}. The file is not encrypted; store it carefully.", result[1], os.path.basename(result[0]))
         ), UNWRITABLE)
 
     @Slot(str, int)
@@ -204,18 +203,18 @@ class SettingsController(_Mutating):
             from services.migration_service import import_transactions_from_csv
 
             if account_id < 0:
-                raise FormError("Choose the account the transactions belong to.")
+                raise FormError(say("Choose the account the transactions belong to."))
             return import_transactions_from_csv(local_path(url), account_id)
 
         def done(result):
             imported, skipped, net, duplicates = result
-            text = f"Imported {imported} transactions"
+            text = say("Imported {0} transactions", imported)
             if duplicates:
-                text += f", left out {duplicates} that were already in the account"
+                text += say(", left out {0} that were already in the account", duplicates)
             if skipped:
-                text += f", skipped {skipped} rows that could not be read"
+                text += say(", skipped {0} rows that could not be read", skipped)
             sign = "−" if net < 0 else "+"
-            self._set_notice(f"{text}. Net effect on the balance: {sign}{format_amount(net)} ₺.")
+            self._set_notice(say("{0}. Net effect on the balance: {1}{2} ₺.", text, sign, format_amount(net)))
             self.dataChanged.emit()
 
         self._run(work, done, UNREADABLE_CSV)
@@ -227,7 +226,7 @@ class SettingsController(_Mutating):
             from services.reset_service import CONFIRMATION_WORD, reset_all_data
 
             if (typed or "").strip().upper() != CONFIRMATION_WORD:
-                raise FormError(f"Type {CONFIRMATION_WORD} to confirm.")
+                raise FormError(say("Type {0} to confirm.", CONFIRMATION_WORD))
             reset_all_data(self._store)
 
         def done(_result):

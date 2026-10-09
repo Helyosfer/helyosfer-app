@@ -32,10 +32,10 @@ Flickable {
         PageHeader {
             width: parent.width
             figures: [
-                { label: "Portfolio value", value: assets.valueText },
-                { label: "Cost", value: assets.costText }
+                { label: qsTr("Portfolio value"), value: assets.valueText },
+                { label: qsTr("Cost"), value: assets.costText }
             ]
-            actionText: "Add asset"
+            actionText: qsTr("Add asset")
             onAction: root.addRequested()
         }
 
@@ -45,7 +45,7 @@ Flickable {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: assets.pnlText.length > 0 ? "Profit or loss  " + assets.pnlText : ""
+                text: assets.pnlText.length > 0 ? qsTr("Profit or loss") + "  " + assets.pnlText : ""
                 color: Theme.direction(assets.pnlDirection)
                 font.family: Theme.dataFont
                 font.pixelSize: 13
@@ -56,9 +56,10 @@ Flickable {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: assets.pricing || assets.unpricedCount > 0
-                    text: assets.pricing ? "Updating prices…"
-                        : assets.unpricedCount + (assets.unpricedCount === 1 ? " holding has" : " holdings have")
-                          + " no current price and are counted at cost"
+                    text: assets.pricing ? qsTr("Updating prices…")
+                        : (assets.unpricedCount === 1
+                            ? qsTr("1 holding has no current price and is counted at cost")
+                            : qsTr("%1 holdings have no current price and are counted at cost").arg(assets.unpricedCount))
                     color: assets.pricing ? Theme.muted : Theme.warn
                     font.family: Theme.uiFont
                     font.pixelSize: 12
@@ -66,7 +67,7 @@ Flickable {
                 PrimaryButton {
                     id: refresh
                     compact: true; quiet: true
-                    text: "Refresh prices"
+                    text: qsTr("Refresh prices")
                     enabled: !assets.pricing && assets.holdings.length > 0
                     onClicked: assets.refreshPrices()
                 }
@@ -89,16 +90,16 @@ Flickable {
                     width: parent.width
                     height: 28
 
-                    Text { text: "Holding"; color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 12 }
+                    Text { text: qsTr("Holding"); color: Theme.muted; font.family: Theme.uiFont; font.pixelSize: 12 }
                     Row {
                         anchors.right: parent.right
                         Repeater {
                             model: [
-                                { label: "Quantity", width: root.colQuantity },
-                                { label: "Unit cost", width: root.colMoney },
-                                { label: "Price", width: root.colMoney },
-                                { label: "Value", width: root.colMoney },
-                                { label: "Profit or loss", width: root.colPnl },
+                                { label: qsTr("Quantity"), width: root.colQuantity },
+                                { label: qsTr("Unit cost"), width: root.colMoney },
+                                { label: qsTr("Price"), width: root.colMoney },
+                                { label: qsTr("Value"), width: root.colMoney },
+                                { label: qsTr("Profit or loss"), width: root.colPnl },
                                 { label: "", width: root.colAction }
                             ]
                             Text {
@@ -117,7 +118,7 @@ Flickable {
                 Text {
                     visible: assets.holdings.length === 0
                     topPadding: 10
-                    text: "No assets yet. Add shares, gold, currency or crypto to follow their value."
+                    text: qsTr("No assets yet. Add shares, gold, currency or crypto to follow their value.")
                     color: Theme.faint
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -192,7 +193,7 @@ Flickable {
                                     id: sell
                                     anchors.right: parent.right
                                     compact: true; quiet: true
-                                    text: "Sell"
+                                    text: qsTr("Sell")
                                     onClicked: root.sellRequested(row.modelData)
                                 }
                             }
@@ -212,7 +213,7 @@ Flickable {
 
                 Text {
                     bottomPadding: 10
-                    text: "Purchases and sales"
+                    text: qsTr("Purchases and sales")
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13

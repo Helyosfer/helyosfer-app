@@ -8,13 +8,13 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from app.controllers import display_title, format_amount, short_date
 from services.background_task_manager import BackgroundTaskManager
-from ui.i18n import tr
+from app.language import known_to_services, later, say, tr
 from utils.formatters import parse_amount
 from utils.logging_config import get_logger
 
 CHECKING = "checking"
 CREDIT_CARD = "credit_card"
-GENERIC_FAILURE = "This could not be saved. Check the values and try again."
+GENERIC_FAILURE = later("This could not be saved. Check the values and try again.")
 _NETWORKS = ("Visa", "Mastercard", "Troy")
 
 
@@ -31,8 +31,12 @@ def user_message(error: Exception) -> str:
     if isinstance(error, FormError):
         return str(error)
     text = str(error)
-    translated = tr(text)
-    return translated if translated != text else GENERIC_FAILURE
+    return tr(text) if known_to_services(text) else say(GENERIC_FAILURE)
+
+
+def is_explained(error: Exception) -> bool:
+    """False when `user_message` can only give its general failure text."""
+    return isinstance(error, FormError) or known_to_services(str(error))
 
 
 def read_amount(text: str, label: str, *, optional: bool = False) -> float:
@@ -40,11 +44,11 @@ def read_amount(text: str, label: str, *, optional: bool = False) -> float:
     if not text:
         if optional:
             return 0.0
-        raise FormError(f"Enter the {label}.")
+        raise FormError(say("Enter the {0}.", label))
     try:
         return parse_amount(text)
     except ValueError:
-        raise FormError(f"Enter a valid {label}, for example 1.250,50.") from None
+        raise FormError(say("Enter a valid {0}, for example 1.250,50.", label)) from None
 
 
 def read_date(text: str) -> str | None:
@@ -55,7 +59,7 @@ def read_date(text: str) -> str | None:
     try:
         day = datetime.datetime.strptime(text, "%d.%m.%Y").date()
     except ValueError:
-        raise FormError("Enter the date as DD.MM.YYYY, for example 08.10.2026.") from None
+        raise FormError(say("Enter the date as DD.MM.YYYY, for example 08.10.2026.")) from None
     now = datetime.datetime.now()
     if day == now.date():
         return None
@@ -196,14 +200,14 @@ class AccountsController(_Mutating):
             "Hesaplar yüklenemedi.",
             exc_info=(type(error), error, error.__traceback__),
         )
-        self._set_message("Accounts could not be loaded.")
+        self._set_message(say("Accounts could not be loaded."))
 
     @staticmethod
     def _view(account: dict) -> dict:
         credit = account["account_type"] == CREDIT_CARD
         limit = account["credit_limit"]
         if credit:
-            summary = f"{format_amount(account['available_limit'])} ₺ available"
+            summary = say("{0} ₺ available", format_amount(account['available_limit']))
         else:
             summary = f"{format_amount(account['balance'])} ₺"
         network = next(
@@ -248,12 +252,12 @@ class AccountsController(_Mutating):
 
             credit = kind == CREDIT_CARD
             balance = read_amount(
-                balance_text, "current debt" if credit else "balance", optional=True
+                balance_text, say("current debt") if credit else "balance", optional=True
             )
-            limit = read_amount(limit_text, "card limit") if credit else 0.0
+            limit = read_amount(limit_text, say("card limit")) if credit else 0.0
             digits = "".join(ch for ch in (card_number or "") if ch.isdigit())
             if digits and not 12 <= len(digits) <= 19:
-                raise FormError("Enter the full card number, or leave it empty.")
+                raise FormError(say("Enter the full card number, or leave it empty."))
             AccountService.create_account(
                 name=name,
                 account_type=kind,
@@ -288,13 +292,12 @@ class AccountsController(_Mutating):
             from services.account_service import AccountService
 
             if source_id < 0:
-                raise FormError("Choose the account to pay from.")
-            amount = read_amount(amount_text, "amount")
+                raise FormError(say("Choose the account to pay from."))
+            amount = read_amount(amount_text, say("amount"))
             card = AccountService.get_account(card_id)
             if card and 0 < card["debt"] < amount:
                 raise FormError(
-                    "The payment cannot exceed the current debt of "
-                    f"{format_amount(card['debt'])} ₺."
+                    say("The payment cannot exceed the current debt of {0} ₺.", format_amount(card['debt']))
                 )
             AccountService.pay_credit_card_debt(card_id, source_id, amount)
 
@@ -380,8 +383,8 @@ class TransactionFormController(_Mutating):
             from services.transaction_edit_service import update_transaction
 
             if not category:
-                raise FormError("Choose a category.")
-            amount = read_amount(amount_text, "amount")
+                raise FormError(say("Choose a category."))
+            amount = read_amount(amount_text, say("amount"))
             stamp = read_date(date_text) or datetime.date.today().isoformat()
             update_transaction(
                 transaction_id, amount, category, (description or "").strip(), stamp[:10],
@@ -408,10 +411,10 @@ class TransactionFormController(_Mutating):
             from services.transaction_service import TransactionService
 
             if account_id < 0:
-                raise FormError("Choose an account.")
+                raise FormError(say("Choose an account."))
             if not category:
-                raise FormError("Choose a category.")
-            amount = read_amount(amount_text, "amount")
+                raise FormError(say("Choose a category."))
+            amount = read_amount(amount_text, say("amount"))
             stamp = read_date(date_text)
             account = AccountService.get_account(account_id)
             on_card = bool(

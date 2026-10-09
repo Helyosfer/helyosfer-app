@@ -1122,10 +1122,27 @@ def get_language():
     return _language
 
 
+_show_source = False
+
+
+def show_source(enabled: bool) -> None:
+    """Shows the Turkish source text itself instead of its English entry.
+
+    The interface turns this on when it is set to Turkish. It is kept apart
+    from `set_language`: that one chooses a catalog, and there is none for
+    Turkish, because Turkish is what the keys are written in. An explicit
+    `language` argument still gets that language's catalog.
+    """
+    global _show_source
+    _show_source = bool(enabled)
+
+
 def tr(text: str | None, language: str | None = None) -> str:
     """Return the English catalog entry for an exact source-text match."""
     if text is None:
         return ""
+    if _show_source and language is None:
+        return text
     return EN.get(text, text)
 
 

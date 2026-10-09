@@ -8,7 +8,8 @@ import "../dialogs"
 Rectangle {
     id: root
     objectName: "shell"
-    property string section: "overview"
+    property string section: window.resumeSection
+    onSectionChanged: window.resumeSection = section
     readonly property bool dialogOpen: addTransaction.visible || addAccount.visible
         || payDebt.visible || confirmDelete.visible || addDebt.visible
         || payInstallments.visible || addRecurring.visible || stopRecurring.visible
@@ -32,14 +33,14 @@ Rectangle {
     }
 
     readonly property var sections: [
-        { key: "overview", label: "Overview", glyph: "" },
-        { key: "assets", label: "Assets", glyph: "" },
-        { key: "cards", label: "Cards and accounts", glyph: "" },
-        { key: "debts", label: "Debts and payments", glyph: "" },
-        { key: "subscriptions", label: "Subscriptions", glyph: "" },
-        { key: "savings", label: "Savings goals", glyph: "" },
-        { key: "tools", label: "Tools", glyph: "" },
-        { key: "settings", label: "Settings", glyph: "" }
+        { key: "overview", label: qsTr("Overview"), glyph: "" },
+        { key: "assets", label: qsTr("Assets"), glyph: "" },
+        { key: "cards", label: qsTr("Cards and accounts"), glyph: "" },
+        { key: "debts", label: qsTr("Debts and payments"), glyph: "" },
+        { key: "subscriptions", label: qsTr("Subscriptions"), glyph: "" },
+        { key: "savings", label: qsTr("Savings goals"), glyph: "" },
+        { key: "tools", label: qsTr("Tools"), glyph: "" },
+        { key: "settings", label: qsTr("Settings"), glyph: "" }
     ]
 
     Rectangle {
@@ -112,20 +113,20 @@ Rectangle {
 
             NavItem {
                 width: parent.width
-                text: Theme.dark ? "Light theme" : "Dark theme"
+                text: Theme.dark ? qsTr("Light theme") : qsTr("Dark theme")
                 glyph: ""
                 onClicked: app.toggleTheme()
             }
             NavItem {
                 width: parent.width
-                text: "Lock"
+                text: qsTr("Lock")
                 glyph: ""
                 onClicked: auth.logout()
             }
             Text {
                 leftPadding: 10
                 topPadding: 8
-                text: "Encrypted on this device  ·  " + app.version
+                text: qsTr("Encrypted on this device") + "  ·  " + app.version
                 color: Theme.faint
                 font.family: Theme.uiFont
                 font.pixelSize: 11
@@ -232,29 +233,29 @@ Rectangle {
         id: autoPayDay
         objectName: "autoPayDay"
         source: debts
-        title: "Pay automatically"
-        subtitle: subject ? subject.monthlyText + " is taken for " + subject.name + " each month." : ""
-        fieldLabel: "Day of the month (1–31)"
-        confirmText: "Turn on"
+        title: qsTr("Pay automatically")
+        subtitle: subject ? qsTr("%1 is taken for %2 each month.").arg(subject.monthlyText).arg(subject.name) : ""
+        fieldLabel: qsTr("Day of the month (1–31)")
+        confirmText: qsTr("Turn on")
         onSubmitted: function (text) { debts.setAutoPay(subject.id, true, text) }
     }
     Prompt {
         id: reschedule
         objectName: "reschedule"
         source: debts
-        title: "Reschedule"
+        title: qsTr("Reschedule")
         subtitle: subject ? subject.title + "  ·  " + subject.amount : ""
-        fieldLabel: "New date"
-        fieldPlaceholder: "DD.MM.YYYY"
+        fieldLabel: qsTr("New date")
+        fieldPlaceholder: qsTr("DD.MM.YYYY")
         onSubmitted: function (text) { debts.reschedule(subject.id, text) }
     }
     Prompt {
         id: changeAmount
         objectName: "changeAmount"
         source: recurring
-        title: "Change amount"
-        subtitle: subject ? subject.name + "  ·  currently " + subject.amountText : ""
-        fieldLabel: "New amount (₺)"
+        title: qsTr("Change amount")
+        subtitle: subject ? subject.name + "  ·  " + qsTr("currently %1").arg(subject.amountText) : ""
+        fieldLabel: qsTr("New amount (₺)")
         money: true
         fieldPlaceholder: "0,00"
         onSubmitted: function (text) { recurring.changeAmount(subject.id, text) }
@@ -291,7 +292,7 @@ Rectangle {
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "This section is being built."
+                    text: qsTr("This section is being built.")
                     color: Theme.muted
                     font.family: Theme.uiFont
                     font.pixelSize: 13

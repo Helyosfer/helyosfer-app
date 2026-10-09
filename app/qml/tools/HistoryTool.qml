@@ -18,7 +18,7 @@ Column {
                 width: parent.width
                 spacing: 3
                 Text {
-                    text: "Past balance"
+                    text: qsTr("Past balance")
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -26,7 +26,7 @@ Column {
                 }
                 Text {
                     width: parent.width
-                    text: "What your accounts held at the end of a past day, and what has moved the balance since."
+                    text: qsTr("What your accounts held at the end of a past day, and what has moved the balance since.")
                     color: Theme.muted
                     font.family: Theme.uiFont
                     font.pixelSize: 12
@@ -41,8 +41,8 @@ Column {
                 Field {
                     id: date
                     width: 200
-                    label: "Date"
-                    placeholder: "DD.MM.YYYY"
+                    label: qsTr("Date")
+                    placeholder: qsTr("DD.MM.YYYY")
                     onAccepted: history.lookUp(text)
                 }
                 Item {
@@ -52,7 +52,7 @@ Column {
                         id: showButton
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: 2
-                        text: history.busy ? "Looking…" : "Show"
+                        text: history.busy ? qsTr("Looking…") : qsTr("Show")
                         enabled: !history.busy
                         onClicked: history.lookUp(date.text)
                     }
@@ -79,8 +79,8 @@ Column {
 
                 Repeater {
                     model: [
-                        { label: "In accounts on " + history.title, value: history.balanceText },
-                        { label: "In savings goals", value: history.savingsText }
+                        { label: qsTr("In accounts on %1").arg(history.title), value: history.balanceText },
+                        { label: qsTr("In savings goals"), value: history.savingsText }
                     ]
                     Column {
                         required property var modelData
@@ -115,7 +115,7 @@ Column {
 
                 Text {
                     visible: history.sources.length === 0
-                    text: "Nothing has moved the balance since that day."
+                    text: qsTr("Nothing has moved the balance since that day.")
                     color: Theme.faint
                     font.family: Theme.uiFont
                     font.pixelSize: 13

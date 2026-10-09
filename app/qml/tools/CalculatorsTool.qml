@@ -10,11 +10,11 @@ Column {
 
     Segmented {
         model: [
-            { key: "loan", label: "Loan" },
-            { key: "interest", label: "Deposit interest" },
-            { key: "growth", label: "Compound growth" },
-            { key: "goal", label: "Time to a goal" },
-            { key: "plain", label: "Calculator" }
+            { key: "loan", label: qsTr("Loan") },
+            { key: "interest", label: qsTr("Deposit interest") },
+            { key: "growth", label: qsTr("Compound growth") },
+            { key: "goal", label: qsTr("Time to a goal") },
+            { key: "plain", label: qsTr("Calculator") }
         ]
         current: root.calculator
         onChosen: function (key) { calc.clearMessage(); root.calculator = key }

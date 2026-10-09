@@ -18,7 +18,7 @@ Working and covered by tests:
   dates of the transactions.
 - Categories: the user's own can be added, renamed and removed.
 - Encrypted backup and restore, CSV export and import.
-- Dark and light themes.
+- Dark and light themes; English and Turkish.
 
 Tried by hand in a real window on Windows as well as by the test suite. Not
 yet tried by anyone but the author.
@@ -40,9 +40,6 @@ yet tried by anyone but the author.
 
 ## Open decisions
 
-- **Interface language.** The interface is English; built-in categories are
-  stored in Turkish and shown in English. A Turkish interface is possible and
-  not started.
 - **Foreign shares.** Only BIST prices are looked up. Others need a currency
   conversion as well as a second symbol lookup.
 - **Installer or archive.** For now the package is a zip of its folder. An
@@ -67,6 +64,11 @@ yet tried by anyone but the author.
 - Changing a repeating budget item changes that month only.
 - Amount fields take two decimals; asset unit prices are left free for
   smaller values.
+- The loan schedule PDF is written in English in both languages: the font it
+  uses has no Turkish letters.
+- In Turkish, records the application writes itself (an asset trade, a debt
+  payment) are shown as they are stored, which is plainer than their English
+  rewording.
 
 ## Later
 

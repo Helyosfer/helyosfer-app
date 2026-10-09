@@ -26,10 +26,10 @@ Flickable {
         PageHeader {
             width: parent.width
             figures: [
-                { label: "Saved in goals", value: savings.savedText },
-                { label: "Total target", value: savings.targetText }
+                { label: qsTr("Saved in goals"), value: savings.savedText },
+                { label: qsTr("Total target"), value: savings.targetText }
             ]
-            actionText: "New goal"
+            actionText: qsTr("New goal")
             onAction: root.addRequested()
         }
 
@@ -42,7 +42,7 @@ Flickable {
             width: parent.width
             visible: savings.goals.length === 0
             topPadding: 16
-            text: "No goals yet. Create one to set money aside for something specific."
+            text: qsTr("No goals yet. Create one to set money aside for something specific.")
             color: Theme.faint
             font.family: Theme.uiFont
             font.pixelSize: 13
@@ -82,7 +82,7 @@ Flickable {
                                 id: badge
                                 anchors.right: parent.right
                                 anchors.baseline: title.baseline
-                                text: card.modelData.done ? "Reached" : card.modelData.due
+                                text: card.modelData.done ? qsTr("Reached") : card.modelData.due
                                 color: card.modelData.done ? Theme.up : Theme.muted
                                 font.family: Theme.uiFont
                                 font.pixelSize: 12
@@ -101,7 +101,7 @@ Flickable {
                             }
                             Text {
                                 anchors.baseline: figure.baseline
-                                text: "of " + card.modelData.targetText + "  ·  " + card.modelData.percent
+                                text: qsTr("of %1").arg(card.modelData.targetText) + "  ·  " + card.modelData.percent
                                 color: Theme.muted
                                 font.family: Theme.uiFont
                                 font.pixelSize: 12
@@ -123,8 +123,8 @@ Flickable {
 
                         Text {
                             width: parent.width
-                            text: card.modelData.done ? "Nothing left to save."
-                                : card.modelData.remainingText + " to go"
+                            text: card.modelData.done ? qsTr("Nothing left to save.")
+                                : qsTr("%1 to go").arg(card.modelData.remainingText)
                                   + (card.modelData.pace.length > 0 ? "  ·  " + card.modelData.pace : "")
                             color: Theme.muted
                             font.family: Theme.uiFont
@@ -139,18 +139,18 @@ Flickable {
                             PrimaryButton {
                                 compact: true; quiet: true
                                 visible: !card.modelData.done
-                                text: "Add money"
+                                text: qsTr("Add money")
                                 onClicked: root.moveRequested(card.modelData, "deposit")
                             }
                             PrimaryButton {
                                 compact: true; quiet: true
                                 enabled: card.modelData.hasMoney
-                                text: "Take back"
+                                text: qsTr("Take back")
                                 onClicked: root.moveRequested(card.modelData, "withdraw")
                             }
                             PrimaryButton {
                                 compact: true; quiet: true; danger: true
-                                text: "Delete"
+                                text: qsTr("Delete")
                                 onClicked: root.moveRequested(card.modelData, "delete")
                             }
                         }

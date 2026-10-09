@@ -8,10 +8,11 @@ Sheet {
     property var debt: null
     property bool closing: false
 
-    title: closing ? "Pay off this debt" : "Pay installments"
+    title: closing ? qsTr("Pay off this debt") : qsTr("Pay installments")
     subtitle: debt
-        ? debt.name + "  ·  " + debt.remainingText + " left in " + debt.remainingCount
-          + (debt.remainingCount === 1 ? " installment" : " installments")
+        ? debt.name + "  ·  " + (debt.remainingCount === 1
+              ? qsTr("%1 left in 1 installment").arg(debt.remainingText)
+              : qsTr("%1 left in %2 installments").arg(debt.remainingText).arg(debt.remainingCount))
         : ""
 
     function openFor(item, payOff) {
@@ -38,8 +39,8 @@ Sheet {
     Choice {
         id: source
         width: parent.width
-        label: "Pay from"
-        placeholder: "Choose an account"
+        label: qsTr("Pay from")
+        placeholder: qsTr("Choose an account")
         model: accounts.checkingOptions
     }
 
@@ -47,7 +48,7 @@ Sheet {
         id: count
         visible: !root.closing
         width: parent.width
-        label: root.debt ? "Installments to pay (1–" + root.debt.remainingCount + ")" : ""
+        label: root.debt ? qsTr("Installments to pay (1–%1)").arg(root.debt.remainingCount) : ""
         input.inputMethodHints: Qt.ImhDigitsOnly
         onAccepted: root.submit()
     }
@@ -57,8 +58,8 @@ Sheet {
         problem: false
         visible: debts.message.length === 0 && root.debt !== null
         text: root.closing
-            ? root.debt.remainingText + " will be taken from the account and the debt closed."
-            : "Each installment is " + (root.debt ? root.debt.monthlyText : "") + "."
+            ? qsTr("%1 will be taken from the account and the debt closed.").arg(root.debt.remainingText)
+            : qsTr("Each installment is %1.").arg(root.debt ? root.debt.monthlyText : "")
     }
 
     Notice {
@@ -67,9 +68,9 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: "Cancel"; onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: root.close() },
         PrimaryButton {
-            text: debts.busy ? "Paying…" : (root.closing ? "Pay off" : "Pay")
+            text: debts.busy ? qsTr("Paying…") : (root.closing ? qsTr("Pay off") : qsTr("Pay"))
             enabled: !debts.busy
             onClicked: root.submit()
         }

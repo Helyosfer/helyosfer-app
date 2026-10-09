@@ -5,8 +5,8 @@ import "../components"
 
 Sheet {
     id: root
-    title: "New savings goal"
-    subtitle: "Money you move into a goal is set aside from your accounts until you take it back."
+    title: qsTr("New savings goal")
+    subtitle: qsTr("Money you move into a goal is set aside from your accounts until you take it back.")
 
     function openFresh() {
         name.text = ""
@@ -27,8 +27,8 @@ Sheet {
     Field {
         id: name
         width: parent.width
-        label: "Name"
-        placeholder: "Holiday fund"
+        label: qsTr("Name")
+        placeholder: qsTr("Holiday fund")
         onAccepted: root.submit()
     }
 
@@ -39,7 +39,7 @@ Sheet {
         Field {
             id: target
             width: (parent.width - 12) * 0.55
-            label: "Target amount (₺)"
+            label: qsTr("Target amount (₺)")
             placeholder: "0,00"
             money: true
             onAccepted: root.submit()
@@ -47,8 +47,8 @@ Sheet {
         Field {
             id: date
             width: (parent.width - 12) * 0.45
-            label: "Target date (optional)"
-            placeholder: "DD.MM.YYYY"
+            label: qsTr("Target date (optional)")
+            placeholder: qsTr("DD.MM.YYYY")
             onAccepted: root.submit()
         }
     }
@@ -59,9 +59,9 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: "Cancel"; onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: root.close() },
         PrimaryButton {
-            text: savings.busy ? "Saving…" : "Create goal"
+            text: savings.busy ? qsTr("Saving…") : qsTr("Create goal")
             enabled: !savings.busy
             onClicked: root.submit()
         }

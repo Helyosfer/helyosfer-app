@@ -10,16 +10,16 @@ from PySide6.QtCore import Property, Signal, Slot
 from app.accounts import FormError, _Mutating, read_amount
 from app.controllers import display_title, format_amount, short_date
 from services.background_task_manager import BackgroundTaskManager
-from ui.i18n import tr
+from app.language import later, say, tr
 from utils.errors import HelysoferError
 from utils.logging_config import get_logger
 
 FREQUENCIES = (
-    ("weekly", "Weekly"),
-    ("biweekly", "Every two weeks"),
-    ("monthly", "Monthly"),
-    ("quarterly", "Every three months"),
-    ("yearly", "Yearly"),
+    ("weekly", later("Weekly")),
+    ("biweekly", later("Every two weeks")),
+    ("monthly", later("Monthly")),
+    ("quarterly", later("Every three months")),
+    ("yearly", later("Yearly")),
 )
 
 
@@ -27,9 +27,9 @@ def read_count(text: str, label: str, low: int, high: int) -> int:
     try:
         value = int((text or "").strip())
     except ValueError:
-        raise FormError(f"Enter the {label} as a whole number.") from None
+        raise FormError(say("Enter the {0} as a whole number.", label)) from None
     if not low <= value <= high:
-        raise FormError(f"The {label} must be between {low} and {high}.")
+        raise FormError(say("The {0} must be between {1} and {2}.", label, low, high))
     return value
 
 
@@ -37,7 +37,7 @@ def read_day(text: str) -> datetime.date:
     try:
         return datetime.datetime.strptime((text or "").strip(), "%d.%m.%Y").date()
     except ValueError:
-        raise FormError("Enter the date as DD.MM.YYYY, for example 08.10.2026.") from None
+        raise FormError(say("Enter the date as DD.MM.YYYY, for example 08.10.2026.")) from None
 
 
 def due_phrase(iso_date: str, today: datetime.date | None = None) -> tuple[str, bool]:
@@ -46,13 +46,13 @@ def due_phrase(iso_date: str, today: datetime.date | None = None) -> tuple[str, 
     day = datetime.date.fromisoformat(iso_date[:10])
     delta = (day - today).days
     if delta < 0:
-        when = "1 day overdue" if delta == -1 else f"{-delta} days overdue"
+        when = say("1 day overdue") if delta == -1 else say("{0} days overdue", -delta)
     elif delta == 0:
         when = "today"
     elif delta == 1:
         when = "tomorrow"
     else:
-        when = f"in {delta} days"
+        when = say("in {0} days", delta)
     return f"{short_date(iso_date)}  ·  {when}", delta < 0
 
 
@@ -88,7 +88,7 @@ class _Listing(_Mutating):
         get_logger().exception(
             "Liste yüklenemedi.", exc_info=(type(error), error, error.__traceback__),
         )
-        self._set_message("This list could not be loaded.")
+        self._set_message(say("This list could not be loaded."))
 
 
 class DebtsController(_Listing):
@@ -144,7 +144,7 @@ class DebtsController(_Listing):
                 "monthlyText": f"{format_amount(debt['monthly_payment'])} ₺",
                 "progress": debt["paid_installments"] / debt["total_installments"],
                 "progressText": (
-                    f"{debt['paid_installments']} of {debt['total_installments']} paid"
+                    say("{0} of {1} paid", debt['paid_installments'], debt['total_installments'])
                 ),
                 "remainingCount": remaining,
                 "autoPay": debt["is_auto_pay"],
@@ -174,10 +174,10 @@ class DebtsController(_Listing):
 
             DebtPaymentService.create_debt(
                 name,
-                read_amount(monthly_text, "monthly payment"),
-                read_count(installments_text, "number of installments", 1, 600),
+                read_amount(monthly_text, say("monthly payment")),
+                read_count(installments_text, say("number of installments"), 1, 600),
                 auto_pay,
-                read_count(day_text, "payment day", 1, 31) if auto_pay else 1,
+                read_count(day_text, say("payment day"), 1, 31) if auto_pay else 1,
             )
 
         self._mutate(work)
@@ -189,9 +189,9 @@ class DebtsController(_Listing):
             from services.debt_payment_service import DebtPaymentService
 
             if account_id < 0:
-                raise FormError("Choose the account to pay from.")
+                raise FormError(say("Choose the account to pay from."))
             if installments < 0:
-                raise FormError("Enter how many installments to pay.")
+                raise FormError(say("Enter how many installments to pay."))
             DebtPaymentService.pay_manual(debt_id, account_id, installments or None)
 
         self._mutate(work)
@@ -201,7 +201,7 @@ class DebtsController(_Listing):
         def work():
             from database.db import update_debt_auto_pay
 
-            day = read_count(day_text, "payment day", 1, 31) if enabled else 1
+            day = read_count(day_text, say("payment day"), 1, 31) if enabled else 1
             update_debt_auto_pay(debt_id, enabled, day)
 
         self._mutate(work)
@@ -222,7 +222,7 @@ class DebtsController(_Listing):
 
             day = read_day(date_text)
             if day <= datetime.date.today():
-                raise FormError("Choose a date after today.")
+                raise FormError(say("Choose a date after today."))
             TransactionService.reschedule_pending_transaction(
                 transaction_id, day.isoformat()
             )
@@ -248,7 +248,7 @@ class RecurringController(_Listing):
 
     @Property("QVariantList", constant=True)
     def frequencies(self):
-        return [{"key": key, "label": label} for key, label in FREQUENCIES]
+        return [{"key": key, "label": say(label)} for key, label in FREQUENCIES]
 
     @staticmethod
     def _fetch():
@@ -279,7 +279,7 @@ class RecurringController(_Listing):
                     if valid else "—"
                 ),
                 "category": tr(payment["category"] or ""),
-                "frequency": labels.get(payment["frequency"], payment["frequency"]),
+                "frequency": say(labels.get(payment["frequency"], payment["frequency"])),
                 "due": due,
                 "overdue": overdue,
                 "automatic": payment["auto_deduct"],
@@ -297,7 +297,7 @@ class RecurringController(_Listing):
         for payment in get_active_recurring_payments():
             if payment["id"] == payment_id:
                 return payment
-        raise FormError("This payment is no longer active.")
+        raise FormError(say("This payment is no longer active."))
 
     # -- actions -------------------------------------------------------------
     @Slot(str, str, str, str, str, str, bool, int)
@@ -307,14 +307,14 @@ class RecurringController(_Listing):
             from database.db import insert_recurring_payment
 
             if not (name or "").strip():
-                raise FormError("Enter a name.")
+                raise FormError(say("Enter a name."))
             if account_id < 0:
-                raise FormError("Choose an account.")
+                raise FormError(say("Choose an account."))
             if not category:
-                raise FormError("Choose a category.")
+                raise FormError(say("Choose a category."))
             first_due = read_day(first_due_text)
             insert_recurring_payment(
-                name.strip(), read_amount(amount_text, "amount"), category,
+                name.strip(), read_amount(amount_text, say("amount")), category,
                 frequency, first_due.isoformat(), automatic,
                 account_id=account_id, recurrence_day=first_due.day,
                 transaction_type=kind,
@@ -342,7 +342,7 @@ class RecurringController(_Listing):
         def work():
             from services.recurring_service import update_subscription_amount
 
-            update_subscription_amount(payment_id, read_amount(amount_text, "amount"))
+            update_subscription_amount(payment_id, read_amount(amount_text, say("amount")))
 
         self._mutate(work)
 

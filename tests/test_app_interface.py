@@ -62,6 +62,7 @@ def _pump(until=None, seconds=8.0):
 class InterfaceSmokeTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        os.environ["HELYSOFER_LANGUAGE"] = "en"
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         os.environ.setdefault("QT_QUICK_BACKEND", "software")
         cls._tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
@@ -673,6 +674,59 @@ class InterfaceSmokeTest(unittest.TestCase):
         shell.setProperty("section", "overview")
         self._settle()
 
+    def _language(self):
+        """Switching the language rebuilds the screens and the controllers' text."""
+        import json
+
+        from PySide6.QtCore import QObject
+
+        from app import language
+
+        window = self.engine.rootObjects()[0]
+        self.assertEqual(self.app.language, "en")
+        self.assertEqual(
+            [entry["label"] for entry in self.app.languages], ["English", "Türkçe"])
+        english_shell = window.findChild(QObject, "shell")
+        self.transactions.add("expense", "", self.accounts.accounts[0]["id"], "Taksi", "", "", 1)
+        self._settle()
+        self.assertEqual(self.transactions.message, "Enter the amount.")
+
+        self.app.setLanguage("tr")
+        self._settle()
+        try:
+            self.assertEqual((self.app.language, language.language()), ("tr", "tr"))
+            shell = window.findChild(QObject, "shell")
+            self.assertIsNot(shell, english_shell)
+            # It comes back where it was, not on the overview.
+            self.assertEqual(shell.property("section"), "settings")
+            self.assertEqual(self._warnings(), [])
+            self.assertEqual(self.accounts.accounts[0]["typeLabel"], "Nakit / Vadesiz")
+            self.assertEqual(
+                [period["label"] for period in self.dashboard.periods], ["Bugün", "1H", "1A", "1Y"])
+            self.transactions.add("expense", "", self.accounts.accounts[0]["id"], "Taksi", "", "", 1)
+            self._settle()
+            self.assertEqual(self.transactions.message, "Lütfen tutar girin.")
+            self.assertIn(
+                "Taksi", [option["label"] for option in self.transactions.categories("expense")])
+            with open(os.path.join(self._tmp.name, "config.json"), encoding="utf-8") as stream:
+                self.assertEqual(json.load(stream)["display"]["language"], "tr")
+            self.app.setLanguage("xx")
+            self.assertEqual(self.app.language, "tr")
+        finally:
+            self.app.setLanguage("en")
+            self._settle()
+        self.transactions.clearMessage()
+        self.assertEqual(language.language(), "en")
+        self.assertEqual(self.accounts.accounts[0]["typeLabel"], "Cash / Checking")
+        self.assertIn(
+            "Taxi", [option["label"] for option in self.transactions.categories("expense")])
+        # The theme setting saved earlier is still there next to the language.
+        self.app.toggleTheme()
+        with open(os.path.join(self._tmp.name, "config.json"), encoding="utf-8") as stream:
+            display = json.load(stream)["display"]
+        self.assertEqual((display["language"], display["style"]), ("en", "Light"))
+        self.app.toggleTheme()
+
     def _settings(self):
         from PySide6.QtCore import QObject
 
@@ -680,6 +734,7 @@ class InterfaceSmokeTest(unittest.TestCase):
         window.findChild(QObject, "shell").setProperty("section", "settings")
         self._settle()
         folder = self._tmp.name
+        self._language()
 
         backup = os.path.join(folder, "copy")
         self.settings.createBackup(backup, "short", "short")

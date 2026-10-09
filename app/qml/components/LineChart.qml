@@ -9,7 +9,7 @@ Item {
     // An optional second series drawn behind the first as a muted line.
     property var compare: []
     property var labels: []
-    property string emptyText: "Not enough history to draw yet"
+    property string emptyText: qsTr("Not enough history to draw yet")
     // With `directional`, the line is green over a span that ends higher
     // than it began and a quiet rose over one that ends lower. A span that
     // ends lower and holds a sharp fall -- a tenth of the balance or more

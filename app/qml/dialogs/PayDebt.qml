@@ -7,8 +7,8 @@ Sheet {
     id: root
     property var card: null
 
-    title: "Pay card debt"
-    subtitle: card ? card.name + "  ·  " + card.debtText + " owed" : ""
+    title: qsTr("Pay card debt")
+    subtitle: card ? card.name + "  ·  " + qsTr("%1 owed").arg(card.debtText) : ""
 
     function openFor(account) {
         card = account
@@ -32,15 +32,15 @@ Sheet {
     Choice {
         id: source
         width: parent.width
-        label: "Pay from"
-        placeholder: "Choose an account"
+        label: qsTr("Pay from")
+        placeholder: qsTr("Choose an account")
         model: accounts.checkingOptions
     }
 
     Field {
         id: amount
         width: parent.width
-        label: "Amount (₺)"
+        label: qsTr("Amount (₺)")
         placeholder: "0,00"
         money: true
         onAccepted: root.submit()
@@ -52,9 +52,9 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: "Cancel"; onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: root.close() },
         PrimaryButton {
-            text: accounts.busy ? "Paying…" : "Pay"
+            text: accounts.busy ? qsTr("Paying…") : qsTr("Pay")
             enabled: !accounts.busy
             onClicked: root.submit()
         }

@@ -7,7 +7,7 @@ Column {
     id: root
     property string label: ""
     property var model: []
-    property string placeholder: "Choose"
+    property string placeholder: qsTr("Choose")
     readonly property var currentKey: box.currentIndex >= 0 && box.currentIndex < model.length
         ? model[box.currentIndex].key : undefined
     readonly property var currentItem: box.currentIndex >= 0 && box.currentIndex < model.length

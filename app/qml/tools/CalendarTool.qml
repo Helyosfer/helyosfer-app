@@ -36,7 +36,7 @@ Column {
 
                 Row {
                     Repeater {
-                        model: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                        model: [qsTr("Mon"), qsTr("Tue"), qsTr("Wed"), qsTr("Thu"), qsTr("Fri"), qsTr("Sat"), qsTr("Sun")]
                         Text {
                             required property string modelData
                             width: grid.cell
@@ -67,7 +67,7 @@ Column {
                             enabled: modelData.day > 0
                             hoverEnabled: true
                             Accessible.name: modelData.day > 0
-                                ? modelData.day + ", " + modelData.count + " transactions" : ""
+                                ? qsTr("%1, %2 transactions").arg(modelData.day).arg(modelData.count) : ""
                             onClicked: calendar.selectDay(modelData.day)
 
                             background: Rectangle {
@@ -106,7 +106,7 @@ Column {
 
                 Text {
                     topPadding: 4
-                    text: "The small number is how many transactions that day has."
+                    text: qsTr("The small number is how many transactions that day has.")
                     color: Theme.faint
                     font.family: Theme.uiFont
                     font.pixelSize: 11
@@ -133,7 +133,7 @@ Column {
                 Text {
                     visible: calendar.dayItems.length === 0
                     topPadding: 6
-                    text: "No transactions on this day."
+                    text: qsTr("No transactions on this day.")
                     color: Theme.faint
                     font.family: Theme.uiFont
                     font.pixelSize: 13

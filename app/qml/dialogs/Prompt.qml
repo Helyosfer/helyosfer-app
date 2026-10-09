@@ -11,7 +11,7 @@ Sheet {
     property var subject: null
     property string fieldLabel: ""
     property string fieldPlaceholder: ""
-    property string confirmText: "Save"
+    property string confirmText: qsTr("Save")
     property bool secret: false
     property bool money: false
     property bool danger: false
@@ -47,7 +47,7 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: "Cancel"; onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: root.close() },
         PrimaryButton {
             quiet: root.danger
             danger: root.danger

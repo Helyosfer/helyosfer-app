@@ -29,7 +29,7 @@ Column {
                 width: parent.width
                 spacing: 3
                 Text {
-                    text: "Loan"
+                    text: qsTr("Loan")
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -37,7 +37,7 @@ Column {
                 }
                 Text {
                     width: parent.width
-                    text: "Monthly installment and total cost of a fixed-rate loan."
+                    text: qsTr("Monthly installment and total cost of a fixed-rate loan.")
                     color: Theme.muted
                     font.family: Theme.uiFont
                     font.pixelSize: 12
@@ -51,7 +51,7 @@ Column {
                 Field {
                     id: amount
                     width: 220
-                    label: "Loan amount (₺)"
+                    label: qsTr("Loan amount (₺)")
                     placeholder: "0,00"
                     money: true
                     onAccepted: root.calculate()
@@ -59,14 +59,14 @@ Column {
                 Field {
                     id: rate
                     width: 180
-                    label: "Monthly interest (%)"
+                    label: qsTr("Monthly interest (%)")
                     placeholder: "3,49"
                     onAccepted: root.calculate()
                 }
                 Field {
                     id: months
                     width: 130
-                    label: "Months"
+                    label: qsTr("Months")
                     placeholder: "12"
                     input.inputMethodHints: Qt.ImhDigitsOnly
                     onAccepted: root.calculate()
@@ -78,7 +78,7 @@ Column {
                         id: calculateButton
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: 2
-                        text: "Calculate"
+                        text: qsTr("Calculate")
                         onClicked: root.calculate()
                     }
                 }
@@ -91,11 +91,11 @@ Column {
                 Toggle {
                     id: taxes
                     checked: true
-                    text: "Include KKDF and BSMV (15 % each on the interest)"
+                    text: qsTr("Include KKDF and BSMV (15 % each on the interest)")
                 }
                 Toggle {
                     id: detailed
-                    text: "Include bank fees and my own charges"
+                    text: qsTr("Include bank fees and my own charges")
                 }
             }
 
@@ -110,13 +110,13 @@ Column {
                 Choice {
                     id: kind
                     width: 300
-                    label: "Kind of loan"
+                    label: qsTr("Kind of loan")
                     model: loan.kinds
                 }
 
                 Text {
                     width: parent.width
-                    text: "An allocation fee (0,5 % plus tax) and life insurance (about 0,8 %) are deducted up front. Add anything else the bank charges below."
+                    text: qsTr("An allocation fee (0,5 % plus tax) and life insurance (about 0,8 %) are deducted up front. Add anything else the bank charges below.")
                     color: Theme.muted
                     font.family: Theme.uiFont
                     font.pixelSize: 12
@@ -130,13 +130,13 @@ Column {
                     Field {
                         id: chargeName
                         width: 220
-                        label: "Charge"
-                        placeholder: "Appraisal fee"
+                        label: qsTr("Charge")
+                        placeholder: qsTr("Appraisal fee")
                     }
                     Field {
                         id: chargeAmount
                         width: 150
-                        label: "Amount (₺)"
+                        label: qsTr("Amount (₺)")
                         placeholder: "0,00"
                         money: true
                     }
@@ -147,14 +147,14 @@ Column {
                             id: spreadToggle
                             anchors.bottom: parent.bottom
                             anchors.bottomMargin: 10
-                            text: "Spread over months"
+                            text: qsTr("Spread over months")
                         }
                     }
                     Field {
                         id: chargeMonths
                         visible: spreadToggle.checked
                         width: 110
-                        label: "Months"
+                        label: qsTr("Months")
                         placeholder: "12"
                         input.inputMethodHints: Qt.ImhDigitsOnly
                     }
@@ -166,7 +166,7 @@ Column {
                             anchors.bottom: parent.bottom
                             anchors.bottomMargin: 2
                             quiet: true
-                            text: "Add charge"
+                            text: qsTr("Add charge")
                             onClicked: {
                                 var before = loan.charges.length
                                 loan.addCharge(chargeName.text, chargeAmount.text,
@@ -213,7 +213,7 @@ Column {
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 compact: true; quiet: true; danger: true
-                                text: "Remove"
+                                text: qsTr("Remove")
                                 onClicked: loan.removeCharge(chargeRow.index)
                             }
                         }
@@ -233,15 +233,15 @@ Column {
                 visible: loan.hasResult
                 rows: loan.hasDeductions
                     ? [
-                        { label: "Monthly installment", value: loan.monthlyText, tone: 0 },
-                        { label: "Total repaid", value: loan.totalText, tone: 0 },
-                        { label: "Cost with all charges", value: loan.costText, tone: 0 },
-                        { label: "Cash you receive", value: loan.netCashText, tone: 0 }
+                        { label: qsTr("Monthly installment"), value: loan.monthlyText, tone: 0 },
+                        { label: qsTr("Total repaid"), value: loan.totalText, tone: 0 },
+                        { label: qsTr("Cost with all charges"), value: loan.costText, tone: 0 },
+                        { label: qsTr("Cash you receive"), value: loan.netCashText, tone: 0 }
                       ]
                     : [
-                        { label: "Monthly installment", value: loan.monthlyText, tone: 0 },
-                        { label: "Total repaid", value: loan.totalText, tone: 0 },
-                        { label: "Cost of borrowing", value: loan.costText, tone: 0 }
+                        { label: qsTr("Monthly installment"), value: loan.monthlyText, tone: 0 },
+                        { label: qsTr("Total repaid"), value: loan.totalText, tone: 0 },
+                        { label: qsTr("Cost of borrowing"), value: loan.costText, tone: 0 }
                       ]
             }
 
@@ -251,7 +251,7 @@ Column {
 
                 Text {
                     bottomPadding: 6
-                    text: "Deducted up front"
+                    text: qsTr("Deducted up front")
                     color: Theme.muted
                     font.family: Theme.uiFont
                     font.pixelSize: 12
@@ -291,8 +291,8 @@ Column {
                 Field {
                     id: debtName
                     width: 260
-                    label: "Add this loan to your debts as"
-                    placeholder: "Car loan"
+                    label: qsTr("Add this loan to your debts as")
+                    placeholder: qsTr("Car loan")
                     onAccepted: loan.addToDebts(text)
                 }
                 Item {
@@ -305,13 +305,13 @@ Column {
                         spacing: 10
                         PrimaryButton {
                             quiet: true
-                            text: "Add to debts"
+                            text: qsTr("Add to debts")
                             enabled: !loan.busy && debtName.text.trim().length > 0
                             onClicked: loan.addToDebts(debtName.text)
                         }
                         PrimaryButton {
                             quiet: true
-                            text: "Save schedule as PDF"
+                            text: qsTr("Save schedule as PDF")
                             enabled: !loan.busy
                             onClicked: pdfFile.open()
                         }
@@ -341,25 +341,25 @@ Column {
 
             readonly property var columns: loan.hasExtras
                 ? [
-                    { label: "Month", key: "month", width: root.colMonth, left: true },
-                    { label: "Installment", key: "payment", width: root.colMoney },
-                    { label: "Extra charges", key: "extra", width: root.colMoney },
-                    { label: "Total", key: "total", width: root.colMoney },
-                    { label: "Principal", key: "principal", width: root.colMoney },
-                    { label: "Interest and tax", key: "interest", width: root.colMoney },
-                    { label: "Remaining", key: "balance", width: root.colMoney }
+                    { label: qsTr("Month"), key: "month", width: root.colMonth, left: true },
+                    { label: qsTr("Installment"), key: "payment", width: root.colMoney },
+                    { label: qsTr("Extra charges"), key: "extra", width: root.colMoney },
+                    { label: qsTr("Total"), key: "total", width: root.colMoney },
+                    { label: qsTr("Principal"), key: "principal", width: root.colMoney },
+                    { label: qsTr("Interest and tax"), key: "interest", width: root.colMoney },
+                    { label: qsTr("Remaining"), key: "balance", width: root.colMoney }
                   ]
                 : [
-                    { label: "Month", key: "month", width: root.colMonth, left: true },
-                    { label: "Installment", key: "payment", width: root.colMoney },
-                    { label: "Principal", key: "principal", width: root.colMoney },
-                    { label: "Interest and tax", key: "interest", width: root.colMoney },
-                    { label: "Remaining", key: "balance", width: root.colMoney }
+                    { label: qsTr("Month"), key: "month", width: root.colMonth, left: true },
+                    { label: qsTr("Installment"), key: "payment", width: root.colMoney },
+                    { label: qsTr("Principal"), key: "principal", width: root.colMoney },
+                    { label: qsTr("Interest and tax"), key: "interest", width: root.colMoney },
+                    { label: qsTr("Remaining"), key: "balance", width: root.colMoney }
                   ]
 
             Text {
                 bottomPadding: 10
-                text: "Repayment schedule"
+                text: qsTr("Repayment schedule")
                 color: Theme.text
                 font.family: Theme.uiFont
                 font.pixelSize: 13
@@ -420,7 +420,7 @@ Column {
 
     FileDialog {
         id: pdfFile
-        title: "Save repayment schedule"
+        title: qsTr("Save repayment schedule")
         fileMode: FileDialog.SaveFile
         nameFilters: ["PDF (*.pdf)"]
         defaultSuffix: "pdf"

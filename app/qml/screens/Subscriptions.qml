@@ -27,10 +27,10 @@ Flickable {
         PageHeader {
             width: parent.width
             figures: [
-                { label: "Recurring cost per month", value: recurring.monthlyText },
-                { label: "Active", value: recurring.items.length.toString() }
+                { label: qsTr("Recurring cost per month"), value: recurring.monthlyText },
+                { label: qsTr("Active"), value: recurring.items.length.toString() }
             ]
-            actionText: "Add recurring payment"
+            actionText: qsTr("Add recurring payment")
             onAction: root.addRequested()
         }
 
@@ -47,7 +47,7 @@ Flickable {
 
                 Text {
                     bottomPadding: 10
-                    text: "Subscriptions and recurring payments"
+                    text: qsTr("Subscriptions and recurring payments")
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -58,7 +58,7 @@ Flickable {
                     width: parent.width
                     visible: recurring.items.length === 0
                     topPadding: 6
-                    text: "Nothing recurring yet. Subscriptions are also picked up automatically from card spending."
+                    text: qsTr("Nothing recurring yet. Subscriptions are also picked up automatically from card spending.")
                     color: Theme.faint
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -103,7 +103,7 @@ Flickable {
                                 Text {
                                     text: "  ·  " + row.modelData.frequency
                                         + (row.modelData.account.length > 0 ? "  ·  " + row.modelData.account : "")
-                                        + (row.modelData.automatic ? "  ·  automatic" : "  ·  manual")
+                                        + (row.modelData.automatic ? "  ·  " + qsTr("automatic") : "  ·  " + qsTr("manual"))
                                     color: Theme.muted
                                     font.family: Theme.uiFont
                                     font.pixelSize: 12
@@ -131,23 +131,23 @@ Flickable {
                             PrimaryButton {
                                 compact: true; quiet: true
                                 enabled: row.modelData.valid && !recurring.busy
-                                text: row.modelData.income ? "Receive now" : "Pay now"
+                                text: row.modelData.income ? qsTr("Receive now") : qsTr("Pay now")
                                 onClicked: recurring.payNow(row.modelData.id)
                             }
                             PrimaryButton {
                                 compact: true; quiet: true
                                 enabled: !recurring.busy
-                                text: "Skip next"
+                                text: qsTr("Skip next")
                                 onClicked: recurring.skipNext(row.modelData.id)
                             }
                             PrimaryButton {
                                 compact: true; quiet: true
-                                text: "Change amount"
+                                text: qsTr("Change amount")
                                 onClicked: root.amountRequested(row.modelData)
                             }
                             PrimaryButton {
                                 compact: true; quiet: true; danger: true
-                                text: "Stop"
+                                text: qsTr("Stop")
                                 onClicked: root.stopRequested(row.modelData)
                             }
                         }

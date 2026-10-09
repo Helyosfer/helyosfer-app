@@ -28,10 +28,10 @@ Flickable {
         PageHeader {
             width: parent.width
             figures: [
-                { label: "Total owed", value: debts.totalText },
-                { label: "Due each month", value: debts.monthlyText }
+                { label: qsTr("Total owed"), value: debts.totalText },
+                { label: qsTr("Due each month"), value: debts.monthlyText }
             ]
-            actionText: "Add debt"
+            actionText: qsTr("Add debt")
             onAction: root.addRequested()
         }
 
@@ -49,7 +49,7 @@ Flickable {
 
                 Text {
                     bottomPadding: 10
-                    text: "Debts"
+                    text: qsTr("Debts")
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -59,7 +59,7 @@ Flickable {
                 Text {
                     visible: debts.debts.length === 0
                     topPadding: 6
-                    text: "No active debts. Loans and installment debts you add appear here."
+                    text: qsTr("No active debts. Loans and installment debts you add appear here.")
                     color: Theme.faint
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -121,9 +121,9 @@ Flickable {
                             }
 
                             Text {
-                                text: row.modelData.progressText + "  ·  " + row.modelData.monthlyText + " a month"
+                                text: row.modelData.progressText + "  ·  " + qsTr("%1 a month").arg(row.modelData.monthlyText)
                                     + (row.modelData.autoPay
-                                       ? "  ·  automatic on day " + row.modelData.autoPayDay : "")
+                                       ? "  ·  " + qsTr("automatic on day %1").arg(row.modelData.autoPayDay) : "")
                                 color: Theme.muted
                                 font.family: Theme.uiFont
                                 font.pixelSize: 12
@@ -138,19 +138,19 @@ Flickable {
 
                             PrimaryButton {
                                 compact: true; quiet: true
-                                text: row.modelData.autoPay ? "Automatic: on" : "Automatic: off"
+                                text: row.modelData.autoPay ? qsTr("Automatic: on") : qsTr("Automatic: off")
                                 onClicked: row.modelData.autoPay
                                     ? debts.setAutoPay(row.modelData.id, false, "")
                                     : root.autoPayRequested(row.modelData)
                             }
                             PrimaryButton {
                                 compact: true; quiet: true
-                                text: "Pay"
+                                text: qsTr("Pay")
                                 onClicked: root.payRequested(row.modelData, false)
                             }
                             PrimaryButton {
                                 compact: true; quiet: true
-                                text: "Pay off"
+                                text: qsTr("Pay off")
                                 onClicked: root.payRequested(row.modelData, true)
                             }
                         }
@@ -168,7 +168,7 @@ Flickable {
 
                 Text {
                     bottomPadding: 10
-                    text: "Pending transactions"
+                    text: qsTr("Pending transactions")
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -178,7 +178,7 @@ Flickable {
                 Text {
                     visible: debts.pending.length === 0
                     topPadding: 6
-                    text: "Nothing is waiting. Transactions saved with a future date appear here until that day."
+                    text: qsTr("Nothing is waiting. Transactions saved with a future date appear here until that day.")
                     color: Theme.faint
                     font.family: Theme.uiFont
                     font.pixelSize: 13
@@ -233,12 +233,12 @@ Flickable {
                             spacing: 8
                             PrimaryButton {
                                 compact: true; quiet: true
-                                text: "Reschedule"
+                                text: qsTr("Reschedule")
                                 onClicked: root.rescheduleRequested(line.modelData)
                             }
                             PrimaryButton {
                                 compact: true; quiet: true; danger: true
-                                text: "Cancel"
+                                text: qsTr("Cancel")
                                 onClicked: debts.cancelPending(line.modelData.id)
                             }
                         }

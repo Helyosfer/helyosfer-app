@@ -18,6 +18,8 @@ _REAL_STDERR = sys.stderr
 
 
 os.environ.setdefault("HELYSOFER_HEADLESS", "1")
+# Tests read interface text in English, whatever the computer is set to.
+os.environ.setdefault("HELYSOFER_LANGUAGE", "en")
 
 
 

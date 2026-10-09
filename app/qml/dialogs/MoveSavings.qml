@@ -12,15 +12,15 @@ Sheet {
     readonly property bool deleting: mode === "delete"
 
     title: !goal ? ""
-        : mode === "deposit" ? "Add to " + goal.name
-        : mode === "withdraw" ? "Take from " + goal.name
-        : "Delete " + goal.name + "?"
+        : mode === "deposit" ? qsTr("Add to %1").arg(goal.name)
+        : mode === "withdraw" ? qsTr("Take from %1").arg(goal.name)
+        : qsTr("Delete %1?").arg(goal.name)
     subtitle: !goal ? ""
         : deleting
             ? (goal.hasMoney
-               ? "The " + goal.savedText + " saved in it goes back to the account you choose."
-               : "This goal holds no money. Deleting it cannot be undone.")
-            : goal.savedText + " saved of " + goal.targetText
+               ? qsTr("The %1 saved in it goes back to the account you choose.").arg(goal.savedText)
+               : qsTr("This goal holds no money. Deleting it cannot be undone."))
+            : qsTr("%1 saved of %2").arg(goal.savedText).arg(goal.targetText)
 
     function openFor(item, action) {
         goal = item
@@ -48,7 +48,7 @@ Sheet {
         id: amount
         visible: !root.deleting
         width: parent.width
-        label: "Amount (₺)"
+        label: qsTr("Amount (₺)")
         placeholder: "0,00"
         money: true
         onAccepted: root.submit()
@@ -58,8 +58,8 @@ Sheet {
         id: account
         visible: !root.deleting || (root.goal !== null && root.goal.hasMoney)
         width: parent.width
-        label: root.mode === "deposit" ? "Take from" : "Return to"
-        placeholder: "Choose an account"
+        label: root.mode === "deposit" ? qsTr("Take from") : qsTr("Return to")
+        placeholder: qsTr("Choose an account")
         model: accounts.checkingOptions
     }
 
@@ -69,12 +69,12 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: "Cancel"; onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: root.close() },
         PrimaryButton {
             quiet: root.deleting
             danger: root.deleting
-            text: savings.busy ? "Working…"
-                : root.mode === "deposit" ? "Add" : root.mode === "withdraw" ? "Take back" : "Delete goal"
+            text: savings.busy ? qsTr("Working…")
+                : root.mode === "deposit" ? qsTr("Add") : root.mode === "withdraw" ? qsTr("Take back") : qsTr("Delete goal")
             enabled: !savings.busy
             onClicked: root.submit()
         }

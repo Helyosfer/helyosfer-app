@@ -10,20 +10,20 @@ from app.accounts import FormError, _Mutating, user_message
 from app.controllers import display_title, format_amount, format_signed, short_date
 from app.payments import FREQUENCIES, _Listing, read_day
 from services.background_task_manager import BackgroundTaskManager
-from ui.i18n import tr
+from app.language import later, say, tr
 
 _SOURCE_LABELS = {
-    "transaction": "Transactions",
-    "account_opened": "Opening balances",
-    "card_payment": "Card payments",
-    "debt_payment": "Debt payments",
-    "savings_deposit": "Moved into savings goals",
-    "savings_withdraw": "Taken back from savings goals",
-    "savings_goal_created": "Savings goals opened",
-    "asset_purchase": "Asset purchases",
-    "asset_sale": "Asset sales",
+    "transaction": later("Transactions"),
+    "account_opened": later("Opening balances"),
+    "card_payment": later("Card payments"),
+    "debt_payment": later("Debt payments"),
+    "savings_deposit": later("Moved into savings goals"),
+    "savings_withdraw": later("Taken back from savings goals"),
+    "savings_goal_created": later("Savings goals opened"),
+    "asset_purchase": later("Asset purchases"),
+    "asset_sale": later("Asset sales"),
 }
-HORIZONS = ((30, "1 month"), (90, "3 months"), (180, "6 months"), (365, "1 year"))
+HORIZONS = ((30, later("1 month")), (90, later("3 months")), (180, later("6 months")), (365, later("1 year")))
 
 
 def percent(value: float) -> str:
@@ -37,9 +37,9 @@ def read_percent(text: str, label: str) -> float:
     try:
         value = float(cleaned)
     except ValueError:
-        raise FormError(f"Enter the {label} as a percentage, for example 10 or -5.") from None
+        raise FormError(say("Enter the {0} as a percentage, for example 10 or -5.", label)) from None
     if not -100 <= value <= 1000:
-        raise FormError(f"The {label} must be between -100 and 1000.")
+        raise FormError(say("The {0} must be between -100 and 1000.", label))
     return value
 
 
@@ -54,7 +54,7 @@ def read_signed_amount(text: str) -> float:
     try:
         value = parse_amount(cleaned.lstrip("-−+ "))
     except ValueError:
-        raise FormError("Enter a valid one-time amount, for example 5.000 or -2.500.") from None
+        raise FormError(say("Enter a valid one-time amount, for example 5.000 or -2.500.")) from None
     return -value if negative else value
 
 
@@ -138,7 +138,7 @@ class InsightsController(_Listing):
         if health.get("insufficient_data"):
             self._health = {
                 "score": "", "label": "", "ready": False, "rows": [], "ratio": 0.0,
-                "note": "Not enough income and spending recorded yet to score your finances.",
+                "note": say("Not enough income and spending recorded yet to score your finances."),
             }
         else:
             parts = health["breakdown"]
@@ -147,14 +147,14 @@ class InsightsController(_Listing):
                 "label": tr(score_label(health["score"])),
                 "ratio": max(0.0, min(1.0, health["score"] / 100)),
                 "ready": True,
-                "note": f"Based on the last {parts['lookback_days']} days.",
+                "note": say("Based on the last {0} days.", parts['lookback_days']),
                 "rows": [
-                    {"label": "Savings rate", "value": percent(parts["savings_rate"]),
-                     "points": f"{parts['savings_score']:.0f} / 100", "weight": "half of the score"},
-                    {"label": "Debt payments to income", "value": percent(parts["debt_ratio"]),
-                     "points": f"{parts['debt_score']:.0f} / 100", "weight": "30 % of the score"},
-                    {"label": "Spending volatility", "value": percent(parts["expense_volatility"]),
-                     "points": f"{parts['volatility_score']:.0f} / 100", "weight": "20 % of the score"},
+                    {"label": say("Savings rate"), "value": percent(parts["savings_rate"]),
+                     "points": f"{parts['savings_score']:.0f} / 100", "weight": say("half of the score")},
+                    {"label": say("Debt payments to income"), "value": percent(parts["debt_ratio"]),
+                     "points": f"{parts['debt_score']:.0f} / 100", "weight": say("30 % of the score")},
+                    {"label": say("Spending volatility"), "value": percent(parts["expense_volatility"]),
+                     "points": f"{parts['volatility_score']:.0f} / 100", "weight": say("20 % of the score")},
                 ],
             }
 
@@ -162,8 +162,7 @@ class InsightsController(_Listing):
             self._forecast = {
                 "ready": False, "balance": "", "change": "", "direction": 0,
                 "note": (
-                    "A month-end forecast needs about three months of history; "
-                    f"{forecast.get('days_available', 0)} days are recorded so far."
+                    say("A month-end forecast needs about three months of history; {0} days are recorded so far.", forecast.get('days_available', 0))
                 ),
             }
         else:
@@ -171,11 +170,10 @@ class InsightsController(_Listing):
             self._forecast = {
                 "ready": True,
                 "balance": f"{format_amount(forecast['projected_month_end_balance'])} ₺",
-                "change": format_signed(surplus) + " from today",
+                "change": format_signed(surplus) + say(" from today"),
                 "direction": (surplus > 0) - (surplus < 0),
                 "note": (
-                    f"{forecast['days_remaining']} days left in the month, at your "
-                    "average daily income and spending."
+                    say("{0} days left in the month, at your average daily income and spending.", forecast['days_remaining'])
                 ),
             }
 
@@ -187,8 +185,7 @@ class InsightsController(_Listing):
                 "date": short_date(item["date"]),
                 "amount": f"{format_amount(item['amount'])} ₺",
                 "note": (
-                    f"{format_amount(item['deviation'])} ₺ above the usual "
-                    f"{format_amount(item['category_mean'])} ₺"
+                    say("{0} ₺ above the usual {1} ₺", format_amount(item['deviation']), format_amount(item['category_mean']))
                 ),
             }
             for item in anomalies
@@ -200,9 +197,9 @@ class InsightsController(_Listing):
                 "name": item["name"],
                 "category": tr(item["category"]),
                 "amount": f"{format_amount(item['average_amount'])} ₺",
-                "frequency": frequency_labels.get(item["frequency"], "Irregular"),
-                "seen": f"seen {item['occurrences']} times",
-                "monthly": f"{format_amount(item['monthly_cost'])} ₺ a month",
+                "frequency": say(frequency_labels.get(item["frequency"], later("Irregular"))),
+                "seen": say("seen {0} times", item['occurrences']),
+                "monthly": say("{0} ₺ a month", format_amount(item['monthly_cost'])),
                 "canTrack": bool(item.get("can_track")),
             }
             for item in candidates
@@ -228,12 +225,12 @@ class InsightsController(_Listing):
             from services.insights_service import detect_recurring_candidates
 
             if account_id < 0:
-                raise FormError("Add an account first.")
+                raise FormError(say("Add an account first."))
             candidate = next(
                 (c for c in detect_recurring_candidates() if c["key"] == key), None
             )
             if candidate is None or not candidate.get("can_track"):
-                raise FormError("This pattern is no longer detected.")
+                raise FormError(say("This pattern is no longer detected."))
             due = candidate.get("next_due_date") or datetime.date.today().isoformat()
             insert_recurring_payment(
                 candidate["name"], candidate["average_amount"], candidate["category"],
@@ -252,7 +249,7 @@ class ScenarioController(_Mutating):
 
     @Property("QVariantList", constant=True)
     def horizons(self):
-        return [{"key": str(days), "label": label} for days, label in HORIZONS]
+        return [{"key": str(days), "label": say(label)} for days, label in HORIZONS]
 
     @Property(bool, notify=resultChanged)
     def hasResult(self):
@@ -302,8 +299,8 @@ class ScenarioController(_Mutating):
         if self._busy:
             return
         try:
-            income_pct = read_percent(income_text, "income change")
-            expense_pct = read_percent(expense_text, "spending change")
+            income_pct = read_percent(income_text, say("income change"))
+            expense_pct = read_percent(expense_text, say("spending change"))
             one_time = read_signed_amount(one_time_text)
             days = int(horizon or 90)
         except ValueError as error:
@@ -347,9 +344,7 @@ class ScenarioController(_Mutating):
                     for day in picked
                 ],
                 "note": (
-                    "Based on your last 30 days: about "
-                    f"{format_amount(inputs['base_daily_income'] * 30)} ₺ in and "
-                    f"{format_amount(inputs['base_daily_expense'] * 30)} ₺ out a month."
+                    say("Based on your last 30 days: about {0} ₺ in and {1} ₺ out a month.", format_amount(inputs['base_daily_income'] * 30), format_amount(inputs['base_daily_expense'] * 30))
                 ),
             }
             self.resultChanged.emit()
@@ -409,7 +404,7 @@ class HistoryController(_Mutating):
         try:
             day = read_day(date_text)
             if day > datetime.date.today():
-                raise FormError("Choose today or an earlier date.")
+                raise FormError(say("Choose today or an earlier date."))
         except ValueError as error:
             self._set_message(user_message(error))
             return
@@ -428,8 +423,8 @@ class HistoryController(_Mutating):
             if balance["total_balance"] is None:
                 self._result = None
                 self._set_message(
-                    "There are no records that far back. Balances are known from "
-                    "the day your first account was added."
+                    say("There are no records that far back. Balances are known from "
+                    "the day your first account was added.")
                 )
                 self.resultChanged.emit()
                 return
@@ -439,14 +434,14 @@ class HistoryController(_Mutating):
                 "title": f"{short_date(loaded_day.isoformat())} {loaded_day.year}",
                 "balance": f"{format_amount(balance['total_balance'])} ₺",
                 "savings": f"{format_amount(balance['savings_total'] or 0)} ₺",
-                "change": format_signed(change) + " since then" if change is not None else "",
+                "change": format_signed(change) + say(" since then") if change is not None else "",
                 "direction": ((change > 0) - (change < 0)) if change is not None else 0,
                 "sources": [
                     {
-                        "label": _SOURCE_LABELS.get(
+                        "label": say(_SOURCE_LABELS.get(
                             source, source.replace("_", " ").capitalize()
-                        ),
-                        "count": f"{bucket['count']} entries" if bucket["count"] != 1 else "1 entry",
+                        )),
+                        "count": say("{0} entries", bucket['count']) if bucket["count"] != 1 else say("1 entry"),
                         "amount": format_signed(bucket["delta"]),
                         "positive": bucket["delta"] >= 0,
                     }

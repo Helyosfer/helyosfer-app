@@ -36,8 +36,8 @@ Flickable {
 
                 Repeater {
                     model: [
-                        { label: "Cash and checking", value: accounts.cashText },
-                        { label: "Card debt", value: accounts.debtText }
+                        { label: qsTr("Cash and checking"), value: accounts.cashText },
+                        { label: qsTr("Card debt"), value: accounts.debtText }
                     ]
                     Column {
                         required property var modelData
@@ -62,7 +62,7 @@ Flickable {
             PrimaryButton {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Add account"
+                text: qsTr("Add account")
                 onClicked: root.addAccountRequested()
             }
         }
@@ -71,7 +71,7 @@ Flickable {
             width: parent.width
             visible: accounts.accounts.length === 0
             topPadding: 24
-            text: "No accounts yet. Add the account you use most to get started."
+            text: qsTr("No accounts yet. Add the account you use most to get started.")
             color: Theme.faint
             font.family: Theme.uiFont
             font.pixelSize: 13
@@ -111,7 +111,7 @@ Flickable {
                                 }
                                 Text {
                                     text: card.modelData.typeLabel
-                                        + (card.modelData.frozen ? "  ·  Frozen" : "")
+                                        + (card.modelData.frozen ? "  ·  " + qsTr("Frozen") : "")
                                     color: card.modelData.frozen ? Theme.warn : Theme.muted
                                     font.family: Theme.uiFont
                                     font.pixelSize: 12
@@ -146,7 +146,7 @@ Flickable {
                                 Text {
                                     anchors.baseline: figure.baseline
                                     visible: card.credit
-                                    text: "owed of " + card.modelData.limitText
+                                    text: qsTr("owed of %1").arg(card.modelData.limitText)
                                     color: Theme.muted
                                     font.family: Theme.uiFont
                                     font.pixelSize: 12
@@ -169,9 +169,9 @@ Flickable {
 
                             Text {
                                 visible: card.credit
-                                text: card.modelData.availableText + " available"
+                                text: qsTr("%1 available").arg(card.modelData.availableText)
                                     + (card.modelData.statementDay > 0
-                                       ? "  ·  statement on day " + card.modelData.statementDay : "")
+                                       ? "  ·  " + qsTr("statement on day %1").arg(card.modelData.statementDay) : "")
                                 color: Theme.muted
                                 font.family: Theme.uiFont
                                 font.pixelSize: 12
@@ -184,7 +184,7 @@ Flickable {
 
                             Text {
                                 visible: card.modelData.recent.length === 0
-                                text: "No transactions yet."
+                                text: qsTr("No transactions yet.")
                                 color: Theme.faint
                                 font.family: Theme.uiFont
                                 font.pixelSize: 12
@@ -240,13 +240,13 @@ Flickable {
                             spacing: 20
 
                             Toggle {
-                                text: "Freeze"
+                                text: qsTr("Freeze")
                                 checked: card.modelData.frozen
                                 onToggled: accounts.setFrozen(card.modelData.id, checked)
                             }
                             Toggle {
                                 visible: card.credit || card.modelData.lastFour.length > 0
-                                text: "Online payments"
+                                text: qsTr("Online payments")
                                 checked: card.modelData.onlinePayments
                                 onToggled: accounts.setOnlinePayments(card.modelData.id, checked)
                             }
@@ -258,7 +258,7 @@ Flickable {
 
                             PrimaryButton {
                                 quiet: true
-                                text: "Add transaction"
+                                text: qsTr("Add transaction")
                                 enabled: !card.modelData.frozen
                                 onClicked: root.addTransactionRequested(card.modelData.id)
                             }
@@ -266,14 +266,14 @@ Flickable {
                                 quiet: true
                                 visible: card.credit
                                 enabled: card.modelData.hasDebt
-                                text: "Pay debt"
+                                text: qsTr("Pay debt")
                                 onClicked: root.payDebtRequested(card.modelData)
                             }
                             PrimaryButton {
                                 quiet: true
                                 danger: true
                                 visible: card.credit
-                                text: "Delete"
+                                text: qsTr("Delete")
                                 onClicked: root.deleteRequested(card.modelData)
                             }
                         }
