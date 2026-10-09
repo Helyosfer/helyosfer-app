@@ -787,6 +787,13 @@ class InterfaceSmokeTest(unittest.TestCase):
                 self.assertEqual(json.load(stream)["display"]["language"], "tr")
             self.app.setLanguage("xx")
             self.assertEqual(self.app.language, "tr")
+            # The word that confirms deleting everything follows the language.
+            self.assertEqual(self.settings.confirmationWord, "SİL")
+            self.settings.resetAll("delet")
+            self._settle()
+            self.assertEqual(self.settings.message, "Onaylamak için SİL yazın.")
+            self.settings.clearMessage()
+            self.assertEqual(self.app.screen, "home")
         finally:
             self.app.setLanguage("en")
             self._settle()

@@ -78,7 +78,7 @@ Sheet {
     }
 
     Segmented {
-        model: [{ key: "expense", label: qsTr("Expense") }, { key: "income", label: qsTr("Income") }]
+        model: [{ key: "expense", label: qsTr("Spending") }, { key: "income", label: qsTr("Income") }]
         current: root.kind
         // The direction and the account of a saved transaction stay as they are.
         enabled: root.editing < 0
@@ -192,7 +192,7 @@ Sheet {
         },
         PrimaryButton {
             visible: root.locked.length === 0
-            text: transactions.busy ? qsTr("Saving…") : qsTr("Save")
+            text: transactions.busy ? qsTr("Saving…") : root.editing >= 0 ? qsTr("Save") : qsTr("Add")
             enabled: !transactions.busy
             onClicked: root.submit()
         }

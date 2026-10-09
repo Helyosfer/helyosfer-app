@@ -17,6 +17,7 @@ from utils.logging_config import get_logger
 BACKUP_SUFFIX = ".helyosfer-backup"
 CONTACT_EMAIL = "cakirgozmehmetc@proton.me"
 PROJECT_URL = "github.com/Helyosfer/helyosfer-app"
+_CONFIRMATION = later("DELETE")
 UNWRITABLE = later("The file could not be saved there. Choose another location.")
 UNREADABLE_CSV = later("This file could not be read. Choose a CSV file exported from Helyosfer.")
 
@@ -84,9 +85,7 @@ class SettingsController(_Mutating):
 
     @Property(str, constant=True)
     def confirmationWord(self):
-        from services.reset_service import CONFIRMATION_WORD
-
-        return CONFIRMATION_WORD
+        return say(_CONFIRMATION)
 
     @Property(str, constant=True)
     def backupSuffix(self):
@@ -223,10 +222,12 @@ class SettingsController(_Mutating):
     @Slot(str)
     def resetAll(self, typed):
         def work():
-            from services.reset_service import CONFIRMATION_WORD, reset_all_data
+            from services.reset_service import reset_all_data
 
-            if (typed or "").strip().upper() != CONFIRMATION_WORD:
-                raise FormError(say("Type {0} to confirm.", CONFIRMATION_WORD))
+            # Turkish capitals carry a dot the keyboard may or may not give.
+            entered = (typed or "").strip().upper().replace("İ", "I")
+            if entered not in (_CONFIRMATION, say(_CONFIRMATION).replace("İ", "I")):
+                raise FormError(say("Type {0} to confirm.", say(_CONFIRMATION)))
             reset_all_data(self._store)
 
         def done(_result):

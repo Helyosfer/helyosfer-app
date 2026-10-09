@@ -27,7 +27,7 @@ Sheet {
     }
 
     footer: [
-        PrimaryButton { quiet: true; text: qsTr("Keep card"); onClicked: root.close() },
+        PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: root.close() },
         PrimaryButton {
             quiet: true
             danger: true
