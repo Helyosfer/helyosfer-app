@@ -34,6 +34,9 @@ def migrate_legacy_database_location() -> bool:
 
 DEFAULT_ACCOUNT_ID = 1
 
+# The value stored with a card to say which network it belongs to. It has the
+# shape of a file path because that is what existing records hold; no image
+# ships with the application, and the interface writes the network's name.
 NETWORK_LOGOS = {
     "Visa": "assets/visa.png",
     "Mastercard": "assets/mastercard.png",

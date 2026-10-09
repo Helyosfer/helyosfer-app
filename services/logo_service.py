@@ -2,9 +2,7 @@
 Currency and Gold entries in the asset-history list and caches them to local
 disk.
 
-BIST shares already have local logos (assets/stock_logos/) -- that is not
-duplicated here; only
-Crypto, Currency and Gold are handled, since those have no local equivalent.
+Only Crypto, Currency and Gold are handled.
 No logo is looked up for Bond/Other either, where the generic coloured
 icon fallback is enough.
 

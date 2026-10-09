@@ -1,8 +1,6 @@
 """BIST 100 ticker list (code, company name).
 
-The share picker and the batch price fetch both read this
-list; the logo file names under assets/stock_logos/ match the symbols in
-these codes. When adding a share, remember to add its logo too.
+The share picker and the batch price fetch both read this list.
 
 Format: [(Ticker Code, Company Name), ...]
 Last updated: July 2026
