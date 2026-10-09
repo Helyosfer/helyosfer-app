@@ -92,7 +92,7 @@ def calculate_loan(principal, monthly_rate_percent, months, include_taxes=True,
     monthly = fiat(instalment)
     total = monthly * count
 
-    upfront = []
+    upfront: list[dict] = []
     if bank_fees:
         upfront.append({
             "name": "allocation_fee",

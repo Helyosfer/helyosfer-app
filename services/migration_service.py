@@ -442,7 +442,7 @@ def _existing_transaction_keys(account_id) -> Counter:
         ).fetchall()
     finally:
         conn.close()
-    present = Counter()
+    present: Counter = Counter()
     for row in rows:
         try:
             amount = float(decrypt(row[3], SECRET_KEY))

@@ -52,7 +52,7 @@ def list_categories():
         rows = conn.execute(
             "SELECT name, type, IFNULL(importance, 'extra'), custom FROM categories ORDER BY id"
         ).fetchall()
-        used = set()
+        used: set[str] = set()
         for table, column in _CATEGORY_COLUMNS:
             used.update(
                 found[0] for found in conn.execute(
