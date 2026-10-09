@@ -68,6 +68,63 @@ class CategoryServiceTest(unittest.TestCase):
             account, 50.0, "expense", category, "x", detect_subscription=False)
         return account
 
+    def test_a_built_in_category_can_be_renamed_and_becomes_the_users_own(self):
+        from services.queries import rename_category
+
+        self._file_under("Taksi")
+        self.assertEqual(rename_category("Taksi", "Yolculuk"), "Yolculuk")
+        self.assertIsNone(self._category("Taksi"))
+        renamed = self._category("Yolculuk")
+        self.assertTrue(renamed["custom"])
+        self.assertTrue(renamed["in_use"])
+        # It does not come back when the application starts again.
+        from database.init_db import initialize_database
+
+        initialize_database()
+        self.assertIsNone(self._category("Taksi"))
+
+    def test_a_built_in_category_can_be_removed_with_its_records_moved(self):
+        from services.queries import delete_category
+
+        self.assertTrue(delete_category("Otopark/Köprü"))
+        self.assertIsNone(self._category("Otopark/Köprü"))
+        self._file_under("Taksi")
+        with self.assertRaises(ValueError):
+            delete_category("Taksi")
+        self.assertTrue(delete_category("Taksi", move_to="Toplu Taşıma"))
+        self.assertIsNone(self._category("Taksi"))
+        self.assertTrue(self._category("Toplu Taşıma")["in_use"])
+
+    def test_categories_the_application_depends_on_cannot_be_changed(self):
+        from services.queries import delete_category, protected_categories, rename_category
+
+        self.assertEqual(
+            set(protected_categories()),
+            {"Varlık Alımı", "Varlık Satışı", "Kredi Taksiti", "Borç Ödeme", "Dijital Abonelik"},
+        )
+        for name in protected_categories():
+            with self.subTest(name=name):
+                self.assertTrue(self._category(name)["protected"])
+                with self.assertRaises(ValueError):
+                    rename_category(name, "Another name")
+                with self.assertRaises(ValueError):
+                    delete_category(name, move_to="Taksi")
+                self.assertIsNotNone(self._category(name))
+        self.assertFalse(self._category("Taksi")["protected"])
+
+    def test_the_last_category_of_a_kind_cannot_be_removed(self):
+        from services.queries import delete_category, list_categories, protected_categories
+
+        income = [
+            row["category"] for row in list_categories()
+            if row["type"] == "income" and row["category"] not in protected_categories()
+        ]
+        for name in income[:-1]:
+            delete_category(name)
+        with self.assertRaises(ValueError):
+            delete_category(income[-1])
+        self.assertIsNotNone(self._category(income[-1]))
+
     def test_only_added_categories_are_marked_as_the_users_own(self):
         from services.queries import add_category
 
@@ -116,7 +173,7 @@ class CategoryServiceTest(unittest.TestCase):
 
         add_category("Evcil bakıcı", "expense")
         for old, new in (("Evcil bakıcı", ""), ("Evcil bakıcı", "x" * 41),
-                         ("Evcil bakıcı", "MAAŞ"), ("Maaş", "Ücret"), ("Yok", "Var")):
+                         ("Evcil bakıcı", "MAAŞ"), ("Borç Ödeme", "Ücret"), ("Yok", "Var")):
             with self.subTest(old=old, new=new):
                 with self.assertRaises(ValueError):
                     rename_category(old, new)
@@ -130,12 +187,12 @@ class CategoryServiceTest(unittest.TestCase):
         self.assertTrue(delete_category("Evcil bakıcı"))
         self.assertIsNone(self._category("Evcil bakıcı"))
 
-    def test_a_category_in_use_or_built_in_stays(self):
+    def test_a_category_in_use_or_protected_stays(self):
         from services.queries import add_category, delete_category
 
         add_category("Evcil bakıcı", "expense")
         self._file_under("Evcil bakıcı")
-        for name in ("Evcil bakıcı", "Maaş", "Yok"):
+        for name in ("Evcil bakıcı", "Kredi Taksiti", "Yok"):
             with self.subTest(name=name):
                 with self.assertRaises(ValueError):
                     delete_category(name)

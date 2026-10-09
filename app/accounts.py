@@ -66,6 +66,27 @@ def read_date(text: str) -> str | None:
     return f"{day.isoformat()} {now:%H:%M:%S}"
 
 
+# What a record the application wrote is, and what removing it does.
+_RECORD_NOTES = {
+    "debt_payment": later(
+        "This is a debt payment. Its date can be changed. Removing it gives the "
+        "installments back to the debt and the money back to the account."
+    ),
+    "card_payment": later(
+        "This is a card payment. Its date can be changed. Removing it undoes the "
+        "payment on both the account and the card."
+    ),
+    "asset_purchase": later(
+        "This is an asset purchase. Its date can be changed. Removing it takes the "
+        "asset out of the portfolio and returns the money."
+    ),
+    "asset_sale": later(
+        "This is an asset sale. Its date can be changed. Removing it puts the asset "
+        "back in the portfolio and takes the money out again."
+    ),
+}
+
+
 class _Mutating(QObject):
     """Shared plumbing: run a write off the interface thread, report the outcome."""
 
@@ -366,15 +387,24 @@ class TransactionFormController(_Mutating):
             day = datetime.date.fromisoformat(found["date"][:10]).strftime("%d.%m.%Y")
         except ValueError:
             day = ""
+        fixed = list(found["fixed"])
         return {
             "id": found["id"],
-            "kind": found["type"] if found["type"] in ("income", "expense") else "expense",
+            # The card's side of a payment lowers what the card owes.
+            "kind": "expense" if found["type"] == "expense" else "income",
             "accountId": found["account_id"],
             "category": found["category"],
+            "categoryLabel": tr(found["category"]),
             "amountText": "" if found["amount"] is None else format_amount(found["amount"]),
-            "description": found["description"],
+            # Wording the application wrote is shown as the lists show it.
+            "description": (
+                display_title(found["description"]) if "description" in fixed
+                else found["description"]
+            ),
             "dateText": day,
             "locked": tr(found["locked"]) if found["locked"] else "",
+            "fixed": fixed,
+            "note": say(_RECORD_NOTES[found["kind"]]) if found["kind"] in _RECORD_NOTES else "",
         }
 
     @Slot(int, str, str, int, str, str, str)
@@ -383,11 +413,15 @@ class TransactionFormController(_Mutating):
         def work():
             from services.transaction_edit_service import update_transaction
 
-            if account_id < 0:
+            from services.transaction_edit_service import get_transaction
+
+            # What is fixed on the record is not asked for again.
+            fixed = get_transaction(transaction_id)["fixed"]
+            if account_id < 0 and "account" not in fixed:
                 raise FormError(say("Choose an account."))
-            if not category:
+            if not category and "category" not in fixed:
                 raise FormError(say("Choose a category."))
-            amount = read_amount(amount_text, say("amount"))
+            amount = 0.0 if "amount" in fixed else read_amount(amount_text, say("amount"))
             stamp = read_date(date_text) or datetime.date.today().isoformat()
             update_transaction(
                 transaction_id, amount, category, (description or "").strip(), stamp[:10],

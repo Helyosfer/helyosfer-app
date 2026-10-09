@@ -283,7 +283,7 @@ Item {
                             anchors.rightMargin: 20
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 8
-                            visible: categoryRow.modelData.custom
+                            visible: categoryRow.modelData.editable
 
                             PrimaryButton {
                                 quiet: true

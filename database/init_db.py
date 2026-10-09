@@ -285,8 +285,8 @@ def _initialize_database(conn):
     """)
     cursor.execute("PRAGMA table_info(categories)")
     if "custom" not in {row[1] for row in cursor.fetchall()}:
-        # 1 for a category the user added; the built-in ones are catalog
-        # values and can be neither renamed nor removed.
+        # 1 for a category the user named: one that was added, or a
+        # built-in one that was renamed.
         cursor.execute("ALTER TABLE categories ADD COLUMN custom INTEGER NOT NULL DEFAULT 0")
 
 
@@ -379,6 +379,9 @@ def _initialize_database(conn):
         cursor.execute("ALTER TABLE active_debts ADD COLUMN auto_pay_day INTEGER DEFAULT 1")
     if "last_auto_pay_date" not in existing_debt_cols:
         cursor.execute("ALTER TABLE active_debts ADD COLUMN last_auto_pay_date TEXT")
+    from database.db import _ensure_record_links
+
+    _ensure_record_links(cursor)
     # The account automatic instalments are taken from; empty leaves the
     # choice to the application.
     if "auto_pay_account_id" not in existing_debt_cols:

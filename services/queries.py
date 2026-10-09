@@ -59,9 +59,10 @@ def list_categories():
                     f"SELECT DISTINCT {column} FROM {table}"  # nosec B608
                 ).fetchall()
             )
+    protected = protected_categories()
     return [
         {"category": row[0], "type": row[1], "importance": row[2], "custom": bool(row[3]),
-         "in_use": row[0] in used}
+         "in_use": row[0] in used, "protected": row[0] in protected}
         for row in rows
     ]
 
@@ -75,20 +76,38 @@ def _clean_category_name(name):
     return name
 
 
+def protected_categories():
+    """Categories the application itself depends on by name.
+
+    Its own records are filed under some, and one marks a subscription; the
+    rest of the ones it came with are the user's to rename or remove.
+    """
+    from services.recurring_service import SUBSCRIPTION_CATEGORY
+    from services.transaction_edit_service import SYSTEM_CATEGORIES
+
+    return (*SYSTEM_CATEGORIES, SUBSCRIPTION_CATEGORY)
+
+
 def _own_category(conn, name):
-    """The stored row of a category the user added; refuses anything else."""
+    """The stored row of a category that may be changed; refuses the rest."""
     row = conn.execute(
         "SELECT id, name, custom FROM categories WHERE name = ?", (name,)
     ).fetchone()
     if row is None:
         raise ValueError("Kategori bulunamadı.")
-    if not row[2]:
-        raise ValueError("Hazır kategoriler değiştirilemez.")
+    if row[1] in protected_categories():
+        raise ValueError(
+            "Bu kategori uygulamanın kendi kayıtları için kullanılır ve değiştirilemez."
+        )
     return row
 
 
 def rename_category(name, new_name):
-    """Renames a category the user added, everywhere it is used."""
+    """Renames a category everywhere it is used.
+
+    One the application came with becomes the user's own by it: it keeps the
+    name it was given in every language.
+    """
     from services.search_service import normalize
 
     new_name = _clean_category_name(new_name)
@@ -100,7 +119,9 @@ def rename_category(name, new_name):
         ).fetchall()
         if any(normalize(other[0]) == wanted for other in others):
             raise ValueError("Bu adda bir kategori zaten var.")
-        conn.execute("UPDATE categories SET name = ? WHERE id = ?", (new_name, row[0]))
+        conn.execute(
+            "UPDATE categories SET name = ?, custom = 1 WHERE id = ?", (new_name, row[0])
+        )
         for table, column in _CATEGORY_COLUMNS:
             conn.execute(
                 f"UPDATE {table} SET {column} = ? WHERE {column} = ?",  # nosec B608
@@ -114,7 +135,7 @@ def rename_category(name, new_name):
 
 
 def delete_category(name, move_to=None):
-    """Removes a category the user added.
+    """Removes a category, the user's own or one the application came with.
 
     While something is filed under it, it can only go together with those
     records: `move_to` names the category of the same kind that takes them
@@ -122,6 +143,16 @@ def delete_category(name, move_to=None):
     """
     with managed_connection() as conn:
         row = _own_category(conn, name)
+        kind = conn.execute(
+            "SELECT type FROM categories WHERE id = ?", (row[0],)).fetchone()[0]
+        others = [
+            other[0] for other in conn.execute(
+                "SELECT name FROM categories WHERE type = ? AND id != ?", (kind, row[0]))
+            if other[0] not in protected_categories()
+        ]
+        if not others:
+            # A form with nothing to choose from could not be filled in.
+            raise ValueError("Bir türün son kategorisi kaldırılamaz.")
         used = any(
             conn.execute(
                 f"SELECT 1 FROM {table} WHERE {column} = ? LIMIT 1", (name,)  # nosec B608
@@ -135,8 +166,6 @@ def delete_category(name, move_to=None):
         if used:
             from services.transaction_edit_service import SYSTEM_CATEGORIES
 
-            kind = conn.execute(
-                "SELECT type FROM categories WHERE id = ?", (row[0],)).fetchone()[0]
             target = conn.execute(
                 "SELECT name FROM categories WHERE name = ? AND type = ?", (move_to, kind)
             ).fetchone()

@@ -490,12 +490,18 @@ class AccountService:
                 INSERT INTO transactions (account_id, amount, type, category, description, transaction_date)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (source_account_id, enc_amount, "expense", "Borç Ödeme", enc_desc, date_now))
+            paid_from = cursor.lastrowid
 
 
             cursor.execute("""
                 INSERT INTO transactions (account_id, amount, type, category, description, transaction_date)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (credit_card_id, enc_amount, "payment", "Borç Ödeme", enc_desc, date_now))
+            paid_to = cursor.lastrowid
+            # Each half names the other, so the payment can be undone whole.
+            from database.db import CARD_PAYMENT, write_record_link
+            write_record_link(cursor, paid_from, CARD_PAYMENT, paid_to)
+            write_record_link(cursor, paid_to, CARD_PAYMENT, paid_from)
 
             conn.commit()
         finally:

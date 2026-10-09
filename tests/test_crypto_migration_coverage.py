@@ -165,6 +165,12 @@ class MigrationCoversEveryEncryptedTableTest(unittest.TestCase):
                     "created_at) VALUES (1, ?, ?, ?, 12, '2026-08-01')",
                     ("description", "total_amount", "monthly_amount"),
                 ),
+                "record_links": (
+                    "INSERT INTO record_links (transaction_id, kind, ref_id, detail) "
+                    "VALUES ((SELECT IFNULL(MAX(transaction_id), 0) + 1 FROM record_links),"
+                    " 'debt_payment', 1, ?)",
+                    ("detail",),
+                ),
                 "savings_migration_quarantine": (
                     "INSERT INTO savings_migration_quarantine ("
                     "quarantined_at, reason, source, goal_name, payload) "

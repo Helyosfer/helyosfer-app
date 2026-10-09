@@ -19,8 +19,8 @@ Working and covered by tests:
   interest, compound growth, time to a goal), insights, what-if, past balance.
 - Overview with search, upcoming items and a balance chart drawn from the
   dates of the transactions.
-- Categories: the user's own can be added, renamed and removed; one that is
-  in use hands its records to another.
+- Categories: added, renamed and removed, the ones the application came
+  with included; one that is in use hands its records to another.
 - Encrypted backup and restore, CSV export and import.
 - Dark and light themes; English and Turkish; motion that can be turned off.
 
@@ -57,10 +57,16 @@ author.
 
 ## Known limits
 
-- Records the application writes itself (loan installments, card payments,
-  asset trades, installment purchases) cannot be changed from the
-  transaction form.
-- Built-in categories cannot be renamed or removed.
+- A record the application writes itself (a debt payment, a card payment,
+  an asset trade) can be moved to another day and removed, which undoes its
+  other half as well. Its amount and account are decided by that other half
+  and cannot be changed; to correct them the record is removed and made
+  again.
+- The five categories the application files its own records under, or
+  recognises a subscription by, cannot be renamed or removed. A category
+  that was removed does not come back by itself; it is added again by name.
+- An installment purchase keeps its plan, but the plan is not shown
+  anywhere yet.
 - A back-dated transaction moves back the history of its own account and of
   the accounts opened on the profile's first day. An account opened on a
   later day joins the chart on that day.

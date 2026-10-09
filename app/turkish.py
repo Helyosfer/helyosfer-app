@@ -129,6 +129,22 @@ TEXT = {
 
     # -- buttons and states -----------------------------------------------
     "Add": "Ekle",
+    "This is a debt payment. Its date can be changed. Removing it gives the "
+    "installments back to the debt and the money back to the account.":
+        "Bu bir borç ödemesi. Tarihi değiştirilebilir. Silerseniz taksitler borca, "
+        "para hesaba geri döner.",
+    "This is a card payment. Its date can be changed. Removing it undoes the "
+    "payment on both the account and the card.":
+        "Bu bir kart ödemesi. Tarihi değiştirilebilir. Silerseniz ödeme hem hesapta "
+        "hem kartta geri alınır.",
+    "This is an asset purchase. Its date can be changed. Removing it takes the "
+    "asset out of the portfolio and returns the money.":
+        "Bu bir varlık alımı. Tarihi değiştirilebilir. Silerseniz varlık portföyden "
+        "çıkar, para geri döner.",
+    "This is an asset sale. Its date can be changed. Removing it puts the asset "
+    "back in the portfolio and takes the money out again.":
+        "Bu bir varlık satışı. Tarihi değiştirilebilir. Silerseniz varlık portföye "
+        "geri döner, para hesaptan çıkar.",
     "Done": "Tamamlandı",
     "Calculate": "Hesapla",
     "Cancel": "Vazgeç",

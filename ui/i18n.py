@@ -279,8 +279,10 @@ EN = {
     "İşlem bulunamadı.": "This transaction no longer exists.",
     "Bu işlem uygulama tarafından oluşturuldu ve buradan değiştirilemez.":
         "Helyosfer made this record as part of a payment or a trade, so it cannot be changed here.",
-    "Taksitli bir alışveriş buradan değiştirilemez.":
-        "A purchase in installments cannot be changed here.",
+    "Bu alımdaki varlığın bir kısmı ya da tamamı satıldı. Önce satışı geri alın.":
+        "Some or all of what this purchase bought has been sold. Undo the sale first.",
+    "İşlem türü geçersiz.": "Choose spending or income.",
+    "Bu kalem her ay tekrarlanmıyor.": "This item does not repeat every month.",
     "Bekleyen bir işlem Borçlar ve ödemeler bölümünden değiştirilir.":
         "A pending transaction is changed under Debts and payments.",
     "Bu kayıt okunamadığı için değiştirilemez.": "This record cannot be read, so it cannot be changed.",
@@ -291,7 +293,9 @@ EN = {
     "Otomatik birikim için bir vadesiz hesap seçin.": "Choose a cash or checking account to save from.",
     "Ödeme günü 1 ile 31 arasında olmalıdır.": "The day must be between 1 and 31.",
     "Kayıtların taşınacağı kategori geçersiz.": "Choose the category that takes over its records.",
-    "Hazır kategoriler değiştirilemez.": "Built-in categories cannot be renamed or removed.",
+    "Bu kategori uygulamanın kendi kayıtları için kullanılır ve değiştirilemez.":
+        "Helyosfer files its own records under this category, so it cannot be changed.",
+    "Bir türün son kategorisi kaldırılamaz.": "The last category of a kind cannot be removed.",
     "Bu kategori kullanımda olduğu için silinemez. Yeniden adlandırabilirsiniz.":
         "This category is in use, so it cannot be removed. You can rename it instead.",
     "Kategori adı boş olamaz.": "Enter a name for the category.",

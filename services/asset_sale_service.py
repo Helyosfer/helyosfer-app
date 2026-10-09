@@ -3,7 +3,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from database.db import SECRET_KEY, adjust_account_balance, get_connection
+from database.db import (
+    ASSET_SALE, SECRET_KEY, adjust_account_balance, get_connection, write_record_link,
+)
 from utils.crypto import decrypt, encrypt
 from utils.errors import DecryptionError, FinancialDataIntegrityError
 from utils.financial_decimal import decimal_from, fiat
@@ -64,6 +66,14 @@ class AssetSaleService:
 
 
                 transaction_id = cursor.lastrowid
+                # Enough to put the holding back as it was, even when this
+                # sale emptied it and its row is gone.
+                write_record_link(
+                    cursor, transaction_id, ASSET_SALE, asset_id,
+                    quantity=str(sold), name=row["asset_name"], code=row["asset_code"],
+                    type=row["asset_type"], purchase_price=str(unit_cost),
+                    purchase_date=row["purchase_date"],
+                )
                 if _fault_hook: _fault_hook("after_transaction_write")
                 adjust_account_balance(cursor, account_id, "income", float(proceeds), ref_id=transaction_id, source="asset_sale")
                 if _fault_hook: _fault_hook("before_commit")

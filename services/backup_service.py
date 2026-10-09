@@ -286,6 +286,7 @@ ENCRYPTED_FIELDS = {
     "recurring_payments": ("name", "amount"),
     "savings_goals": ("goal_name",),
     "installment_plans": ("description", "total_amount", "monthly_amount"),
+    "record_links": ("detail",),
 
 
     "savings_migration_quarantine": ("goal_name", "payload"),

@@ -12,6 +12,12 @@ Sheet {
     property int editing: -1
     // Why the transaction cannot be changed; empty when it can.
     property string locked: ""
+    // The fields that stay as they are on this record, and why.
+    property var fixed: []
+    property string note: ""
+    property var fixedCategory: null
+
+    function free(field) { return locked.length === 0 && fixed.indexOf(field) < 0 }
     property bool confirming: false
     readonly property bool onCard: account.currentItem !== null
         && account.currentItem.kind === "credit_card" && kind === "expense"
@@ -24,6 +30,10 @@ Sheet {
         transactions.clearMessage()
         editing = transactionId
         locked = found.locked
+        fixed = found.fixed
+        note = found.note
+        fixedCategory = found.fixed.indexOf("category") >= 0
+            ? { key: found.category, label: found.categoryLabel } : null
         confirming = false
         kind = found.kind
         amount.text = found.amountText
@@ -33,12 +43,16 @@ Sheet {
         account.select(found.accountId)
         category.select(found.category)
         open()
-        if (locked.length === 0) amount.input.forceActiveFocus()
+        if (free("amount")) amount.input.forceActiveFocus()
+        else if (free("date")) date.input.forceActiveFocus()
     }
 
     function openFor(accountKey) {
         editing = -1
         locked = ""
+        fixed = []
+        note = ""
+        fixedCategory = null
         confirming = false
         kind = "expense"
         amount.text = ""
@@ -81,7 +95,7 @@ Sheet {
     Segmented {
         model: [{ key: "expense", label: qsTr("Spending") }, { key: "income", label: qsTr("Income") }]
         current: root.kind
-        enabled: root.locked.length === 0
+        enabled: root.free("kind")
         opacity: enabled ? 1 : 0.55
         onChosen: function (key) { root.kind = key }
     }
@@ -89,7 +103,7 @@ Sheet {
     Field {
         id: amount
         width: parent.width
-        enabled: root.locked.length === 0
+        enabled: root.free("amount")
         label: qsTr("Amount (₺)")
         placeholder: "0,00"
         money: true
@@ -107,7 +121,7 @@ Sheet {
             label: qsTr("Account")
             placeholder: qsTr("Choose an account")
             model: accounts.options
-            enabled: root.locked.length === 0
+            enabled: root.free("account")
             opacity: enabled ? 1 : 0.55
         }
         Choice {
@@ -115,8 +129,12 @@ Sheet {
             width: (parent.width - 12) / 2
             label: qsTr("Category")
             placeholder: qsTr("Choose a category")
-            model: (transactions.categoryRevision, transactions.categories(root.kind))
-            enabled: root.locked.length === 0
+            // A category the application files its own records under is
+            // not among the ones offered; it is shown as the only entry.
+            model: root.fixedCategory !== null ? [root.fixedCategory]
+                : (transactions.categoryRevision, transactions.categories(root.kind))
+            enabled: root.free("category")
+            opacity: enabled ? 1 : 0.55
         }
     }
 
@@ -141,14 +159,14 @@ Sheet {
             id: description
             width: (parent.width - 12) * 0.62
             label: qsTr("Description (optional)")
-            enabled: root.locked.length === 0
+            enabled: root.free("description")
             onAccepted: root.submit()
         }
         Field {
             id: date
             width: (parent.width - 12) * 0.38
             label: qsTr("Date")
-            enabled: root.locked.length === 0
+            enabled: root.free("date")
             placeholder: qsTr("DD.MM.YYYY")
             onAccepted: root.submit()
         }
@@ -166,6 +184,14 @@ Sheet {
         problem: false
         visible: root.locked.length > 0
         text: root.locked
+    }
+
+    Notice {
+        width: parent.width
+        problem: false
+        visible: root.note.length > 0 && root.locked.length === 0
+            && transactions.message.length === 0
+        text: root.note
     }
 
     Notice {

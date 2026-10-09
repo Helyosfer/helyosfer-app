@@ -1,6 +1,8 @@
 """Atomic automatic debt installment settlement."""
 from datetime import datetime
-from database.db import SECRET_KEY, adjust_account_balance, get_connection
+from database.db import (
+    DEBT_PAYMENT, SECRET_KEY, adjust_account_balance, get_connection, write_record_link,
+)
 from utils.crypto import decrypt, encrypt
 from utils.financial_decimal import fiat
 
@@ -34,6 +36,7 @@ class DebtPaymentService:
 
 
                 transaction_id = cur.lastrowid
+                write_record_link(cur, transaction_id, DEBT_PAYMENT, debt_id, count=count)
                 if _fault_hook: _fault_hook("after_transaction")
                 adjust_account_balance(
                     cur, account_id, "expense", amount, ref_id=transaction_id,
@@ -93,9 +96,11 @@ class DebtPaymentService:
                     (account_id, encrypt(str(amount), SECRET_KEY), category,
                      encrypt(desc, SECRET_KEY), now),
                 )
+                transaction_id = cur.lastrowid
+                write_record_link(cur, transaction_id, DEBT_PAYMENT, debt_id, count=count)
                 adjust_account_balance(
                     cur, account_id, "expense", amount,
-                    ref_id=cur.lastrowid, source="debt_payment",
+                    ref_id=transaction_id, source="debt_payment",
                 )
                 paid = row["paid_installments"] + count
                 cur.execute(

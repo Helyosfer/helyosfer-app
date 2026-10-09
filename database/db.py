@@ -118,6 +118,66 @@ ACCOUNT = "account"
 SAVINGS_GOAL = "savings_goal"
 
 
+# What a record the application wrote by itself belongs to.
+DEBT_PAYMENT = "debt_payment"
+CARD_PAYMENT = "card_payment"
+ASSET_PURCHASE = "asset_purchase"
+ASSET_SALE = "asset_sale"
+
+
+def _ensure_record_links(cursor):
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS record_links (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            transaction_id INTEGER NOT NULL UNIQUE,
+            kind TEXT NOT NULL,
+            ref_id INTEGER,
+            detail TEXT
+        )
+    """)
+
+
+def write_record_link(cursor, transaction_id, kind, ref_id=None, **detail):
+    """Notes what a transaction the application wrote is the other half of.
+
+    A debt payment names its debt, a card payment the record on the other
+    account, a trade its holding. With the note the record can be undone
+    together with that other half; without it the two could only drift
+    apart. `detail` is stored encrypted, as the amounts it repeats are.
+    """
+    import json
+
+    _ensure_record_links(cursor)
+    cursor.execute(
+        "INSERT OR REPLACE INTO record_links (transaction_id, kind, ref_id, detail)"
+        " VALUES (?, ?, ?, ?)",
+        (
+            int(transaction_id), kind, ref_id,
+            encrypt(json.dumps(detail, ensure_ascii=False), SECRET_KEY) if detail else None,
+        ),
+    )
+
+
+def read_record_link(cursor, transaction_id):
+    """{'kind', 'ref_id', 'detail'} for a transaction, or None."""
+    import json
+
+    _ensure_record_links(cursor)
+    row = cursor.execute(
+        "SELECT kind, ref_id, detail FROM record_links WHERE transaction_id = ?",
+        (int(transaction_id),),
+    ).fetchone()
+    if row is None:
+        return None
+    detail = json.loads(decrypt(row[2], SECRET_KEY)) if row[2] else {}
+    return {"kind": row[0], "ref_id": row[1], "detail": detail}
+
+
+def drop_record_link(cursor, transaction_id):
+    _ensure_record_links(cursor)
+    cursor.execute("DELETE FROM record_links WHERE transaction_id = ?", (int(transaction_id),))
+
+
 def record_balance_event(cursor, entity_type, entity_id, delta,
                          resulting_value, source, ref_id=None, ts=None):
     """Writes one row to balance_events -- with THE CALLER's cursor, in the same commit.

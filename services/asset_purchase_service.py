@@ -9,9 +9,11 @@ retroactively alter today's wallet balance or expense reports.
 from datetime import datetime
 
 from database.db import (
+    ASSET_PURCHASE,
     SECRET_KEY,
     adjust_account_balance,
     get_connection,
+    write_record_link,
 )
 from services.account_service import AccountService
 from utils.crypto import encrypt
@@ -138,6 +140,10 @@ class AssetPurchaseService:
                     ),
                 )
                 transaction_id = cursor.lastrowid
+                write_record_link(
+                    cursor, transaction_id, ASSET_PURCHASE, asset_id,
+                    quantity=str(decimal_from(quantity)),
+                )
                 adjust_account_balance(
                     cursor,
                     account_id,

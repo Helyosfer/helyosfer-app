@@ -265,16 +265,25 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertEqual(self.accounts.accounts[0]["balanceText"], before)
         self.assertEqual(self.transactions.details(ride["id"]), {})
 
-        # A record the application wrote opens locked.
+        # A record the application wrote opens with only its date free, and
+        # says what removing it would undo.
         payment = next(row for row in self.dashboard.recent
                        if row["title"] == "Travel card debt payment")
         QMetaObject.invokeMethod(form, "openForEdit", Q_ARG("QVariant", payment["id"]))
         self.assertTrue(form.property("visible"), self._warnings())
-        self.assertIn("cannot be changed here", form.property("locked"))
-        self.transactions.remove(payment["id"])
+        self.assertEqual(form.property("locked"), "")
+        self.assertIn("card payment", form.property("note"))
+        opened = self.transactions.details(payment["id"])
+        self.assertEqual(
+            sorted(opened["fixed"]), ["account", "amount", "category", "description", "kind"])
+        self.assertEqual(opened["description"], "Travel card debt payment")
+        self.assertEqual(opened["categoryLabel"], "Debt Payment")
+        # Saving it as it stands asks for nothing and changes nothing.
+        owed = [a["balanceText"] for a in self.accounts.accounts]
+        self.transactions.update(payment["id"], "expense", "", -1, "", "", "")
         self._settle()
-        self.assertIn("cannot be changed here", self.transactions.message)
-        self.transactions.clearMessage()
+        self.assertEqual(self.transactions.message, "")
+        self.assertEqual([a["balanceText"] for a in self.accounts.accounts], owed)
         form.setProperty("visible", False)
         self.assertNotIn(
             "Debt Payment", [c["label"] for c in self.transactions.categories("expense")]
@@ -713,10 +722,31 @@ class InterfaceSmokeTest(unittest.TestCase):
         self._settle()
         self.assertEqual(self.categories.message, "")
         self.assertIn("Dog walker", [c["key"] for c in self.transactions.categories("expense")])
-        self.categories.rename("Taksi", "Cab")
+        # A name another category is shown under is taken, whatever it is
+        # stored as: "Groceries" is how the built-in one reads in English.
+        self.categories.rename("Dog walker", "groceries")
         self._settle()
-        self.assertIn("Built-in", self.categories.message)
+        self.assertIn("already exists", self.categories.message)
         self.categories.clearMessage()
+        # One the application came with can be renamed, and is then the
+        # user's own; one it files its own records under cannot.
+        parking = next(c for c in self.categories.items if c["key"] == "Otopark/Köprü")
+        self.assertTrue(parking["editable"])
+        self.categories.rename("Otopark/Köprü", "Parking")
+        self._settle()
+        self.assertEqual(self.categories.message, "")
+        renamed = next(c for c in self.categories.items if c["key"] == "Parking")
+        self.assertTrue(renamed["custom"])
+        self.assertIn("Parking", [c["key"] for c in self.transactions.categories("expense")])
+        own_records = next(c for c in self.categories.items if c["key"] == "Borç Ödeme")
+        self.assertFalse(own_records["editable"])
+        self.categories.rename("Borç Ödeme", "Repayments")
+        self._settle()
+        self.assertIn("cannot be changed", self.categories.message)
+        self.categories.clearMessage()
+        self.categories.remove("Parking")
+        self._settle()
+        self.assertNotIn("Parking", [c["key"] for c in self.categories.items])
         # In use, it goes only together with what is filed under it.
         account = self.accounts.accounts[0]["id"]
         self.transactions.add("expense", "15", account, "Dog walker", "Walk", "", 1)

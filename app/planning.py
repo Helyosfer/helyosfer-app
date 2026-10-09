@@ -217,26 +217,50 @@ class CategoriesController(_Listing):
                     "kind": row["type"],
                     "essential": row["importance"] == "main",
                     "custom": row["custom"],
+                    "editable": not row["protected"],
                     "inUse": row["in_use"],
                 }
                 for row in rows
             ),
-            # The user's own categories lead: they are the ones that can be
-            # renamed or removed, and would otherwise be lost among fifty.
+            # The user's own categories lead; they would otherwise be lost
+            # among fifty.
             key=lambda item: (not item["custom"], item["name"].casefold()),
         )
+
+    def _refuse_a_name_on_screen(self, name, but=None) -> None:
+        """Refuses a name another category is already shown under.
+
+        The service compares the names as stored. A built-in category is
+        shown in the language of the interface, so a name can be free there
+        and still be one the user already sees in the list.
+        """
+        from services.search_service import normalize
+
+        wanted = normalize(" ".join(str(name or "").split()))
+        if wanted and any(
+            normalize(item["name"]) == wanted for item in self._items if item["key"] != but
+        ):
+            raise ValueError("Bu adda bir kategori zaten var.")
 
     @Slot(str, str, bool)
     def add(self, kind, name, essential):
         from services.queries import add_category
 
-        self._mutate(lambda: add_category(name, kind, essential))
+        def work():
+            self._refuse_a_name_on_screen(name)
+            add_category(name, kind, essential)
+
+        self._mutate(work)
 
     @Slot(str, str)
     def rename(self, key, name):
         from services.queries import rename_category
 
-        self._mutate(lambda: rename_category(key, name))
+        def work():
+            self._refuse_a_name_on_screen(name, but=key)
+            rename_category(key, name)
+
+        self._mutate(work)
 
     @Slot(str)
     def remove(self, key):

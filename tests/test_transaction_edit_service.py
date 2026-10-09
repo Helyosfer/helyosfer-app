@@ -245,28 +245,249 @@ class TransactionEditServiceTest(unittest.TestCase):
             update_transaction(tx, 1000.01, "Taksi", "Not", _day(0))
         self.assertEqual(AccountService.get_account(card)["balance"], -1000.0)
 
-    # -- locked records --------------------------------------------------------
-    def test_records_the_application_wrote_are_locked(self):
-        from services.transaction_edit_service import (
-            INSTALLMENT, LINKED, PENDING, delete_transaction, get_transaction, update_transaction,
-        )
-        from services.account_service import AccountService
-
-        card = AccountService.create_account("Card", "credit_card", 0.0, credit_limit=50000.0)
-        cases = [
-            (self._add(amount=100.0, category="Kredi Taksiti"), LINKED),
-            (self._add(amount=1200.0, account=card, installments=6), INSTALLMENT),
-            (self._add(amount=100.0, offset=-5), PENDING),
-        ]
-        AccountService.pay_credit_card_debt(card, self.account, 300.0)
+    # -- records the application wrote ---------------------------------------------
+    def _last(self, count=1):
         from database.db import get_connection
 
         conn = get_connection()
         try:
-            for row in conn.execute("SELECT id FROM transactions ORDER BY id DESC LIMIT 2"):
-                cases.append((row[0], LINKED))
+            rows = conn.execute(
+                "SELECT id FROM transactions ORDER BY id DESC LIMIT ?", (count,)).fetchall()
         finally:
             conn.close()
+        return [row[0] for row in rows][::-1]
+
+    def _debt(self):
+        from database.db import get_connection
+
+        conn = get_connection()
+        try:
+            return tuple(conn.execute(
+                "SELECT paid_installments, is_active FROM active_debts").fetchone())
+        finally:
+            conn.close()
+
+    def _holdings(self):
+        from database.db import SECRET_KEY, get_connection
+        from utils.crypto import decrypt
+
+        conn = get_connection()
+        try:
+            return [
+                (row["id"], row["asset_code"], float(decrypt(row["quantity"], SECRET_KEY)),
+                 float(decrypt(row["purchase_price"], SECRET_KEY)))
+                for row in conn.execute("SELECT * FROM active_assets ORDER BY id")
+            ]
+        finally:
+            conn.close()
+
+    def test_only_the_date_of_an_application_record_can_change(self):
+        from services.debt_payment_service import DebtPaymentService
+        from services.transaction_edit_service import get_transaction, update_transaction
+
+        DebtPaymentService.create_debt("Loan", 500.0, 6)
+        DebtPaymentService.pay_manual(1, self.account, 2)
+        tx = self._last()[0]
+        found = get_transaction(tx)
+        self.assertEqual((found["kind"], found["locked"]), ("debt_payment", ""))
+        self.assertEqual(
+            found["fixed"], ("amount", "category", "description", "account", "kind"))
+        # Whatever else is asked for, only the day moves.
+        update_transaction(tx, 1.0, "Taksi", "changed", _day(12), account_id=999, kind="income")
+        after = get_transaction(tx)
+        self.assertEqual(
+            (after["amount"], after["category"], after["type"], after["account_id"],
+             after["description"], after["date"][:10]),
+            (1000.0, "Kredi Taksiti", "expense", self.account, found["description"], _day(12)),
+        )
+        self.assertEqual(self._numbers(), (9000.0, 9000.0, 1))
+        # The payment now belongs to that day, and the history starts with it.
+        self.assertIsNone(self._balance_at(13))
+        self.assertEqual(self._balance_at(12), 9000.0)
+        self.assertEqual(self._balance_at(0), 9000.0)
+        self.assertEqual(self._debt(), (2, 1))
+
+    def test_removing_a_debt_payment_gives_the_installments_back(self):
+        from services.debt_payment_service import DebtPaymentService
+        from services.transaction_edit_service import delete_transaction
+
+        DebtPaymentService.create_debt("Loan", 500.0, 3)
+        DebtPaymentService.pay_manual(1, self.account, 1)
+        first = self._last()[0]
+        # Paying the rest closes the debt; undoing that opens it again.
+        DebtPaymentService.pay_manual(1, self.account)
+        closing = self._last()[0]
+        self.assertEqual((self._debt(), self._numbers()[0]), ((3, 0), 8500.0))
+        delete_transaction(closing)
+        self.assertEqual((self._debt(), self._numbers()), ((1, 1), (9500.0, 9500.0, 1)))
+        delete_transaction(first)
+        self.assertEqual((self._debt(), self._numbers()), ((0, 1), (10000.0, 10000.0, 0)))
+
+    def test_removing_an_automatic_installment_does_not_take_it_again(self):
+        import datetime
+
+        from services.debt_payment_service import DebtPaymentService
+        from services.scheduled_service import process_due_items
+        from services.transaction_edit_service import delete_transaction
+
+        today = datetime.date.today()
+        DebtPaymentService.create_debt(
+            "Loan", 500.0, 6, True, today.day, auto_pay_account_id=self.account)
+        self.assertTrue(process_due_items())
+        self.assertEqual(self._debt(), (1, 1))
+        delete_transaction(self._last()[0])
+        self.assertEqual((self._debt(), self._numbers()), ((0, 1), (10000.0, 10000.0, 0)))
+        self.assertFalse(process_due_items())
+        self.assertEqual(self._debt(), (0, 1))
+
+    def test_removing_either_half_of_a_card_payment_undoes_both(self):
+        from services.account_service import AccountService
+        from services.transaction_edit_service import (
+            delete_transaction, get_transaction, update_transaction,
+        )
+
+        card = AccountService.create_account("Card", "credit_card", 0.0, credit_limit=50000.0)
+        self._add(amount=1000.0, account=card)
+        for half in (0, 1):
+            with self.subTest(half=half):
+                AccountService.pay_credit_card_debt(card, self.account, 300.0)
+                pair = self._last(2)
+                self.assertEqual(self._balance_of(card)[0], -700.0)
+                self.assertEqual(self._numbers()[0], 9700.0)
+                self.assertEqual(get_transaction(pair[half])["kind"], "card_payment")
+                # Moving one half to another day moves the other with it.
+                update_transaction(pair[half], 1.0, "", "", _day(4))
+                self.assertEqual(
+                    [get_transaction(tx)["date"][:10] for tx in pair], [_day(4), _day(4)])
+                self.assertEqual(self._balance_of(card), (-700.0, -700.0))
+                delete_transaction(pair[half])
+                self.assertEqual(self._balance_of(card), (-1000.0, -1000.0))
+                self.assertEqual(self._numbers(), (10000.0, 10000.0, 1))
+
+    def test_a_card_payment_whose_card_is_gone_is_still_undone(self):
+        from services.account_service import AccountService
+        from services.transaction_edit_service import delete_transaction
+
+        card = AccountService.create_account("Card", "credit_card", 0.0, credit_limit=50000.0)
+        self._add(amount=1000.0, account=card)
+        AccountService.pay_credit_card_debt(card, self.account, 300.0)
+        paid_from = self._last(2)[0]
+        AccountService.delete_credit_card(card)
+        delete_transaction(paid_from)
+        self.assertEqual(self._numbers(), (10000.0, 10000.0, 0))
+
+    def test_removing_an_asset_purchase_removes_the_holding(self):
+        from services.asset_purchase_service import AssetPurchaseService
+        from services.transaction_edit_service import (
+            delete_transaction, get_transaction, update_transaction,
+        )
+
+        bought = AssetPurchaseService.create_purchase(
+            asset_name="Altin", asset_code="GRAM", asset_type="Altın",
+            purchase_price=250.0, quantity=4, account_id=self.account)
+        tx = bought["transaction_id"]
+        self.assertEqual(self._numbers(), (9000.0, 9000.0, 1))
+        self.assertEqual(get_transaction(tx)["kind"], "asset_purchase")
+        update_transaction(tx, 1.0, "", "", _day(6))
+        self.assertEqual(self._balance_at(6), 9000.0)
+        self.assertEqual(self._holdings(), [(bought["asset_id"], "GRAM", 4.0, 250.0)])
+        delete_transaction(tx)
+        self.assertEqual(self._holdings(), [])
+        self.assertEqual(self._numbers(), (10000.0, 10000.0, 0))
+
+    def test_a_purchase_cannot_be_removed_while_part_of_it_is_sold(self):
+        from services.asset_purchase_service import AssetPurchaseService
+        from services.asset_sale_service import AssetSaleService
+        from services.transaction_edit_service import SOLD_SINCE, delete_transaction
+
+        bought = AssetPurchaseService.create_purchase(
+            asset_name="Altin", asset_code="GRAM", asset_type="Altın",
+            purchase_price=250.0, quantity=4, account_id=self.account)
+        AssetSaleService.sell(bought["asset_id"], 300.0, self.account, quantity=1)
+        sale = self._last()[0]
+        with self.assertRaises(ValueError) as caught:
+            delete_transaction(bought["transaction_id"])
+        self.assertEqual(str(caught.exception), SOLD_SINCE)
+        self.assertEqual(self._numbers(), (9300.0, 9300.0, 2))
+        # With the sale undone the holding is whole again and can go.
+        delete_transaction(sale)
+        self.assertEqual(self._holdings(), [(bought["asset_id"], "GRAM", 4.0, 250.0)])
+        delete_transaction(bought["transaction_id"])
+        self.assertEqual((self._holdings(), self._numbers()), ([], (10000.0, 10000.0, 0)))
+
+    def test_sales_are_undone_in_any_order_even_when_the_holding_was_emptied(self):
+        from services.asset_purchase_service import AssetPurchaseService
+        from services.asset_sale_service import AssetSaleService
+        from services.transaction_edit_service import delete_transaction, get_transaction
+
+        bought = AssetPurchaseService.create_purchase(
+            asset_name="Altin", asset_code="GRAM", asset_type="Altın",
+            purchase_price=250.0, quantity=4, account_id=self.account)
+        asset = bought["asset_id"]
+        AssetSaleService.sell(asset, 300.0, self.account, quantity=1)
+        first = self._last()[0]
+        AssetSaleService.sell(asset, 320.0, self.account)
+        second = self._last()[0]
+        self.assertEqual(self._holdings(), [])
+        self.assertEqual(self._numbers()[0], 9000.0 + 300.0 + 960.0)
+        self.assertEqual(get_transaction(second)["kind"], "asset_sale")
+        # The earlier sale first: the holding comes back with what it took.
+        delete_transaction(first)
+        self.assertEqual(self._holdings(), [(asset, "GRAM", 1.0, 250.0)])
+        delete_transaction(second)
+        self.assertEqual(self._holdings(), [(asset, "GRAM", 4.0, 250.0)])
+        self.assertEqual(self._numbers(), (9000.0, 9000.0, 1))
+
+    def test_a_purchase_in_installments_is_changed_and_removed_with_its_plan(self):
+        from database.db import SECRET_KEY, get_connection
+        from services.account_service import AccountService
+        from services.transaction_edit_service import (
+            delete_transaction, get_transaction, update_transaction,
+        )
+        from utils.crypto import decrypt
+
+        def plans():
+            conn = get_connection()
+            try:
+                return [
+                    (float(decrypt(row["total_amount"], SECRET_KEY)),
+                     float(decrypt(row["monthly_amount"], SECRET_KEY)), row["created_at"][:10])
+                    for row in conn.execute("SELECT * FROM installment_plans")
+                ]
+            finally:
+                conn.close()
+
+        card = AccountService.create_account("Card", "credit_card", 0.0, credit_limit=50000.0)
+        other = AccountService.create_account("Other", "checking", 0.0)
+        tx = self._add(amount=1200.0, account=card, installments=6)
+        found = get_transaction(tx)
+        self.assertEqual((found["kind"], found["fixed"]), ("installment", ("account", "kind")))
+        self.assertEqual(plans(), [(1200.0, 200.0, _day(0))])
+        # The amount, the wording and the day change; the card and the
+        # direction do not, whatever is asked for.
+        update_transaction(tx, 1800.0, "Kıyafet", "Coat", _day(3), account_id=other, kind="income")
+        after = get_transaction(tx)
+        self.assertEqual(
+            (after["amount"], after["category"], after["account_id"], after["type"]),
+            (1800.0, "Kıyafet", card, "expense"),
+        )
+        self.assertEqual(plans(), [(1800.0, 300.0, _day(3))])
+        self.assertEqual(self._balance_of(card), (-1800.0, -1800.0))
+        self.assertEqual(get_transaction(tx)["kind"], "installment")
+        delete_transaction(tx)
+        self.assertEqual((plans(), self._balance_of(card)), ([], (0.0, 0.0)))
+
+    def test_records_that_cannot_be_traced_stay_locked(self):
+        from services.transaction_edit_service import (
+            LINKED, PENDING, delete_transaction, get_transaction, update_transaction,
+        )
+
+        cases = [
+            # Filed under one of the application's categories with nothing
+            # to say what it belongs to, as a record from an older version is.
+            (self._add(amount=100.0, category="Kredi Taksiti"), LINKED),
+            (self._add(amount=100.0, offset=-5), PENDING),
+        ]
 
         before = self._numbers()
         for tx, reason in cases:
