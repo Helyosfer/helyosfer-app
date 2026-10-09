@@ -12,9 +12,9 @@ and portfolio tracking.
 
 ![The overview: total balance, its chart, upcoming payments and recent transactions](docs/images/overview.png)
 
-| Budget plan | Light theme |
-| --- | --- |
-| ![Spending against the monthly plan](docs/images/budget.png) | ![The overview in the light theme](docs/images/overview-light.png) |
+| Cards and accounts | Budget plan | Light theme |
+| --- | --- | --- |
+| ![Accounts, and a credit card drawn as a card](docs/images/accounts.png) | ![Spending against the monthly plan](docs/images/budget.png) | ![The overview in the light theme](docs/images/overview-light.png) |
 
 ## What it covers
 
