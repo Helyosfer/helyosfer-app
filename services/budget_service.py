@@ -51,6 +51,11 @@ def _month_index(year, month):
     return int(year) * 12 + int(month) - 1
 
 
+def _skips(row) -> set:
+    """The single months a repeating item is left out of."""
+    return {int(part) for part in str(row["template_skips"] or "").split(",") if part.strip()}
+
+
 def _identity(row):
     category = row["category_name"]
     if category:
@@ -81,6 +86,11 @@ def _effective_plan_rows(conn, target_month, target_year):
     latest_templates = {}
     for row in templates:
         latest_templates[_identity(row)] = row
+    # Left out after the choice, so the month stays empty instead of showing
+    # an older item of the same name.
+    latest_templates = {
+        key: row for key, row in latest_templates.items() if index not in _skips(row)
+    }
     inherited = [
         row for key, row in latest_templates.items()
         if key not in concrete_keys
@@ -271,7 +281,8 @@ def save_plan_item(
         if item_id is not None and from_this_month_on:
             start = _month_index(year, month)
             previous = cursor.execute(
-                "SELECT template_from, template_until FROM monthly_budget_plan"
+                "SELECT template_from, template_until, template_skips"
+                " FROM monthly_budget_plan"
                 " WHERE id = ? AND is_template = 1", (int(item_id),),
             ).fetchone()
             if previous is None:
@@ -295,9 +306,10 @@ def save_plan_item(
                     "INSERT INTO monthly_budget_plan"
                     " (type,name,amount,target_month,target_year,category_name,"
                     "  rollover_enabled,alert_threshold_pct,is_template,"
-                    "  template_from,template_until)"
-                    " VALUES (?,?,?,?,?,?,?,?,1,?,?)",
-                    values + (start, previous["template_until"]),
+                    "  template_from,template_until,template_skips)"
+                    " VALUES (?,?,?,?,?,?,?,?,1,?,?,?)",
+                    # Months left out later on stay left out.
+                    values + (start, previous["template_until"], previous["template_skips"]),
                 )
         elif item_id is not None and not editing_a_template:
             cursor.execute(
@@ -350,6 +362,34 @@ def delete_plan_item(item_id):
         )
         conn.commit()
         return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
+def skip_plan_item(item_id, month, year):
+    """Leaves a repeating item out of `month` alone; returns True if it existed.
+
+    Every other month keeps it. Adding an item of the same name or category
+    to that month fills the gap again.
+    """
+    index = _month_index(year, month)
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("BEGIN IMMEDIATE")
+        row = cursor.execute(
+            "SELECT template_skips FROM monthly_budget_plan WHERE id = ? AND is_template = 1",
+            (int(item_id),),
+        ).fetchone()
+        if row is None:
+            return False
+        months = sorted(_skips(row) | {index})
+        cursor.execute(
+            "UPDATE monthly_budget_plan SET template_skips = ? WHERE id = ?",
+            (",".join(str(value) for value in months), int(item_id)),
+        )
+        conn.commit()
+        return True
     finally:
         conn.close()
 

@@ -303,7 +303,8 @@ def _initialize_database(conn):
             is_template INTEGER DEFAULT 0,
             alert_threshold_pct INTEGER DEFAULT 80,
             template_from INTEGER,
-            template_until INTEGER
+            template_until INTEGER,
+            template_skips TEXT
         )
     """)
     cursor.execute("PRAGMA table_info(monthly_budget_plan)")
@@ -324,6 +325,9 @@ def _initialize_database(conn):
         # means no bound on that side.
         "template_from": "INTEGER",
         "template_until": "INTEGER",
+        # Single months a repeating item is left out of, as the same count,
+        # separated by commas.
+        "template_skips": "TEXT",
     }
     for column, definition in budget_migrations.items():
         if column not in existing_budget_cols:

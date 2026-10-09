@@ -217,6 +217,15 @@ class BudgetController(_Monthly):
         self._mutate(work)
 
     @Slot(int)
+    def skipItem(self, item_id):
+        """Leaves a repeating item out of the month shown and no other."""
+        from services.budget_service import skip_plan_item
+
+        month, year = self._month, self._year
+        self._notice = ""
+        self._mutate(lambda: skip_plan_item(item_id, month, year))
+
+    @Slot(int)
     def endItem(self, item_id):
         """Removes a repeating item from the month shown on."""
         from services.budget_service import end_plan_item

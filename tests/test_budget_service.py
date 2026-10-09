@@ -405,6 +405,60 @@ class PlanItemWriteBoundaryTest(AccountFixtureMixin, unittest.TestCase):
             [[("Market", 1500.0)], [], []],
         )
 
+    def test_skipping_a_month_leaves_the_others_alone(self):
+        from services.budget_service import skip_plan_item
+
+        self._save(is_template=True, month=3)
+        template_id = self._rows()[0]["id"]
+        self.assertTrue(skip_plan_item(template_id, 8, 2026))
+        self.assertTrue(skip_plan_item(template_id, 8, 2026))
+        self.assertTrue(skip_plan_item(template_id, 10, 2026))
+        self.assertEqual(
+            self._amounts((2026, 7), (2026, 8), (2026, 9), (2026, 10), (2027, 8)),
+            [[("Market", 1500.0)], [], [("Market", 1500.0)], [], [("Market", 1500.0)]],
+        )
+        self.assertEqual(len(self._rows()), 1)
+
+    def test_a_skipped_month_can_be_filled_again_by_its_own_item(self):
+        from services.budget_service import skip_plan_item
+
+        self._save(is_template=True, month=3)
+        skip_plan_item(self._rows()[0]["id"], 8, 2026)
+        self._save(month=8, amount=700.0)
+        self.assertEqual(
+            self._amounts((2026, 8), (2026, 9)),
+            [[("Market", 700.0)], [("Market", 1500.0)]],
+        )
+
+    def test_a_later_skip_survives_a_change_from_a_month_on(self):
+        from services.budget_service import skip_plan_item
+
+        self._save(is_template=True, month=3)
+        template_id = self._rows()[0]["id"]
+        skip_plan_item(template_id, 12, 2026)
+        self._save(item_id=template_id, month=10, amount=1800.0, from_this_month_on=True)
+        self.assertEqual(
+            self._amounts((2026, 9), (2026, 11), (2026, 12), (2027, 1)),
+            [[("Market", 1500.0)], [("Market", 1800.0)], [], [("Market", 1800.0)]],
+        )
+
+    def test_a_skipped_month_does_not_fall_back_to_an_older_item(self):
+        from services.budget_service import get_effective_plan_items, skip_plan_item
+
+        self._save(is_template=True, month=3)
+        self._save(item_id=self._rows()[0]["id"], month=6, amount=1800.0,
+                   from_this_month_on=True)
+        current = get_effective_plan_items(8, 2026)[0]["id"]
+        skip_plan_item(current, 8, 2026)
+        self.assertEqual(self._amounts((2026, 8)), [[]])
+
+    def test_only_a_repeating_item_can_be_skipped(self):
+        from services.budget_service import skip_plan_item
+
+        self._save()
+        self.assertFalse(skip_plan_item(self._rows()[0]["id"], 8, 2026))
+        self.assertIsNone(self._rows()[0]["template_skips"])
+
     def test_only_a_repeating_item_can_be_ended(self):
         from services.budget_service import end_plan_item
 

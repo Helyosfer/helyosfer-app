@@ -59,8 +59,6 @@ author.
 - A back-dated transaction moves back the history of its own account and of
   the accounts opened on the profile's first day. An account opened on a
   later day joins the chart on that day.
-- A repeating budget item can be changed or removed from a month on, or
-  changed for one month; it cannot be left out of a single month.
 - Amount fields take two decimals; asset unit prices are left free for
   smaller values.
 - The loan schedule PDF takes its font from Windows. Elsewhere it falls back
