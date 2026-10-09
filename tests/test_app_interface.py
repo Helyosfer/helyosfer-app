@@ -290,6 +290,11 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertEqual(preview.property("shownNumber"), "••••  ••••  ••••  ••••")
         preview.setProperty("digits", "454360")
         self.assertEqual(preview.property("shownNumber"), "4543  60••  ••••  ••••")
+        self.assertFalse(preview.property("flipped"))
+        self.assertEqual(
+            [(line["label"], line["value"])
+             for line in preview.property("details").toVariant()],
+            [("Card limit", "—"), ("Statement day", "—")])
         preview.setProperty("digits", "")
         preview.setProperty("lastFour", "7812")
         self.assertEqual(preview.property("shownNumber"), "••••  ••••  ••••  7812")

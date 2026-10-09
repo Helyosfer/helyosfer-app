@@ -75,6 +75,13 @@ Sheet {
             holder: name.text.trim().length > 0 ? name.text : qsTr("Card name")
             digits: root.typedDigits
             network: root.networkOf(root.typedDigits)
+            // The limit and the statement day are printed on the back, so
+            // the card turns over while they are being typed.
+            flipped: limit.input.activeFocus || statementDay.input.activeFocus
+            details: [
+                { label: qsTr("Card limit"), value: limit.text.length > 0 ? limit.text + " ₺" : "—" },
+                { label: qsTr("Statement day"), value: statementDay.text.length > 0 ? statementDay.text : "—" }
+            ]
         }
     }
 

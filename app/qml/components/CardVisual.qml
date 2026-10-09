@@ -37,7 +37,6 @@ Item {
 
     // Plays the arrival again, for a card that was hidden and is shown anew.
     function play() {
-        flipped = false
         arrival.restart()
     }
 
