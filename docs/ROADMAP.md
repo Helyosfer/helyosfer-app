@@ -25,10 +25,12 @@ yet tried by anyone but the author.
 
 ## Before the first release
 
-1. **Build the Windows package.** The build description, the build script and
-   the installer script are written (`packaging/`, `scripts/build_windows.py`)
-   but have never been run. Run them, then check on a computer without Python
-   that the package starts and that prices are fetched from it.
+1. **Try the Windows package on a computer without Python.** The package
+   builds (`python scripts/build_windows.py --zip`), and on the build
+   computer it was driven through setup and every section with real keyboard
+   and mouse input, and fetched a price. It has not been started anywhere
+   else. The installer script (`packaging/installer.iss`) has never been
+   compiled.
 2. **Run the test workflow on GitHub for the first time**, in a private
    repository, and fix what only shows up there.
 3. **README with screenshots** and plain installation steps.
@@ -46,8 +48,10 @@ yet tried by anyone but the author.
   not started.
 - **Foreign shares.** Only BIST prices are looked up. Others need a currency
   conversion as well as a second symbol lookup.
-- **Installer or archive.** An installer needs Inno Setup on the build
-  computer; a zip of the package folder needs nothing.
+- **Installer or archive.** For now the package is a zip of its folder. An
+  installer needs Inno Setup on the build computer.
+- **Signing.** The executable is not signed, so Windows warns before it runs
+  for the first time.
 - **Fonts.** The interface uses the fonts Windows ships. Bundling its own
   would make it look the same everywhere and add to the package.
 

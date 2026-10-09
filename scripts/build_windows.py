@@ -75,30 +75,99 @@ def folder_size(path: str) -> int:
     )
 
 
-def check_starts(seconds: float = 12.0) -> None:
-    """Starts the package on a throwaway profile and expects it to stay up.
+def check_libraries() -> None:
+    """Every library in the package finds the Qt libraries it links against.
 
-    A build that is missing a file or a module closes at once, with the
-    reason in its log; one that is still running after `seconds` got as far
-    as showing its window.
+    The build leaves out Qt modules the interface does not use. A library
+    that is kept but links against one that was dropped would fail to load
+    only when its screen is first opened, so the link tables are read here.
+    """
+    import pefile  # comes with PyInstaller
+
+    folder = os.path.dirname(PROGRAM)
+    present, libraries = set(), []
+    for parent, _dirs, names in os.walk(folder):
+        for name in names:
+            if name.lower().endswith((".dll", ".pyd", ".exe")):
+                present.add(name.lower())
+                libraries.append(os.path.join(parent, name))
+    missing = set()
+    for path in libraries:
+        image = pefile.PE(path, fast_load=True)
+        image.parse_data_directories(
+            directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"]]
+        )
+        for entry in getattr(image, "DIRECTORY_ENTRY_IMPORT", []):
+            needed = entry.dll.decode("ascii", "replace").lower()
+            if needed.startswith(("qt6", "pyside6", "shiboken6")) and needed not in present:
+                missing.add(f"{os.path.relpath(path, folder)} needs {needed}")
+        image.close()
+    if missing:
+        raise SystemExit("Libraries the package needs were left out:\n  " + "\n  ".join(sorted(missing)))
+    print(f"All {len(libraries)} libraries find the Qt libraries they link against.")
+
+
+def _window_titles(process_id: int) -> list[str]:
+    """Titles of the visible top-level windows that belong to a process."""
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    titles = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def visit(window, _extra):
+        owner = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(window, ctypes.byref(owner))
+        if owner.value == process_id and user32.IsWindowVisible(window):
+            text = ctypes.create_unicode_buffer(256)
+            user32.GetWindowTextW(window, text, 256)
+            titles.append(text.value)
+        return True
+
+    user32.EnumWindows(visit, 0)
+    return titles
+
+
+def check_starts(seconds: float = 12.0) -> None:
+    """Starts the package on a throwaway profile and expects its window.
+
+    A build that is missing a file or a module closes at once or never shows
+    a window. Whatever Qt reports while the first screen loads is collected
+    and counts as a failure too: an interface file that could not be loaded
+    is reported there and nowhere else.
     """
     home = tempfile.mkdtemp(prefix="helysofer-package-")
     env = dict(os.environ, HELYSOFER_HOME=home)
+    report = os.path.join(home, "startup.txt")
     started = time.monotonic()
-    process = subprocess.Popen([PROGRAM], env=env, cwd=tempfile.gettempdir())
-    try:
-        code = process.wait(timeout=seconds)
-    except subprocess.TimeoutExpired:
-        print(f"The package started and stayed up for {seconds:.0f} s.")
-        return
-    finally:
-        if process.poll() is None:
-            process.terminate()
-            process.wait(timeout=10)
-        shutil.rmtree(home, ignore_errors=True)
-    raise SystemExit(
-        f"The package closed after {time.monotonic() - started:.1f} s with code {code}."
-    )
+    with open(report, "wb") as output:
+        process = subprocess.Popen(
+            [PROGRAM], env=env, cwd=tempfile.gettempdir(),
+            stdin=subprocess.DEVNULL, stdout=output, stderr=output,
+        )
+        titles: list[str] = []
+        try:
+            while time.monotonic() - started < seconds and process.poll() is None:
+                titles = _window_titles(process.pid) or titles
+                time.sleep(0.5)
+            code = process.poll()
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                process.wait(timeout=10)
+    with open(report, encoding="utf-8", errors="replace") as text:
+        said = text.read().strip()
+    shutil.rmtree(home, ignore_errors=True)
+    if code is not None:
+        raise SystemExit(
+            f"The package closed after {time.monotonic() - started:.1f} s with code {code}.\n{said}"
+        )
+    if "Helysofer" not in titles:
+        raise SystemExit(f"The package ran but showed no window (windows: {titles}).\n{said}")
+    if said:
+        raise SystemExit(f"The package started with complaints:\n{said}")
+    print(f"The package showed its window and stayed up for {seconds:.0f} s without a complaint.")
 
 
 def check_price_worker() -> None:
@@ -166,6 +235,7 @@ def main() -> None:
     if not options.skip_build:
         build()
     print(f"dist/Helysofer is {folder_size(os.path.dirname(PROGRAM)) / 2**20:.0f} MB.")
+    check_libraries()
     check_starts()
     check_price_worker()
     if options.zip:

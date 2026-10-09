@@ -4,10 +4,11 @@ A privacy-first, local-first desktop workspace for personal finance, cash flow,
 and portfolio tracking.
 
 > [!IMPORTANT]
-> Helysofer is in development. There is no installable release yet: the core
-> (data, encryption, backup, pricing, insights) is in place and tested, and the
-> desktop interface (PySide6 and Qt Quick) covers every section, but it has
-> not been packaged or tried by anyone but its author yet.
+> Helysofer is in development. There is no published release yet: the core
+> (data, encryption, backup, pricing, insights) is in place and tested, the
+> desktop interface (PySide6 and Qt Quick) covers every section, and a Windows
+> package can be built, but nobody except its author has tried it yet. See the
+> [roadmap](docs/ROADMAP.md).
 
 ## What it covers
 
@@ -53,6 +54,12 @@ python -m app
 
 ```bash
 python run_tests.py
+```
+
+To build the Windows package, with PyInstaller installed:
+
+```bash
+python scripts/build_windows.py --zip
 ```
 
 See the [documentation](docs/) for architecture, backup and recovery, and key
