@@ -361,6 +361,78 @@ def _normalize_to_try(raw_price: float, asset_type: str) -> float | None:
     return raw_price * usdtry  # Kripto
 
 
+def _market_data_errors() -> tuple:
+    """What a market-data lookup can fail with: the network, the library's
+    own errors, and a reply that is not shaped as expected."""
+    from yfinance.exceptions import YFException
+
+    return (OSError, YFException, ValueError, KeyError, IndexError, TypeError,
+            AttributeError, ArithmeticError)
+
+
+def _quote_in_its_currency(symbol: str):
+    """(last close, currency) of a symbol on its own exchange, or None."""
+    import math
+
+    import yfinance as yf
+
+    ticker = yf.Ticker(symbol)
+    history = ticker.history(period="5d")
+    if history.empty:
+        return None
+    price = float(history["Close"].dropna().iloc[-1])
+    if math.isnan(price) or math.isinf(price) or price <= 0:
+        return None
+    try:
+        currency = str(ticker.fast_info["currency"] or "USD").upper()
+    except (KeyError, TypeError, AttributeError):
+        currency = "USD"
+    return price, currency
+
+
+def _lira_per(currency: str) -> float | None:
+    """How many lira one unit of `currency` is worth, or None when unknown."""
+    if currency == "TRY":
+        return 1.0
+    if currency == "USD":
+        return _fetch_usdtry_rate()
+    quote = _quote_in_its_currency(f"{currency}TRY=X")
+    return quote[0] if quote else None
+
+
+def foreign_share_prices(assets, ticker_by_id, raw_prices,
+                         quote=_quote_in_its_currency, rate=_lira_per) -> dict:
+    """Lira prices, by asset id, for shares the BIST lookup did not find.
+
+    A share is looked up as a BIST symbol first. One that is not there is
+    tried under the symbol as it was typed, on whatever exchange lists it,
+    and its price is converted from that exchange's currency into lira. A
+    share that cannot be priced or converted is left out, never guessed.
+    """
+    prices: dict = {}
+    by_symbol: dict = {}
+    for asset in assets:
+        if asset["asset_type"] != "Hisse":
+            continue
+        if raw_prices.get(ticker_by_id.get(asset["id"])) is not None:
+            continue
+        candidates = get_ticker_candidates(asset["asset_code"], "Hisse")
+        if len(candidates) < 2:
+            continue
+        symbol = candidates[1]
+        if symbol not in by_symbol:
+            by_symbol[symbol] = None
+            found = quote(symbol)
+            if found:
+                price, currency = found
+                lira = rate(currency)
+                if lira:
+                    by_symbol[symbol] = price * lira
+        if by_symbol[symbol] is not None:
+            prices[asset["id"]] = by_symbol[symbol]
+    return prices
+
+
 def get_ticker_candidates(asset_code: str, asset_type: str) -> list:
     """Returns the possible Yahoo Finance symbols for the code the user entered."""
     code = asset_code.strip().upper()
@@ -853,6 +925,12 @@ def fetch_portfolio_with_prices(assets: list, callback, item_callback=None,
                 _log().error("Portföy fiyat çekme hatası: %s", e, exc_info=True)
 
 
+        try:
+            foreign = foreign_share_prices(assets, ticker_by_id, raw_prices)
+        except _market_data_errors() as e:
+            _log().error("Yabancı hisse fiyatı çekilemedi: %s", e, exc_info=True)
+            foreign = {}
+
         gram_gold_try = None
         if "GC=F" in raw_prices:
             gram_gold_try = _normalize_to_try(raw_prices["GC=F"], "Altın")
@@ -881,6 +959,8 @@ def fetch_portfolio_with_prices(assets: list, callback, item_callback=None,
                         current_price = _normalize_to_try(raw, "Altın" if a_type == "Altın" else "Kripto")
                     else:
                         current_price = raw
+                elif asset["id"] in foreign:
+                    current_price = foreign[asset["id"]]
 
             entry = dict(asset)
             if current_price is not None:

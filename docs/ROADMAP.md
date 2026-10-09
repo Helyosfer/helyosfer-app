@@ -12,7 +12,8 @@ Working and covered by tests:
   pending transactions that apply themselves on their day.
 - Debts and installments, recurring payments, savings goals with an optional
   monthly contribution.
-- Portfolio with live prices for BIST shares, gold, currencies and crypto.
+- Portfolio with live prices for shares (BIST first, then other exchanges,
+  converted into lira), gold, currencies and crypto.
 - Budget plan, calendar, calculators (loan with PDF schedule, deposit
   interest, compound growth, time to a goal), insights, what-if, past balance.
 - Overview with search, upcoming items and a balance chart drawn from the
@@ -41,8 +42,6 @@ author.
 
 ## Open decisions
 
-- **Foreign shares.** Only BIST prices are looked up. Others need a currency
-  conversion as well as a second symbol lookup.
 - **Installer or archive.** For now the package is a zip of its folder. An
   installer needs Inno Setup on the build computer.
 - **Signing.** The executable is not signed, so Windows warns before it runs
