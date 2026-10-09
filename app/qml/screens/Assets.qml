@@ -63,6 +63,13 @@ Flickable {
                     color: assets.pricing ? Theme.muted : Theme.warn
                     font.family: Theme.uiFont
                     font.pixelSize: 12
+                    SequentialAnimation on opacity {
+                        running: assets.pricing && Theme.motion
+                        loops: Animation.Infinite
+                        alwaysRunToEnd: true
+                        NumberAnimation { to: 0.35; duration: 600; easing.type: Easing.InOutSine }
+                        NumberAnimation { to: 1; duration: 600; easing.type: Easing.InOutSine }
+                    }
                 }
                 PrimaryButton {
                     id: refresh

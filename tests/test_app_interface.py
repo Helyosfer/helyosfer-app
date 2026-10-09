@@ -235,6 +235,10 @@ class InterfaceSmokeTest(unittest.TestCase):
         self._settle()
         ride = self.dashboard.recent[0]
         self.assertEqual((ride["title"], ride["amount"]), ("Night ride", "−40,00 ₺"))
+        # A write is confirmed by a short notice that needs no answer.
+        toast = window.findChild(QObject, "toast")
+        _pump(lambda: toast.property("opacity") > 0.9, 3)
+        self.assertTrue(toast.property("visible"), self._warnings())
         QMetaObject.invokeMethod(form, "openForEdit", Q_ARG("QVariant", ride["id"]))
         self.assertTrue(form.property("visible"), self._warnings())
         self.assertEqual(form.property("editing"), ride["id"])

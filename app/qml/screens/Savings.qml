@@ -59,6 +59,7 @@ Flickable {
                 Card {
                     id: card
                     required property var modelData
+                    responsive: true
                     width: page.width >= 900 ? (page.width - Theme.gap) / 2 : page.width
 
                     Column {
@@ -121,6 +122,7 @@ Flickable {
                                 height: parent.height
                                 radius: 3
                                 color: card.modelData.done ? Theme.up : Theme.accent
+                                Behavior on color { ColorAnimation { duration: Theme.slow } }
                             }
                         }
 

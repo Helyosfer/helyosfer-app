@@ -54,7 +54,15 @@ Flickable {
 
         // Only the selected tool exists.
         Loader {
+            id: toolLoader
             width: parent.width
+            transform: Translate { id: toolShift }
+            onLoaded: toolArrival.restart()
+            ParallelAnimation {
+                id: toolArrival
+                NumberAnimation { target: toolLoader; property: "opacity"; from: 0; to: 1; duration: Theme.medium }
+                NumberAnimation { target: toolShift; property: "y"; from: 8; to: 0; duration: Theme.medium; easing.type: Easing.OutCubic }
+            }
             sourceComponent: root.tool === "budget" ? budgetTool
                 : root.tool === "calendar" ? calendarTool
                 : root.tool === "insights" ? insightsTool

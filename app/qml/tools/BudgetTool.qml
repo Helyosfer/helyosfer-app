@@ -149,6 +149,7 @@ Column {
                                 radius: 3
                                 color: row.modelData.over ? Theme.down
                                     : row.modelData.near ? Theme.warn : Theme.accent
+                                Behavior on color { ColorAnimation { duration: Theme.slow } }
                             }
                         }
                     }

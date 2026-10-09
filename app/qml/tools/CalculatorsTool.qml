@@ -21,7 +21,13 @@ Column {
     }
 
     Loader {
+        id: calculatorLoader
         width: parent.width
+        onLoaded: calculatorArrival.restart()
+        NumberAnimation {
+            id: calculatorArrival
+            target: calculatorLoader; property: "opacity"; from: 0; to: 1; duration: Theme.medium
+        }
         sourceComponent: root.calculator === "loan" ? loanCalculator : smallCalculator
     }
 

@@ -129,6 +129,7 @@ TEXT = {
 
     # -- buttons and states -----------------------------------------------
     "Add": "Ekle",
+    "Done": "Tamamlandı",
     "Calculate": "Hesapla",
     "Cancel": "Vazgeç",
     "Choose": "Seç",

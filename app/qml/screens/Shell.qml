@@ -173,6 +173,19 @@ Rectangle {
             : root.section === "tools" ? toolsSection : pending
     }
 
+    // Something was written: say so, briefly, wherever the user is.
+    Toast { id: toast; objectName: "toast" }
+    Repeater {
+        model: [transactions, accounts, debts, recurring, savings, assets, budget, categories]
+        Item {
+            required property var modelData
+            Connections {
+                target: modelData
+                function onSaved() { toast.show(qsTr("Done")) }
+            }
+        }
+    }
+
     ParallelAnimation {
         id: sectionArrival
         NumberAnimation { target: sectionLoader; property: "opacity"; from: 0; to: 1; duration: Theme.medium }

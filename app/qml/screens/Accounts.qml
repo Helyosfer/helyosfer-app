@@ -90,6 +90,7 @@ Flickable {
                     id: card
                     required property var modelData
                     readonly property bool credit: modelData.kind === "credit_card"
+                    responsive: true
                     width: page.width >= 900 ? (page.width - Theme.gap) / 2 : page.width
 
                     Column {
