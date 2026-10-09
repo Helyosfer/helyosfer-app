@@ -11,13 +11,22 @@ Item {
     property var labels: []
     property string emptyText: "Not enough history to draw yet"
     // With `directional`, the line is green over a span that ends higher
-    // than it began and a quiet rose over one that ends lower; otherwise it
-    // is the accent.
+    // than it began and a quiet rose over one that ends lower. A span that
+    // ends lower and holds a sharp fall -- a tenth of the balance or more
+    // gone between two neighbouring points -- is drawn in the loss red.
+    // Otherwise the line is the accent.
     property bool directional: false
+    readonly property real sharpFall: 0.10
     readonly property color stroke: {
         if (!directional || values.length < 2) return Theme.accent
         var change = values[values.length - 1] - values[0]
-        return change > 0 ? Theme.up : change < 0 ? Theme.downSoft : Theme.accent
+        if (change > 0) return Theme.up
+        if (change === 0) return Theme.accent
+        for (var i = 1; i < values.length; i++) {
+            var fall = values[i - 1] - values[i]
+            if (fall > 0 && fall >= Math.abs(values[i - 1]) * sharpFall) return Theme.down
+        }
+        return Theme.downSoft
     }
 
     readonly property real padLeft: 52
