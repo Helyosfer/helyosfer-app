@@ -36,6 +36,11 @@ QtObject {
     readonly property int controlHeight: 36
     readonly property int gap: 20
 
+    // How long things take to move: a hover, a panel arriving, a card turning.
+    readonly property int fast: 120
+    readonly property int medium: 220
+    readonly property int slow: 420
+
     function direction(value) {
         return value > 0 ? up : value < 0 ? down : muted
     }

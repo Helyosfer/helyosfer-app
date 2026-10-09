@@ -95,6 +95,23 @@ Flickable {
                         width: parent.width
                         spacing: 14
 
+                        // The card as an object; a click turns it over.
+                        CardVisual {
+                            visible: card.credit
+                            width: Math.min(280, parent.width)
+                            holder: card.modelData.name
+                            lastFour: card.modelData.lastFour
+                            network: card.modelData.network
+                            frozen: card.modelData.frozen
+                            flippable: true
+                            details: [
+                                { label: qsTr("Card limit"), value: card.modelData.limitText },
+                                { label: qsTr("Available"), value: card.modelData.availableText },
+                                { label: qsTr("Statement day"),
+                                  value: card.modelData.statementDay > 0 ? String(card.modelData.statementDay) : "—" }
+                            ]
+                        }
+
                         // name, type and card digits
                         Item {
                             width: parent.width
@@ -119,7 +136,8 @@ Flickable {
                             }
                             Text {
                                 anchors.right: parent.right
-                                visible: card.modelData.lastFour.length > 0
+                                // A credit card shows these on the card itself.
+                                visible: card.modelData.lastFour.length > 0 && !card.credit
                                 text: (card.modelData.network.length > 0 ? card.modelData.network + "  " : "")
                                     + "•••• " + card.modelData.lastFour
                                 color: Theme.muted
@@ -161,6 +179,7 @@ Flickable {
                                 color: Theme.lineSoft
                                 Rectangle {
                                     width: parent.width * card.modelData.usage
+                                    Behavior on width { NumberAnimation { duration: Theme.slow; easing.type: Easing.OutCubic } }
                                     height: parent.height
                                     radius: 3
                                     color: card.modelData.usage > 0.85 ? Theme.warn : Theme.accent

@@ -9,6 +9,25 @@ Sheet {
 
     property string kind: "checking"
     readonly property bool credit: kind === "credit_card"
+    readonly property string typedDigits: cardNumber.text.replace(/[^0-9]/g, "")
+
+    // The network a number belongs to, from its first digits, for the preview.
+    function networkOf(digits) {
+        if (digits.length === 0) return ""
+        if (digits[0] === "4") return "Visa"
+        var two = parseInt(digits.substring(0, 2))
+        var four = parseInt(digits.substring(0, 4))
+        if ((two >= 51 && two <= 55) || (four >= 2221 && four <= 2720)) return "Mastercard"
+        if (digits.substring(0, 4) === "9792" || digits.substring(0, 2) === "65") return "Troy"
+        return ""
+    }
+
+    // The preview is left out where the window is too short to hold it
+    // together with the form.
+    readonly property bool roomy: parent ? parent.height >= 780 : true
+    readonly property bool previewing: credit && roomy
+
+    onPreviewingChanged: if (previewing) preview.play()
 
     function openFresh() {
         kind = "checking"
@@ -29,13 +48,34 @@ Sheet {
 
     Connections {
         target: accounts
-        function onSaved() { if (root.opened) root.close() }
+        function onSaved() { if (root.visible) root.close() }
     }
 
     Segmented {
         model: [{ key: "checking", label: qsTr("Cash or checking") }, { key: "credit_card", label: qsTr("Credit card") }]
         current: root.kind
         onChosen: function (key) { root.kind = key }
+    }
+
+    // The card itself, filling in as it is typed. It takes its room only
+    // for a credit card.
+    Item {
+        width: parent.width
+        height: root.previewing ? preview.height + 6 : 0
+        opacity: root.previewing ? 1 : 0
+        clip: !root.previewing
+        Behavior on height { NumberAnimation { duration: Theme.medium; easing.type: Easing.OutCubic } }
+        Behavior on opacity { NumberAnimation { duration: Theme.medium } }
+
+        CardVisual {
+            id: preview
+            objectName: "cardPreview"
+            width: Math.min(270, parent.width)
+            anchors.horizontalCenter: parent.horizontalCenter
+            holder: name.text.trim().length > 0 ? name.text : qsTr("Card name")
+            digits: root.typedDigits
+            network: root.networkOf(root.typedDigits)
+        }
     }
 
     Field {

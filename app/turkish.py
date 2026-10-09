@@ -263,6 +263,8 @@ TEXT = {
     "No transactions yet.": "Henüz işlem yok.",
     "Freeze": "Dondur",
     "Frozen": "Donduruldu",
+    "Card limit": "Kart limiti",
+    "Available": "Kullanılabilir",
     "Online payments": "İnternet alışverişi",
     "Pay debt": "Borç öde",
     "Delete card": "Kartı sil",
