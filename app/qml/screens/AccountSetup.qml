@@ -28,6 +28,7 @@ AuthFrame {
         width: parent.width
         label: "Current balance (₺)"
         placeholder: "0,00"
+        money: true
         input.inputMethodHints: Qt.ImhFormattedNumbersOnly
         onAccepted: submit()
     }

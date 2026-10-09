@@ -45,6 +45,7 @@ Sheet {
             width: (parent.width - 12) * 0.6
             label: "Monthly payment (₺)"
             placeholder: "0,00"
+            money: true
             onAccepted: root.submit()
         }
         Field {

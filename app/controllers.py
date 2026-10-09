@@ -97,6 +97,17 @@ def display_title(text: str) -> str:
     return tr(text)
 
 
+def mask_amount(text: str, signed: bool = False) -> str:
+    """Groups the thousands of an amount being typed and keeps what follows
+    the comma as it is. A leading minus survives only where `signed` allows
+    one, and a lone minus is kept so that the number can still be typed."""
+    from utils.formatters import format_amount_input
+
+    text = text or ""
+    negative = signed and text.lstrip().startswith(("-", "−"))
+    return ("-" if negative else "") + format_amount_input(text)
+
+
 class Dispatcher(QObject):
     """Runs a callable on the interface thread, from any thread."""
 
@@ -142,6 +153,11 @@ class AppController(QObject):
     @Property(bool, notify=darkChanged)
     def dark(self):
         return self._dark
+
+    @Slot(str, bool, result=str)
+    def maskAmount(self, text, signed):
+        """Amount text as it should read while being typed: '1000' -> '1.000'."""
+        return mask_amount(text, signed)
 
     @Slot()
     def toggleTheme(self):

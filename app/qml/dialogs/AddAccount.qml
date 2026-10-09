@@ -51,6 +51,7 @@ Sheet {
         width: parent.width
         label: root.credit ? "Current debt (₺)" : "Current balance (₺)"
         placeholder: "0,00"
+        money: true
         onAccepted: root.submit()
     }
 
@@ -64,6 +65,7 @@ Sheet {
             width: (parent.width - 12) * 0.62
             label: "Card limit (₺)"
             placeholder: "0,00"
+            money: true
             onAccepted: root.submit()
         }
         Field {

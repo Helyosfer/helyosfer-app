@@ -50,6 +50,7 @@ Sheet {
         width: parent.width
         label: "Amount (₺)"
         placeholder: "0,00"
+        money: true
         onAccepted: root.submit()
     }
 

@@ -253,6 +253,7 @@ Rectangle {
         title: "Change amount"
         subtitle: subject ? subject.name + "  ·  currently " + subject.amountText : ""
         fieldLabel: "New amount (₺)"
+        money: true
         fieldPlaceholder: "0,00"
         onSubmitted: function (text) { recurring.changeAmount(subject.id, text) }
     }

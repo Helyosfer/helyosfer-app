@@ -64,6 +64,8 @@ Column {
                     width: 220
                     label: "One-time amount (₺, minus to spend)"
                     placeholder: "0"
+                    money: true
+                    signed: true
                     onAccepted: root.run()
                 }
                 Choice {

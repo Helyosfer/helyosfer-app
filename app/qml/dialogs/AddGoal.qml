@@ -41,6 +41,7 @@ Sheet {
             width: (parent.width - 12) * 0.55
             label: "Target amount (₺)"
             placeholder: "0,00"
+            money: true
             onAccepted: root.submit()
         }
         Field {

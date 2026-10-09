@@ -53,6 +53,7 @@ Column {
                     width: 220
                     label: "Loan amount (₺)"
                     placeholder: "0,00"
+                    money: true
                     onAccepted: root.calculate()
                 }
                 Field {
@@ -137,6 +138,7 @@ Column {
                         width: 150
                         label: "Amount (₺)"
                         placeholder: "0,00"
+                        money: true
                     }
                     Item {
                         width: spreadToggle.width

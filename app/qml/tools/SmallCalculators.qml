@@ -77,7 +77,7 @@ Column {
             Flow {
                 width: parent.width
                 spacing: 12
-                Field { id: principal; width: 220; label: "Deposit (₺)"; placeholder: "0,00"; onAccepted: run() }
+                Field { id: principal; width: 220; label: "Deposit (₺)"; placeholder: "0,00"; money: true; onAccepted: run() }
                 Field { id: rate; width: 180; label: "Yearly interest (%)"; placeholder: "45"; onAccepted: run() }
                 Field { id: days; width: 130; label: "Days"; placeholder: "32"; onAccepted: run() }
                 RunButton { fieldHeight: principal.height; onClicked: run() }
@@ -99,10 +99,10 @@ Column {
             Flow {
                 width: parent.width
                 spacing: 12
-                Field { id: principal; width: 200; label: "Starting amount (₺)"; placeholder: "0,00"; onAccepted: run() }
+                Field { id: principal; width: 200; label: "Starting amount (₺)"; placeholder: "0,00"; money: true; onAccepted: run() }
                 Field { id: rate; width: 160; label: "Yearly return (%)"; placeholder: "30"; onAccepted: run() }
                 Field { id: years; width: 110; label: "Years"; placeholder: "5"; onAccepted: run() }
-                Field { id: deposit; width: 220; label: "Monthly contribution (₺, optional)"; placeholder: "0,00"; onAccepted: run() }
+                Field { id: deposit; width: 220; label: "Monthly contribution (₺, optional)"; placeholder: "0,00"; money: true; onAccepted: run() }
                 RunButton { fieldHeight: principal.height; onClicked: run() }
             }
             Notice { width: parent.width; text: calc.message }
@@ -130,8 +130,8 @@ Column {
             Flow {
                 width: parent.width
                 spacing: 12
-                Field { id: target; width: 220; label: "Target amount (₺)"; placeholder: "0,00"; onAccepted: run() }
-                Field { id: deposit; width: 200; label: "Amount saved each time (₺)"; placeholder: "0,00"; onAccepted: run() }
+                Field { id: target; width: 220; label: "Target amount (₺)"; placeholder: "0,00"; money: true; onAccepted: run() }
+                Field { id: deposit; width: 200; label: "Amount saved each time (₺)"; placeholder: "0,00"; money: true; onAccepted: run() }
                 Item {
                     width: periodChoice.width
                     height: target.height

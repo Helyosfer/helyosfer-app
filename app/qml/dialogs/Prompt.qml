@@ -13,6 +13,7 @@ Sheet {
     property string fieldPlaceholder: ""
     property string confirmText: "Save"
     property bool secret: false
+    property bool money: false
     property bool danger: false
     signal submitted(string text)
 
@@ -36,6 +37,7 @@ Sheet {
         label: root.fieldLabel
         placeholder: root.fieldPlaceholder
         echoMode: root.secret ? TextInput.Password : TextInput.Normal
+        money: root.money
         onAccepted: root.submitted(text)
     }
 

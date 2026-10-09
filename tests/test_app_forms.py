@@ -6,7 +6,7 @@ import unittest
 try:
     from app.accounts import FormError, read_amount, read_date, user_message
     from app.assets import format_quantity, read_quantity
-    from app.controllers import display_title, short_date
+    from app.controllers import display_title, mask_amount, short_date
     from app.insight import read_percent, read_signed_amount
     from app.payments import due_phrase, read_count
 except ImportError:  # pragma: no cover - the interface toolkit is optional for core tests
@@ -18,6 +18,30 @@ class FormInputTest(unittest.TestCase):
     def test_turkish_grouping_is_read_as_thousands(self):
         self.assertEqual(read_amount("1.250,50", "amount"), 1250.50)
         self.assertEqual(read_amount("250.000", "amount"), 250000.0)
+
+    def test_thousands_are_grouped_as_an_amount_is_typed(self):
+        typed = [mask_amount("1234567"[:n]) for n in range(1, 8)]
+        self.assertEqual(
+            typed, ["1", "12", "123", "1.234", "12.345", "123.456", "1.234.567"]
+        )
+        self.assertEqual(mask_amount("1.2345"), "12.345")
+        self.assertEqual(mask_amount("1000,"), "1.000,")
+        self.assertEqual(mask_amount("1000,5"), "1.000,5")
+        self.assertEqual(mask_amount("abc1000tl"), "1.000")
+        self.assertEqual(mask_amount(""), "")
+
+    def test_what_the_mask_shows_is_what_gets_saved(self):
+        for typed, value in (("1000", 1000.0), ("1250,5", 1250.5), ("250000", 250000.0),
+                             ("999", 999.0), ("0,75", 0.75)):
+            with self.subTest(typed=typed):
+                self.assertEqual(read_amount(mask_amount(typed), "amount"), value)
+
+    def test_a_minus_survives_only_where_one_is_allowed(self):
+        self.assertEqual(mask_amount("-2500", signed=True), "-2.500")
+        self.assertEqual(mask_amount("-", signed=True), "-")
+        self.assertEqual(mask_amount("−2500", signed=True), "-2.500")
+        self.assertEqual(mask_amount("-2500"), "2.500")
+        self.assertEqual(read_signed_amount(mask_amount("-2500", signed=True)), -2500.0)
 
     def test_an_empty_required_amount_is_refused(self):
         with self.assertRaises(FormError):
