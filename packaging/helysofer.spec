@@ -34,7 +34,8 @@ hiddenimports += collect_submodules("yfinance")
 
 # Nothing in the application uses these; leaving them out keeps the package small.
 excludes = [
-    "tkinter", "unittest", "pytest", "hypothesis", "mypy", "flake8", "IPython",
+    # `unittest` stays: the PDF library imports it when it is first used.
+    "tkinter", "pytest", "hypothesis", "mypy", "flake8", "IPython",
     "matplotlib", "scipy", "PyQt5", "PyQt6", "PySide2",
 ]
 

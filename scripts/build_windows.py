@@ -170,6 +170,19 @@ def check_starts(seconds: float = 12.0) -> None:
     print(f"The package showed its window and stayed up for {seconds:.0f} s without a complaint.")
 
 
+def check_itself() -> None:
+    """Runs the package's own check of the features it loads only on use."""
+    done = subprocess.run(
+        [PROGRAM, "--check-package"], stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=180, check=False,
+        cwd=tempfile.gettempdir(),
+    )
+    said = done.stderr.decode("utf-8", "replace").strip()
+    print(said)
+    if done.returncode != 0:
+        raise SystemExit("The package failed its own check.")
+
+
 def check_price_worker() -> None:
     """The package must be able to start itself as the price process."""
     import json
@@ -237,6 +250,7 @@ def main() -> None:
     print(f"dist/Helysofer is {folder_size(os.path.dirname(PROGRAM)) / 2**20:.0f} MB.")
     check_libraries()
     check_starts()
+    check_itself()
     check_price_worker()
     if options.zip:
         make_zip()

@@ -11,6 +11,7 @@ from app.controllers import format_amount, short_date
 from app.payments import read_count
 from app.settings import local_path
 from services.background_task_manager import BackgroundTaskManager
+from utils.logging_config import get_logger
 
 LOAN_KINDS = (("consumer", "Consumer (up to 36 months)"),
               ("vehicle", "Vehicle (up to 48 months)"),
@@ -224,6 +225,12 @@ class LoanController(_Mutating):
 
         def failed(error):
             self._set_busy(False)
+            if not isinstance(error, (ValueError, OSError)):
+                # Not a bad name or a folder that cannot be written: the
+                # writer itself failed, and the reason must not be lost.
+                get_logger().exception(
+                    "PDF yazılamadı.", exc_info=(type(error), error, error.__traceback__),
+                )
             self._set_message(
                 user_message(error) if isinstance(error, ValueError)
                 else "The file could not be saved there. Choose another location."

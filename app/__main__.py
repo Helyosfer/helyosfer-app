@@ -2,6 +2,7 @@ import multiprocessing
 import sys
 
 PRICE_WORKER_FLAG = "--price-worker"
+PACKAGE_CHECK_FLAG = "--check-package"
 
 
 def main() -> int:
@@ -13,6 +14,11 @@ def main() -> int:
         sys.argv = [sys.argv[0], sys.argv[2]]
         asset_price_worker.main()
         return 0
+
+    if len(sys.argv) >= 2 and sys.argv[1] == PACKAGE_CHECK_FLAG:
+        from app import selfcheck
+
+        return selfcheck.run()
 
     from app.main import run
 
