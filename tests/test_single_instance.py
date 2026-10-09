@@ -63,5 +63,37 @@ class SingleInstanceLockTest(unittest.TestCase):
                 pass
 
 
+class AlreadyOpenNoticeTest(unittest.TestCase):
+    """The notice a second start shows is in the computer's language."""
+
+    def _notice(self, language_code):
+        import os
+        from unittest import mock
+
+        from app import language, main
+        from utils.single_instance import AlreadyRunningError
+
+        shown = []
+        before = language.language()
+        try:
+            with mock.patch.dict(os.environ, {"HELYOSFER_LANGUAGE": language_code}),                     mock.patch("utils.single_instance.SingleInstanceLock.acquire",
+                               side_effect=AlreadyRunningError("x")),                     mock.patch("utils.single_instance.notify_already_running", shown.append):
+                with self.assertRaises(SystemExit) as stopped:
+                    main._acquire_instance_lock()
+        finally:
+            language.set_language(before)
+        self.assertEqual(stopped.exception.code, 2)
+        return shown
+
+    def test_it_is_english_on_an_english_computer(self):
+        self.assertEqual(self._notice("en"), ["Helyosfer is already open for this user."])
+
+    def test_it_is_turkish_on_a_turkish_computer(self):
+        notice = self._notice("tr")
+        self.assertEqual(len(notice), 1)
+        self.assertIn("zaten", notice[0])
+        self.assertNotIn("already", notice[0])
+
+
 if __name__ == "__main__":
     unittest.main()

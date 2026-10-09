@@ -132,6 +132,7 @@ TEXT = {
 
     # -- buttons and states -----------------------------------------------
     "Add": "Ekle",
+    "Helyosfer is already open for this user.": "Helyosfer bu kullanıcı için zaten açık.",
     "Moved to savings automatically": "Birikime otomatik aktarılır",
     "Installment, taken automatically": "Taksit, otomatik alınır",
     "This is a debt payment. Its date can be changed. Removing it gives the "

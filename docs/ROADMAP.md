@@ -25,20 +25,25 @@ Working and covered by tests:
 - Dark and light themes; English and Turkish; motion that can be turned off.
 
 Tried by hand in a real window on Windows as well as by the test suite, which
-also runs on GitHub on Linux and Windows. Not yet tried by anyone but the
-author.
+also runs on GitHub on Linux and Windows. Installed with its setup program on
+a second computer, where it runs. Not yet tried by anyone but the author.
 
 ## Before the first release
 
-1. **Try the Windows package on a computer without Python.** The package
+1. **Try the Windows package on other computers.** Installed with the setup
+   program on a second computer (Windows 11, another graphics card, 100%
+   scaling against 125% here): the program's own check passed there, the
+   window came up in under a second, everything it loaded came from its own
+   folder or from Windows, and a price was fetched. Both computers run the
+   same build of Windows 11 in English; Windows 10 and a computer set to
+   Turkish have not been tried. What the build itself checks: the package
    builds (`python scripts/build_windows.py --zip`), and on the build
    computer it was driven with real keyboard and mouse input through setup,
    every section, saving a transaction, and a CSV, a PDF, a backup and a
    restore through the Windows file dialogs. The build also starts it with
    nothing but Windows on the path and fails if it loads a single file from
    the build computer's Python or a C++ runtime from outside its own folder.
-   That is the nearest the build computer can come to another one; the
-   package has still not been started anywhere else. The setup program
+   The setup program
    (`--installer`) is tried by the build as well: it is installed without a
    question, the installed program is checked, and uninstalling has to
    remove everything it put in place. Installing over an older installation

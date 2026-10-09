@@ -40,7 +40,12 @@ def _acquire_instance_lock():
     try:
         lock.acquire()
     except AlreadyRunningError as exc:
-        notify_already_running(str(exc))
+        # Nothing of the profile has been read yet, so the notice is in the
+        # computer's own language.
+        from app import language
+
+        language.set_language(language.system_language())
+        notify_already_running(say("Helyosfer is already open for this user."))
         raise SystemExit(2) from exc
     atexit.register(lock.release)
     return lock
