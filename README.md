@@ -1,10 +1,10 @@
-# Helysofer
+# Helyosfer
 
 A privacy-first, local-first desktop workspace for personal finance, cash flow,
 and portfolio tracking.
 
 > [!IMPORTANT]
-> Helysofer is in development. There is no published release yet: the core
+> Helyosfer is in development. There is no published release yet: the core
 > (data, encryption, backup, pricing, insights) is in place and tested, the
 > desktop interface (PySide6 and Qt Quick) covers every section, and a Windows
 > package can be built, but nobody except its author has tried it yet. See the
@@ -37,7 +37,7 @@ and portfolio tracking.
 
 ## Running it
 
-There is no download yet. Until the first release, Helysofer runs from source
+There is no download yet. Until the first release, Helyosfer runs from source
 or from a package you build yourself; both need Windows 10 or later for now.
 
 From source, with Python 3.12:
@@ -60,8 +60,8 @@ python -m pip install pyinstaller
 python scripts/build_windows.py --zip
 ```
 
-That writes `dist/Helysofer-<version>-windows.zip`. Unpack it anywhere and
-start `Helysofer.exe`; keep the `_internal` folder next to it. The program is
+That writes `dist/Helyosfer-<version>-windows.zip`. Unpack it anywhere and
+start `Helyosfer.exe`; keep the `_internal` folder next to it. The program is
 not signed, so Windows asks for confirmation the first time: choose
 **More info**, then **Run anyway**.
 
@@ -108,5 +108,5 @@ Report vulnerabilities as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
-Helysofer is available under the [Apache License 2.0](LICENSE); see
+Helyosfer is available under the [Apache License 2.0](LICENSE); see
 [NOTICE](NOTICE).

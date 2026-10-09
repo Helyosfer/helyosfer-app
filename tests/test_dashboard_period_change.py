@@ -2,7 +2,7 @@ import datetime
 import os
 import unittest
 
-os.environ.setdefault("HELYSOFER_HEADLESS", "1")
+os.environ.setdefault("HELYOSFER_HEADLESS", "1")
 
 from services.dashboard_period_service import (
     calculate_balance_change,

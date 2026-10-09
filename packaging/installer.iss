@@ -8,20 +8,20 @@
 
 [Setup]
 AppId={{6C1F2B0E-4D0A-4E57-9E0C-6B7D1E5A9F31}
-AppName=Helysofer
+AppName=Helyosfer
 AppVersion={#AppVersion}
-AppPublisher=Helysofer
-AppPublisherURL=https://github.com/Helyosfer/helysofer
-DefaultDirName={autopf}\Helysofer
-DefaultGroupName=Helysofer
+AppPublisher=Helyosfer
+AppPublisherURL=https://github.com/Helyosfer/helyosfer-app
+DefaultDirName={autopf}\Helyosfer
+DefaultGroupName=Helyosfer
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 LicenseFile=..\LICENSE
 SetupIconFile=..\assets\icon.ico
-UninstallDisplayIcon={app}\Helysofer.exe
+UninstallDisplayIcon={app}\Helyosfer.exe
 OutputDir=..\dist
-OutputBaseFilename=Helysofer-{#AppVersion}-setup
+OutputBaseFilename=Helyosfer-{#AppVersion}-setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -37,14 +37,14 @@ Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\dist\Helysofer\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "..\dist\Helyosfer\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
-Name: "{group}\Helysofer"; Filename: "{app}\Helysofer.exe"
-Name: "{autodesktop}\Helysofer"; Filename: "{app}\Helysofer.exe"; Tasks: desktopicon
+Name: "{group}\Helyosfer"; Filename: "{app}\Helyosfer.exe"
+Name: "{autodesktop}\Helyosfer"; Filename: "{app}\Helyosfer.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\Helysofer.exe"; Description: "{cm:LaunchProgram,Helysofer}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\Helyosfer.exe"; Description: "{cm:LaunchProgram,Helyosfer}"; Flags: nowait postinstall skipifsilent
 
 ; Uninstalling removes the program only. Records, the encryption key and
 ; settings live in the user's profile and are left where they are.

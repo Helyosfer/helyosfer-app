@@ -33,7 +33,7 @@ _SALT_LEN = 16
 _NONCE_LEN = 12
 _KEY_LEN = 32
 _AEAD_PREFIX = "AEADv1:"
-_AUTH_CONTEXT = b"helysofer-backup-auth-v2"
+_AUTH_CONTEXT = b"helyosfer-backup-auth-v2"
 
 
 SUPPORTED_RECOVERY_KDF = "PBKDF2-HMAC-SHA256"
@@ -513,7 +513,7 @@ def create_backup(
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(
-        prefix="helysofer-backup-", dir=str(destination.parent)
+        prefix="helyosfer-backup-", dir=str(destination.parent)
     ) as temp_dir:
         temp = Path(temp_dir)
         db_copy = temp / "finance.db"
@@ -625,13 +625,13 @@ def _verify_staged(temp, passphrase):
 def verify_backup(package_path, passphrase):
     """Stage into a bounded temporary directory and prove DB/key compatibility."""
     package_path = Path(package_path)
-    with tempfile.TemporaryDirectory(prefix="helysofer-verify-") as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="helyosfer-verify-") as temp_dir:
         temp = Path(temp_dir)
         _stage_package(package_path, temp)
         return _verify_staged(temp, passphrase)
 
 
-_JOURNAL_DIRNAME = ".helysofer-restore"
+_JOURNAL_DIRNAME = ".helyosfer-restore"
 _JOURNAL_NAME = "journal.json"
 
 
@@ -849,13 +849,13 @@ def restore_backup(
     safety_backup_path = Path(
         safety_backup_path
         or db_path.with_name(
-            f"pre-restore-{datetime.now():%Y%m%d-%H%M%S}.helysofer-backup"
+            f"pre-restore-{datetime.now():%Y%m%d-%H%M%S}.helyosfer-backup"
         )
     )
     current_key = provider.load_key()
 
     with tempfile.TemporaryDirectory(
-        prefix="helysofer-restore-", dir=str(db_path.parent)
+        prefix="helyosfer-restore-", dir=str(db_path.parent)
     ) as temp_dir:
         temp = Path(temp_dir)
 

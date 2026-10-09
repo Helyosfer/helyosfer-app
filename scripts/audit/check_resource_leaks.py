@@ -12,7 +12,7 @@ import sys
 from contextlib import closing
 from pathlib import Path
 from unittest import mock
-from utils.errors import HelysoferError
+from utils.errors import HelyosferError
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -24,7 +24,7 @@ def _sample(label):
     try:
         import resource
         rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelysoferError):
+    except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelyosferError):
         pass
     return {
         "label": label,
@@ -42,7 +42,7 @@ def main():
     from services.backup_service import create_backup, verify_backup
 
     tracemalloc.start()
-    with tempfile.TemporaryDirectory(prefix="helysofer-resource-audit-") as root:
+    with tempfile.TemporaryDirectory(prefix="helyosfer-resource-audit-") as root:
         root = Path(root)
         db_path, key_path = root / "finance.db", root / "encryption.key"
         key_path.write_bytes(os.urandom(32)); os.chmod(key_path, 0o600)
@@ -63,7 +63,7 @@ def main():
                     conn.execute("SELECT 1").fetchone()
                 if iteration in (10, 50, 100):
                     samples.append(_sample(f"iteration_{iteration}"))
-            package = root / "resource.helysofer-backup"
+            package = root / "resource.helyosfer-backup"
             for _ in range(10):
                 create_backup(package, "yalnizca-audit-icin-parola", db_path=db_path, key_path=key_path)
                 verify_backup(package, "yalnizca-audit-icin-parola")

@@ -22,7 +22,7 @@ from services.dashboard_period_service import (
 from services.financial_summary_service import summarize_transactions
 from utils.crypto import decrypt
 from utils.errors import (
-    DecryptionError, HelysoferError, KeyUnavailableError,
+    DecryptionError, HelyosferError, KeyUnavailableError,
 )
 from utils.financial_decimal import decimal_from
 from utils.logging_config import get_logger
@@ -91,7 +91,7 @@ def compute_dashboard_metrics(filter_text: str = DEFAULT_PERIOD) -> dict:
 
     try:
         change = calculate_balance_change(filter_text, total_balance, today=period_end)
-    except (sqlite3.Error, HelysoferError, ValueError, ArithmeticError):
+    except (sqlite3.Error, HelyosferError, ValueError, ArithmeticError):
         # The balance history is optional for the headline figures.
         get_logger().exception("Dönem bakiye değişimi hesaplanamadı")
         change = {"nominal_change": None, "percentage": None}

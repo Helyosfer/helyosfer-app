@@ -45,10 +45,10 @@ class PathResolutionTest(unittest.TestCase):
         `SHGetFolderPathW` through `ctypes`. So this test was green on Linux
         while HIDING the fact that the path redirection was entirely broken on
         Windows -- and the test suite's own isolation rested on the same broken
-        mechanism. `HELYSOFER_HOME` (utils/app_paths.py) is valid on every
+        mechanism. `HELYOSFER_HOME` (utils/app_paths.py) is valid on every
         platform.
         """
-        return {"HELYSOFER_HOME": root}
+        return {"HELYOSFER_HOME": root}
 
     def test_data_cache_log_dirs_are_distinct(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -78,26 +78,26 @@ class PathResolutionTest(unittest.TestCase):
     def test_resolved_dirs_are_namespaced_under_the_app_name(self):
         """DEFAULT (unredirected) resolution must be namespaced by the application name.
 
-        `HELYSOFER_HOME` is cleared EXPLICITLY here: this test exercises
+        `HELYOSFER_HOME` is cleared EXPLICITLY here: this test exercises
         platformdirs' default behaviour, not the override path. The test suite
         sets that variable globally for its own isolation (run_tests.py) --
         without clearing it we would be measuring the wrong code path here.
         """
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch.dict(
-                os.environ, {"XDG_DATA_HOME": tmp, "HELYSOFER_HOME": ""}
+                os.environ, {"XDG_DATA_HOME": tmp, "HELYOSFER_HOME": ""}
             ):
                 d = data_dir()
-            self.assertIn("Helysofer", d)
+            self.assertIn("Helyosfer", d)
 
     def test_home_override_wins_over_platform_defaults(self):
-        """`HELYSOFER_HOME` must redirect the resolution on every platform.
+        """`HELYOSFER_HOME` must redirect the resolution on every platform.
 
         This is the contract the test suite's isolation rests on; if it breaks,
         the tests start writing into the developer's REAL data directory.
         """
         with tempfile.TemporaryDirectory() as tmp:
-            with mock.patch.dict(os.environ, {"HELYSOFER_HOME": tmp}):
+            with mock.patch.dict(os.environ, {"HELYOSFER_HOME": tmp}):
                 self.assertTrue(data_dir().startswith(tmp))
                 self.assertTrue(cache_dir().startswith(tmp))
                 self.assertTrue(log_dir().startswith(tmp))

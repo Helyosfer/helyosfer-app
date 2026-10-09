@@ -17,20 +17,20 @@ for _stream in (sys.stdout, sys.stderr):
 _REAL_STDERR = sys.stderr
 
 
-os.environ.setdefault("HELYSOFER_HEADLESS", "1")
+os.environ.setdefault("HELYOSFER_HEADLESS", "1")
 # Tests read interface text in English, whatever the computer is set to.
-os.environ.setdefault("HELYSOFER_LANGUAGE", "en")
+os.environ.setdefault("HELYOSFER_LANGUAGE", "en")
 
 
 
 if "XDG_DATA_HOME" not in os.environ:
-    _sandbox = tempfile.mkdtemp(prefix="helysofer-test-xdg-")
+    _sandbox = tempfile.mkdtemp(prefix="helyosfer-test-xdg-")
     os.environ["XDG_DATA_HOME"] = os.path.join(_sandbox, "data")
     os.environ["XDG_CACHE_HOME"] = os.path.join(_sandbox, "cache")
     os.environ["XDG_STATE_HOME"] = os.path.join(_sandbox, "state")
 
 
-    os.environ["HELYSOFER_HOME"] = os.path.join(_sandbox, "home")
+    os.environ["HELYOSFER_HOME"] = os.path.join(_sandbox, "home")
 
 def main():
     """Runs the test suite and returns the process exit code.

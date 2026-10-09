@@ -46,7 +46,7 @@ class _RestoreProfile(unittest.TestCase):
         self.db_path = self.root / "finance.db"
         self.key_path = self.root / "encryption.key"
         self.json_path = self.root / "savings_goals.json"
-        self.package = self.root / "backup.helysofer-backup"
+        self.package = self.root / "backup.helyosfer-backup"
         self.key = os.urandom(32)
         self.key_path.write_bytes(self.key)
 
@@ -77,7 +77,7 @@ class _RestoreProfile(unittest.TestCase):
         return restore_backup(
             package or self.package, PASSPHRASE,
             db_path=self.db_path, key_path=self.key_path,
-            safety_backup_path=self.root / "safety.helysofer-backup",
+            safety_backup_path=self.root / "safety.helyosfer-backup",
             **kwargs,
         )
 
@@ -300,7 +300,7 @@ class ForeignProfileRestoreTest(_RestoreProfile):
         foreign_db = foreign_root / "finance.db"
         foreign_key_path = foreign_root / "encryption.key"
         foreign_key_path.write_bytes(self.key)
-        foreign_package = foreign_root / "foreign.helysofer-backup"
+        foreign_package = foreign_root / "foreign.helyosfer-backup"
 
         with mock.patch("database.db.DB_NAME", str(foreign_db)):
             from database.init_db import initialize_database

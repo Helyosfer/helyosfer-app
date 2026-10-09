@@ -6,7 +6,7 @@ same class as the one closed in `calculate_pnl`: when the product falls on a
 rounding boundary, the binary representation swallows the half kurus.
 
 Verified by measurement, and the important point is this: these cases are not
-invented but sit INSIDE Helysofer's OWN precision policy -- 8 digits for a
+invented but sit INSIDE Helyosfer's OWN precision policy -- 8 digits for a
 crypto quantity, 6 for a share, two or three decimals for prices.
 
     15 crypto x 0.045 lira      = 0.675  ->  shown as 0.67, should be 0.68
@@ -31,7 +31,7 @@ from unittest import mock
 class PortfolioTotalPrecision(unittest.TestCase):
 
     def setUp(self):
-        self.tempdir = tempfile.TemporaryDirectory(prefix="helysofer-porttotal-")
+        self.tempdir = tempfile.TemporaryDirectory(prefix="helyosfer-porttotal-")
         root = Path(self.tempdir.name)
         self.db_path = root / "finance.db"
         self.db_patch = mock.patch("database.db.DB_NAME", str(self.db_path))

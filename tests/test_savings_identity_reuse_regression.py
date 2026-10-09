@@ -45,7 +45,7 @@ class IdentityReuseAfterRestoreTest(unittest.TestCase):
         root = Path(self._tmp.name)
         self.db_path = root / "finance.db"
         self.key_path = root / "encryption.key"
-        self.package = root / "backup.helysofer-backup"
+        self.package = root / "backup.helyosfer-backup"
         self.key = os.urandom(32)
         self.key_path.write_bytes(self.key)
 
@@ -111,7 +111,7 @@ class IdentityReuseAfterRestoreTest(unittest.TestCase):
             PASSPHRASE,
             db_path=self.db_path,
             key_path=self.key_path,
-            safety_backup_path=Path(self._tmp.name) / "safety.helysofer-backup",
+            safety_backup_path=Path(self._tmp.name) / "safety.helyosfer-backup",
         )
 
 

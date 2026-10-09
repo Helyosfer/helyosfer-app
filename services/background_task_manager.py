@@ -17,7 +17,7 @@ class BackgroundTaskManager:
         self._schedule = schedule
         self._executor = ThreadPoolExecutor(
             max_workers=max_workers,
-            thread_name_prefix="helysofer",
+            thread_name_prefix="helyosfer",
         )
         self._lock = threading.Lock()
         self._tasks = {}

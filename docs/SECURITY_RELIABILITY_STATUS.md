@@ -1,7 +1,7 @@
 # Security and reliability status
 
 This document is the single current security and reliability summary.
-Helysofer is pre-release: the points below describe the core layers, which are
+Helyosfer is pre-release: the points below describe the core layers, which are
 covered by the test suite. Packaging checks will be added with the first
 packaged build.
 

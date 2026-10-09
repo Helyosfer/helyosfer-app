@@ -62,7 +62,7 @@ def _pump(until=None, seconds=8.0):
 class InterfaceSmokeTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        os.environ["HELYSOFER_LANGUAGE"] = "en"
+        os.environ["HELYOSFER_LANGUAGE"] = "en"
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         os.environ.setdefault("QT_QUICK_BACKEND", "software")
         cls._tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
@@ -765,9 +765,9 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.settings.createBackup(backup, "yedek-parolasi-uzun", "yedek-parolasi-uzun")
         self._settle()
         self.assertEqual(self.settings.message, "")
-        self.assertTrue(os.path.exists(backup + ".helysofer-backup"))
+        self.assertTrue(os.path.exists(backup + ".helyosfer-backup"))
 
-        self.settings.restoreBackup(backup + ".helysofer-backup", "yanlis-parola-uzun")
+        self.settings.restoreBackup(backup + ".helyosfer-backup", "yanlis-parola-uzun")
         self._settle()
         self.assertIn("could not be restored", self.settings.message)
         self.assertEqual(self.app.screen, "home")

@@ -1,16 +1,16 @@
 name: Bug report
-description: Report a reproducible Helysofer problem without exposing private data.
+description: Report a reproducible Helyosfer problem without exposing private data.
 title: "[Bug]: "
 labels: []
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve Helysofer. Never attach a real database, keys, recovery material, credentials, or unredacted financial information. Report suspected vulnerabilities through a private security advisory, not this form.
+        Thanks for helping improve Helyosfer. Never attach a real database, keys, recovery material, credentials, or unredacted financial information. Report suspected vulnerabilities through a private security advisory, not this form.
   - type: input
     id: version
     attributes:
-      label: Helysofer version
+      label: Helyosfer version
       description: Use the release tag or commit hash.
       placeholder: 0.1.0 or commit SHA
     validations:

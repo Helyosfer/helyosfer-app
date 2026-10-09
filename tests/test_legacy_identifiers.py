@@ -1,6 +1,6 @@
 """The two identifiers from before the rename must stay BYTE FOR BYTE the same.
 
-WHY IT EXISTS: the application's name before Helysofer is stored base64-encoded
+WHY IT EXISTS: the application's name before Helyosfer is stored base64-encoded
 in `utils/app_paths.py` so it does not appear as plain text in the code base.
 This is NOT a security measure -- it is name hygiene. But an encoded constant
 being corrupted by accident is far more silent than a plain-text one: nobody

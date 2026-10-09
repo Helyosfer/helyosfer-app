@@ -250,7 +250,7 @@ class FinancialPropertyAudit(_TemporaryProfile):
                 detect_subscription=False,
             )
         before = semantic_state_hash(self.db_path)
-        package = self.root / "state-hash.helysofer-backup"
+        package = self.root / "state-hash.helyosfer-backup"
         create_backup(
             package,
             self.PASSPHRASE,

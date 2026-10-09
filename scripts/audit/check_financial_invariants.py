@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verifies the financial invariants in an Helysofer database, READ ONLY.
+"""Verifies the financial invariants in an Helyosfer database, READ ONLY.
 
 This tool is for auditing. It writes under no circumstances: it opens the
 database with a `file:...?mode=ro` URI, so SQLite refuses any write attempt.
@@ -168,7 +168,7 @@ CHECKS = (
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Helysofer finansal değişmezlerini salt okunur doğrular.",
+        description="Helyosfer finansal değişmezlerini salt okunur doğrular.",
         epilog="Gerçek kullanıcı veritabanını kendiliğinden bulmaz; --db zorunludur.",
     )
     parser.add_argument(

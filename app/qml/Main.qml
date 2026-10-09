@@ -10,7 +10,7 @@ ApplicationWindow {
     minimumWidth: 960
     minimumHeight: 620
     visible: true
-    title: "Helysofer"
+    title: "Helyosfer"
     color: Theme.page
 
     // Where the main screen was, so that it comes back there when it is rebuilt.

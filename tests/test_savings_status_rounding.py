@@ -30,7 +30,7 @@ from unittest import mock
 class SavingsStatusUsesKurusPrecision(unittest.TestCase):
 
     def setUp(self):
-        self.tempdir = tempfile.TemporaryDirectory(prefix="helysofer-savstatus-")
+        self.tempdir = tempfile.TemporaryDirectory(prefix="helyosfer-savstatus-")
         root = Path(self.tempdir.name)
         self.db_patch = mock.patch("database.db.DB_NAME", str(root / "finance.db"))
         self.key_patch = mock.patch(

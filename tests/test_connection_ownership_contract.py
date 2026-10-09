@@ -246,7 +246,7 @@ class OwnershipContractTest(_TempProfile):
             key_path = Path(root) / "encryption.key"
             key_path.write_bytes(os.urandom(32))
             os.chmod(key_path, 0o600)
-            package = Path(root) / "p.helysofer-backup"
+            package = Path(root) / "p.helyosfer-backup"
             create_backup(package, "yalnizca-test-icin-parola",
                           db_path=self.db_path, key_path=str(key_path))
             verify_backup(package, "yalnizca-test-icin-parola")

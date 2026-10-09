@@ -19,7 +19,7 @@ class CryptoCompatibilityTest(unittest.TestCase):
         old scheme's round trip is verified in a separate test
         (LegacyFormatBackwardCompatibilityTest) against a real old blob.
         """
-        value = "Helysofer güvenli veri"
+        value = "Helyosfer güvenli veri"
         self.assertEqual(decrypt(encrypt(value)), value)
 
     def test_new_ciphertext_is_marked_with_the_aead_prefix(self):

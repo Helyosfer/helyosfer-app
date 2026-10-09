@@ -40,8 +40,8 @@ class RestoreGenerationAtomicityTest(unittest.TestCase):
         self.db_path = root / "finance.db"
         self.key_path = root / "encryption.key"
         self.config_path = root / "config.json"
-        self.package = root / "backup.helysofer-backup"
-        self.safety = root / "safety.helysofer-backup"
+        self.package = root / "backup.helyosfer-backup"
+        self.safety = root / "safety.helyosfer-backup"
         self.key = os.urandom(32)
         self.key_path.write_bytes(self.key)
         os.chmod(self.key_path, 0o600)
@@ -144,7 +144,7 @@ class RestoreGenerationAtomicityTest(unittest.TestCase):
                     )
                     self.assertEqual(after["balance"], 9999.0)
                     self.assertFalse(
-                        (self.db_path.parent / ".helysofer-restore").exists(),
+                        (self.db_path.parent / ".helyosfer-restore").exists(),
                         f"{fault}: journal temizlenmedi",
                     )
                 finally:
@@ -168,7 +168,7 @@ class RestoreGenerationAtomicityTest(unittest.TestCase):
         self.assertEqual(after["balance"], 4321.0)
         self.assertEqual(after["config"], '{"profile":"from-backup"}')
         self.assertFalse(
-            (self.db_path.parent / ".helysofer-restore").exists(),
+            (self.db_path.parent / ".helyosfer-restore").exists(),
             "başarılı restore sonrası journal kaldı",
         )
 
@@ -197,7 +197,7 @@ class RestoreGenerationAtomicityTest(unittest.TestCase):
                 _failure_hook=_hook,
             )
 
-        journal = self.db_path.parent / ".helysofer-restore"
+        journal = self.db_path.parent / ".helyosfer-restore"
         self.assertTrue(journal.exists(), "journal yazılmamış; kurtarma imkânsız")
 
         result = recover_interrupted_restore(
@@ -217,14 +217,14 @@ class RestoreGenerationAtomicityTest(unittest.TestCase):
 
     def test_corrupt_journal_fails_closed(self):
         """A corrupt journal must not be silently ignored."""
-        journal = self.db_path.parent / ".helysofer-restore"
+        journal = self.db_path.parent / ".helyosfer-restore"
         journal.mkdir(mode=0o700)
         (journal / "journal.json").write_text("{bozuk", encoding="utf-8")
         with self.assertRaises(DataMigrationError):
             recover_interrupted_restore(db_path=self.db_path)
 
     def test_unknown_journal_state_fails_closed(self):
-        journal = self.db_path.parent / ".helysofer-restore"
+        journal = self.db_path.parent / ".helyosfer-restore"
         journal.mkdir(mode=0o700)
         (journal / "journal.json").write_text(
             json.dumps({"state": "UYDURMA"}), encoding="utf-8"

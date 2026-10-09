@@ -6,15 +6,15 @@ may safely include the exception in a production log.
 """
 
 
-class HelysoferError(Exception):
+class HelyosferError(Exception):
     """Base class for expected, user-presentable application failures."""
 
 
-class EncryptionError(HelysoferError):
+class EncryptionError(HelyosferError):
     """Sensitive data could not be encrypted and was not persisted."""
 
 
-class DecryptionError(HelysoferError):
+class DecryptionError(HelyosferError):
     """Encrypted data could not be decoded."""
 
 
@@ -22,11 +22,11 @@ class IntegrityVerificationError(DecryptionError):
     """Authenticated ciphertext failed integrity verification."""
 
 
-class KeyUnavailableError(HelysoferError):
+class KeyUnavailableError(HelyosferError):
     """The encryption key is missing, corrupt, or cannot be accessed."""
 
 
-class DataMigrationError(HelysoferError):
+class DataMigrationError(HelyosferError):
     """A data migration failed and its database transaction was rolled back."""
 
 
@@ -45,7 +45,7 @@ class SchemaTooNewError(DataMigrationError):
         self.supported = supported
 
 
-class FinancialDataIntegrityError(HelysoferError):
+class FinancialDataIntegrityError(HelyosferError):
     """A financial result is invalid because a contributing record is unreadable."""
 
     def __init__(self, table, record_id, field, *, reason=None):

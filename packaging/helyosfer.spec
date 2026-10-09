@@ -1,7 +1,7 @@
 # PyInstaller build description for the Windows package.
 #
 # Build with `python scripts/build_windows.py`; that script checks the result
-# as well. The output is a folder (`dist/Helysofer`), not a single file: a
+# as well. The output is a folder (`dist/Helyosfer`), not a single file: a
 # single-file build unpacks itself on every start, and the application starts
 # itself a second time whenever it fetches prices.
 
@@ -88,7 +88,7 @@ program = EXE(
     analysis.scripts,
     [],
     exclude_binaries=True,
-    name="Helysofer",
+    name="Helyosfer",
     icon=os.path.join(ROOT, "assets", "icon.ico"),
     version=VERSION_FILE if os.path.exists(VERSION_FILE) else None,
     console=False,
@@ -98,6 +98,6 @@ COLLECT(
     program,
     analysis.binaries,
     analysis.datas,
-    name="Helysofer",
+    name="Helyosfer",
     upx=False,
 )

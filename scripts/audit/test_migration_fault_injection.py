@@ -39,7 +39,7 @@ class _FaultConnection:
 
 class MigrationCrashConsistencyReproduction(unittest.TestCase):
     def test_failed_column_migration_does_not_leave_unbackfilled_guard(self):
-        with tempfile.TemporaryDirectory(prefix="helysofer-migration-fault-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="helyosfer-migration-fault-") as tmp:
             db_path = Path(tmp) / "finance.db"
             with closing(sqlite3.connect(db_path)) as conn:
                 conn.execute(

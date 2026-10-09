@@ -14,7 +14,7 @@ class PackageCheckTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as home:
             done = subprocess.run(
                 [sys.executable, "-m", "app", "--check-package"],
-                cwd=PROJECT_ROOT, env=dict(os.environ, HELYSOFER_HOME=home),
+                cwd=PROJECT_ROOT, env=dict(os.environ, HELYOSFER_HOME=home),
                 stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 timeout=180, check=False,
             )

@@ -14,7 +14,7 @@ import threading
 
 from utils.app_paths import data_dir
 
-CONFIG_FILENAME = "helysofer_config.json"
+CONFIG_FILENAME = "helyosfer_config.json"
 
 
 def default_config_path() -> str:
@@ -61,7 +61,7 @@ class ConfigStore:
     def _write(self) -> None:
         directory = os.path.dirname(self.path) or "."
         os.makedirs(directory, exist_ok=True)
-        fd, staged = tempfile.mkstemp(prefix=".helysofer-config-", dir=directory)
+        fd, staged = tempfile.mkstemp(prefix=".helyosfer-config-", dir=directory)
         replaced = False
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as handle:

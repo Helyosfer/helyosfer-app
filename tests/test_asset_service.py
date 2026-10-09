@@ -213,7 +213,7 @@ class Bist100PriceParsingTests(unittest.TestCase):
 
         done = threading.Event()
         out = {}
-        logger = logging.getLogger("helysofer")
+        logger = logging.getLogger("helyosfer")
         with mock.patch.dict(
             "sys.modules",
             {"yfinance": mock.Mock(download=fake_download)},

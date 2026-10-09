@@ -28,7 +28,7 @@ def export_recovery_package(destination, passphrase, provider):
     if key is None:
         raise IntegrityVerificationError("Dışa aktarılacak anahtar bulunamadı.")
     payload = {
-        "format": "helysofer-key-recovery-v1",
+        "format": "helyosfer-key-recovery-v1",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "key_fingerprint": hashlib.sha256(key).hexdigest(),
         "recovery": encrypt_recovery_material(key, passphrase),
@@ -44,7 +44,7 @@ def export_recovery_package(destination, passphrase, provider):
 def read_recovery_package(package, passphrase):
     try:
         payload = json.loads(Path(package).read_text(encoding="utf-8"))
-        if payload.get("format") != "helysofer-key-recovery-v1":
+        if payload.get("format") != "helyosfer-key-recovery-v1":
             raise IntegrityVerificationError(
                 "Kurtarma paketi formatı desteklenmiyor."
             )
@@ -101,7 +101,7 @@ def rotate_encryption_key(
     new_key = os.urandom(32)
     db_path = Path(db_path)
     with tempfile.TemporaryDirectory(
-        prefix="helysofer-rotate-", dir=str(db_path.parent)
+        prefix="helyosfer-rotate-", dir=str(db_path.parent)
     ) as temp_dir:
         temp = Path(temp_dir)
         staged_db = temp / "finance.db"

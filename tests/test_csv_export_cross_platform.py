@@ -74,12 +74,12 @@ class ExportWorksWithoutFchmodTest(_Profile):
         self.assertIn("Market", content)
 
     def test_no_staging_file_is_left_behind(self):
-        """No `.helysofer-export-*` may be left behind after a successful export."""
+        """No `.helyosfer-export-*` may be left behind after a successful export."""
         from services.migration_service import export_all_to_csv
 
         directory = self._export_dir()
         export_all_to_csv(directory / "disari.csv")
-        leftovers = list(directory.glob(".helysofer-export-*"))
+        leftovers = list(directory.glob(".helyosfer-export-*"))
         self.assertEqual(leftovers, [], f"staging dosyası kaldı: {leftovers}")
 
 
@@ -101,7 +101,7 @@ class CleanupClosesTheDescriptorTest(_Profile):
             with self.assertRaises(_Boom):
                 migration_service.export_all_to_csv(target)
 
-        leftovers = list(directory.glob(".helysofer-export-*"))
+        leftovers = list(directory.glob(".helyosfer-export-*"))
         self.assertEqual(leftovers, [], f"staging dosyası kaldı: {leftovers}")
         self.assertFalse(target.exists(), "yarım hedef dosya oluştu")
 

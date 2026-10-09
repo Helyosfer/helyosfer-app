@@ -18,7 +18,7 @@ if _PROJECT_ROOT not in sys.path:
 def main():
     output_path = sys.argv[1]
     assets = json.loads(sys.stdin.buffer.read().decode("utf-8") or "[]")
-    os.environ["HELYSOFER_ASSET_PRICE_CHILD"] = "1"
+    os.environ["HELYOSFER_ASSET_PRICE_CHILD"] = "1"
 
     result: list[dict[str, Any]] = []
     done = threading.Event()

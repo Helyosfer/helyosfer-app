@@ -36,7 +36,7 @@ from typing import Any, TypedDict
 
 from services.price_guard import finite_positive_price
 from utils.errors import (
-    HelysoferError,
+    HelyosferError,
     DecryptionError,
     KeyUnavailableError,
 )
@@ -696,7 +696,7 @@ def fetch_portfolio_with_prices(assets: list, callback, item_callback=None,
     # a separate interpreter. The child re-enters this function with the env
     # flag and uses the existing local worker implementation below.
     import os
-    if not os.environ.get("HELYSOFER_ASSET_PRICE_CHILD"):
+    if not os.environ.get("HELYOSFER_ASSET_PRICE_CHILD"):
         def _isolated_worker():
             fresh = None if force_refresh else _read_cached_portfolio(assets)
             if fresh is not None:
@@ -709,11 +709,11 @@ def fetch_portfolio_with_prices(assets: list, callback, item_callback=None,
             import json
             import subprocess
             import tempfile
-            fd, output_path = tempfile.mkstemp(prefix="helysofer_prices_", suffix=".json")
+            fd, output_path = tempfile.mkstemp(prefix="helyosfer_prices_", suffix=".json")
             os.close(fd)
             try:
                 env = dict(os.environ)
-                env["HELYSOFER_ASSET_PRICE_CHILD"] = "1"
+                env["HELYOSFER_ASSET_PRICE_CHILD"] = "1"
 
 
                 command, project_root = price_worker_command(output_path)
@@ -1175,7 +1175,7 @@ def fetch_active_non_try_total(callback, progress_callback=None) -> None:
     def _load_assets():
         try:
             assets = get_active_non_try_assets()
-        except (sqlite3.Error, OSError, HelysoferError) as exc:
+        except (sqlite3.Error, OSError, HelyosferError) as exc:
 
 
             _log().exception("TL dışı varlık listesi okunamadı")

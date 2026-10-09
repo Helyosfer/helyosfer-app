@@ -1,6 +1,6 @@
 # Roadmap
 
-Where Helysofer stands and what is left before the first release. Nothing here
+Where Helyosfer stands and what is left before the first release. Nothing here
 is a promise of a date; the order is the order of work.
 
 ## Where it stands

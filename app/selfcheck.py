@@ -1,4 +1,4 @@
-"""A check a packaged build runs on itself: `Helysofer.exe --check-package`.
+"""A check a packaged build runs on itself: `Helyosfer.exe --check-package`.
 
 Much of what the application depends on is loaded only when a feature is
 first used: the PDF writer, the market-data libraries, the key store. A
@@ -61,7 +61,7 @@ def _backup(folder: str) -> None:
 
     config = os.path.join(folder, "config.json")
     ConfigStore(config).put("display", style="Dark")
-    target = os.path.join(folder, "check.helysofer-backup")
+    target = os.path.join(folder, "check.helyosfer-backup")
     create_backup(target, "check-passphrase-2026", db_path=database.db.DB_NAME, config_path=config)
     if os.path.getsize(target) < 1000:
         raise RuntimeError("the backup file is empty")
@@ -102,7 +102,7 @@ def run() -> int:
     """
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
         # Nothing here may touch the real profile.
-        os.environ["HELYSOFER_HOME"] = os.path.join(folder, "home")
+        os.environ["HELYOSFER_HOME"] = os.path.join(folder, "home")
         for name, check in CHECKS:
             print(f"checking {name}", file=sys.stderr, flush=True)
             check(folder)

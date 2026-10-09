@@ -1,6 +1,6 @@
 # Backup and recovery
 
-An Helysofer backup contains the database, format metadata, and
+An Helyosfer backup contains the database, format metadata, and
 password-protected recovery material. The raw `encryption.key` file is never
 placed in the package.
 
@@ -19,19 +19,19 @@ placed in the package.
 ## What the user must retain
 
 Store the backup package and its recovery password separately in secure
-locations. If the password is lost, neither Helysofer nor its developers can
+locations. If the password is lost, neither Helyosfer nor its developers can
 decrypt the key stored in the package. Copying only `finance.db` is not enough;
 the matching encryption key is also required.
 
 ## Restore process
 
 Restore begins only after validation succeeds. If the destination already has
-data, Helysofer creates a safety backup named
-`pre-restore-YYYYMMDD-HHMMSS.helysofer-backup`. A wrong password, a corrupt
+data, Helyosfer creates a safety backup named
+`pre-restore-YYYYMMDD-HHMMSS.helyosfer-backup`. A wrong password, a corrupt
 database hash, or a key that does not match the encrypted records leaves the
 destination files unchanged.
 
-A second Helysofer process cannot use the same profile during backup or
+A second Helyosfer process cannot use the same profile during backup or
 restore. The single-instance guard blocks it before either operation starts.
 
 ## Savings goals: scope and retired files

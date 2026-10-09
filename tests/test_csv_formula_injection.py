@@ -5,7 +5,7 @@ description/category/asset name raw with `csv.writer`. Excel and LibreOffice
 decide whether a cell is a formula by looking at its FIRST character; a cell
 beginning with `=`, `+`, `-` or `@` (and with a line break or tab) is treated
 as a FORMULA on opening, even if the file is pure data. If the user wrote
-`=1+1` in a transaction description that is not Helysofer's fault; but
+`=1+1` in a transaction description that is not Helyosfer's fault; but
 delivering that value to a spreadsheet as a formula is.
 
 THE ROUND-TRIP REQUIREMENT: the escaping must be reversible. Saying "I put an

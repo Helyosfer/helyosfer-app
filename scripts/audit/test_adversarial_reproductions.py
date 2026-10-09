@@ -31,7 +31,7 @@ class _TemporaryProfile(unittest.TestCase):
     PASSPHRASE = "yalnizca-audit-icin-parola"
 
     def setUp(self):
-        self.tempdir = tempfile.TemporaryDirectory(prefix="helysofer-audit-")
+        self.tempdir = tempfile.TemporaryDirectory(prefix="helyosfer-audit-")
         self.root = Path(self.tempdir.name)
         self.db_path = self.root / "finance.db"
         self.key_path = self.root / "encryption.key"
@@ -79,7 +79,7 @@ class BackupAuthenticityReproduction(_TemporaryProfile):
         TransactionService.add_transaction(
             account_id, 125.50, "expense", "Market", "Sentetik kayıt"
         )
-        package = self.root / "original.helysofer-backup"
+        package = self.root / "original.helyosfer-backup"
         create_backup(
             package,
             self.PASSPHRASE,
@@ -106,7 +106,7 @@ class BackupAuthenticityReproduction(_TemporaryProfile):
         ).hexdigest()
         metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
 
-        rewritten = self.root / "rewritten.helysofer-backup"
+        rewritten = self.root / "rewritten.helyosfer-backup"
         with zipfile.ZipFile(rewritten, "w", zipfile.ZIP_DEFLATED) as archive:
             for name in ("finance.db", "metadata.json", "key.recovery.json"):
                 archive.write(unpacked / name, name)

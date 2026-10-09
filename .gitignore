@@ -2,7 +2,7 @@
 finance.db
 finance.db.bak*
 savings_goals.json
-helysofer_config.json
+helyosfer_config.json
 legacy_config_backup.json
 crash.log
 db_backups/

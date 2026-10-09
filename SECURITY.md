@@ -1,6 +1,6 @@
 # Security policy
 
-Helysofer 1.x is the stable release line. Security reports are evaluated
+Helyosfer 1.x is the stable release line. Security reports are evaluated
 against the latest stable release and current `main`. Fixes are normally
 released for the latest stable version; older releases may require an upgrade.
 
@@ -10,13 +10,13 @@ For current guarantees and limitations, read the
 ## Report a vulnerability privately
 
 Do not open a public issue for a suspected vulnerability. Use a
-[private GitHub security advisory](https://github.com/Helyosfer/helysofer/security/advisories/new).
+[private GitHub security advisory](https://github.com/Helyosfer/helyosfer-app/security/advisories/new).
 If GitHub is unavailable or unsuitable, email
 `cakirgozmehmetc@proton.me`.
 
 Include as much of the following as is safe:
 
-- affected Helysofer version or commit;
+- affected Helyosfer version or commit;
 - operating system and installation method;
 - vulnerability class and potential impact;
 - minimal reproduction steps or proof of concept;
@@ -44,7 +44,7 @@ public issue tracker after sensitive details are removed.
 
 ## Security boundaries
 
-Helysofer reduces exposure by keeping core financial records local, encrypting
+Helyosfer reduces exposure by keeping core financial records local, encrypting
 sensitive fields at rest, and providing backup and recovery workflows. These
 controls do not protect data from an attacker who fully controls the signed-in
 operating-system account or the running application process.

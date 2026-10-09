@@ -14,11 +14,11 @@ from app.language import later, say
 from services.background_task_manager import BackgroundTaskManager
 from utils.logging_config import get_logger
 
-BACKUP_SUFFIX = ".helysofer-backup"
+BACKUP_SUFFIX = ".helyosfer-backup"
 CONTACT_EMAIL = "cakirgozmehmetc@proton.me"
-PROJECT_URL = "github.com/Helyosfer/helysofer"
+PROJECT_URL = "github.com/Helyosfer/helyosfer-app"
 UNWRITABLE = later("The file could not be saved there. Choose another location.")
-UNREADABLE_CSV = later("This file could not be read. Choose a CSV file exported from Helysofer.")
+UNREADABLE_CSV = later("This file could not be read. Choose a CSV file exported from Helyosfer.")
 
 
 def local_path(url: str, suffix: str = "") -> str:
@@ -168,7 +168,7 @@ class SettingsController(_Mutating):
     def restoreBackup(self, url, passphrase):
         def work():
             from services.backup_service import restore_backup
-            from utils.errors import HelysoferError
+            from utils.errors import HelyosferError
 
             path = local_path(url)
             try:
@@ -176,11 +176,11 @@ class SettingsController(_Mutating):
                     path, passphrase,
                     db_path=database.db.DB_NAME, config_path=self._store.path,
                 )
-            except (HelysoferError, ValueError, OSError) as error:
+            except (HelyosferError, ValueError, OSError) as error:
                 get_logger().warning("Yedek geri yüklenemedi: %s", type(error).__name__)
                 raise FormError(
                     say("This backup could not be restored. Check the backup "
-                    "password and that the file is a Helysofer backup.")
+                    "password and that the file is a Helyosfer backup.")
                 ) from error
 
         self._run(work, lambda _result: self.restored.emit())

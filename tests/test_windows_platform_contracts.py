@@ -107,7 +107,7 @@ class KeyCreationRaceContract(unittest.TestCase):
 class NonAsciiAndLongProfilePaths(unittest.TestCase):
     """The round must complete when the profile path is non-ASCII or very long.
 
-    `HELYSOFER_HOME` is an override that also exists in production
+    `HELYOSFER_HOME` is an override that also exists in production
     (utils/app_paths.py); not a gate invented by the test. The whole chain is
     measured: path resolution -> the SQLite file -> the key file -> the
     encrypted write -> the read.
@@ -115,7 +115,7 @@ class NonAsciiAndLongProfilePaths(unittest.TestCase):
 
     def _round_trip(self, root):
         """Opens an account at the given root and reads the encrypted amount back."""
-        with mock.patch.dict(os.environ, {"HELYSOFER_HOME": str(root)}):
+        with mock.patch.dict(os.environ, {"HELYOSFER_HOME": str(root)}):
             from utils.app_paths import data_dir
 
             resolved = Path(data_dir())
@@ -143,7 +143,7 @@ class NonAsciiAndLongProfilePaths(unittest.TestCase):
 
     def test_non_ascii_profile_directory_round_trips(self):
         with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp) / NON_ASCII_PROFILE / "Helysofer"
+            root = Path(temp) / NON_ASCII_PROFILE / "Helyosfer"
             db_path, key_path, balance, rows = self._round_trip(root)
 
             self.assertTrue(db_path.is_file(), "veritabanı ASCII dışı yolda açılmadı")
@@ -167,7 +167,7 @@ class NonAsciiAndLongProfilePaths(unittest.TestCase):
 
             for _ in range(4):
                 root = root / ("u" * 40)
-            db_path, _key, balance, rows = self._round_trip(root / "Helysofer")
+            db_path, _key, balance, rows = self._round_trip(root / "Helyosfer")
             self.assertTrue(db_path.is_file())
             self.assertAlmostEqual(balance, 1000.0 - 249.99, places=2)
             self.assertEqual(len(rows), 1)
@@ -185,7 +185,7 @@ class BackupSurvivesAnOpenDatabase(unittest.TestCase):
     """
 
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="helysofer-winlock-")
+        self.temp = tempfile.TemporaryDirectory(prefix="helyosfer-winlock-")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.db_path = self.root / "finance.db"
@@ -215,7 +215,7 @@ class BackupSurvivesAnOpenDatabase(unittest.TestCase):
             account_id, 100.0, "expense", "Market", "x",
             detect_subscription=False)
 
-        package = self.root / "yedek.helysofer-backup"
+        package = self.root / "yedek.helyosfer-backup"
         create_backup(package, "cok-guclu-yedek-parolasi-2026", db_path=self.db_path,
                       key_path=self.key_path)
         self.assertTrue(package.is_file())
@@ -253,7 +253,7 @@ class RealWindowsDpapi(unittest.TestCase):
     """
 
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="helysofer-dpapi-")
+        self.temp = tempfile.TemporaryDirectory(prefix="helyosfer-dpapi-")
         self.addCleanup(self.temp.cleanup)
         self.path = os.path.join(self.temp.name, "encryption.key.dpapi")
 

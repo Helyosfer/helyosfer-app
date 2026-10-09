@@ -107,7 +107,7 @@ class SubprocessInvocationTest(unittest.TestCase):
     def test_a_packaged_build_starts_itself_with_the_worker_flag(self):
         from services.asset_service import PRICE_WORKER_FLAG, price_worker_command
 
-        program = os.path.join(PROJECT_ROOT, "dist", "Helysofer", "Helysofer.exe")
+        program = os.path.join(PROJECT_ROOT, "dist", "Helyosfer", "Helyosfer.exe")
         with mock.patch.object(sys, "frozen", True, create=True),              mock.patch.object(sys, "executable", program):
             command, folder = price_worker_command("out.json")
         self.assertEqual(command, [program, PRICE_WORKER_FLAG, "out.json"])
@@ -123,9 +123,9 @@ class SubprocessInvocationTest(unittest.TestCase):
         self.assertEqual(entry.PRICE_WORKER_FLAG, PRICE_WORKER_FLAG)
         seen = []
         loaded_before = "app.main" in sys.modules
-        with mock.patch.object(sys, "argv", ["Helysofer.exe", PRICE_WORKER_FLAG, "out.json"]),              mock.patch.object(worker, "main", lambda: seen.append(list(sys.argv))):
+        with mock.patch.object(sys, "argv", ["Helyosfer.exe", PRICE_WORKER_FLAG, "out.json"]),              mock.patch.object(worker, "main", lambda: seen.append(list(sys.argv))):
             self.assertEqual(entry.main(), 0)
-        self.assertEqual(seen, [["Helysofer.exe", "out.json"]])
+        self.assertEqual(seen, [["Helyosfer.exe", "out.json"]])
         self.assertEqual("app.main" in sys.modules, loaded_before)
 
     def test_subprocess_captures_streams_not_devnull(self):

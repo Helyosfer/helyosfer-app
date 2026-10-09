@@ -1,13 +1,13 @@
-# Helysofer — product vision and scope
+# Helyosfer — product vision and scope
 
 > See `docs/SECURITY_RELIABILITY_STATUS.md` for the current security and
 > reliability summary.
 
 ## Product
 
-Helysofer is a **local-first, offline-capable** personal-finance desktop
+Helyosfer is a **local-first, offline-capable** personal-finance desktop
 application. User data remains on the user's computer; the application does
-not send financial records to an Helysofer server. Amount and description
+not send financial records to an Helyosfer server. Amount and description
 fields are encrypted at rest.
 
 The product covers accounts and credit cards, income and expense transactions,
@@ -17,7 +17,7 @@ detection, balance history, and scenario projections.
 
 ## Brand
 
-The product name is **Helysofer**. Its icon is an “H” monogram.
+The product name is **Helyosfer**. Its icon is an “H” monogram.
 `assets/icon_source.svg` is the source of truth; `icon.png` and `icon.ico` are
 derived from it. The letterform is deliberately solid so it stays legible down
 to 16 pixels (taskbar and tray size). Evaluate the icon using the real `.ico`
@@ -25,7 +25,7 @@ sizes, not only the large PNG.
 
 ## Release line and the meaning of “stable”
 
-Helysofer is **pre-release (0.x)**. Nothing is published until the first
+Helyosfer is **pre-release (0.x)**. Nothing is published until the first
 stable version. Stable means that supported packages, data integrity,
 upgrades, backup, restore, and recovery are guarded by release tests and
 verified acceptance paths. It does not remove the need for backups or turn the

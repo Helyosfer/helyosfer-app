@@ -64,10 +64,10 @@ class _ContractTestBase(unittest.TestCase):
         initialize_database()
 
         self.capture = _LogCapture()
-        logging.getLogger("helysofer").addHandler(self.capture)
+        logging.getLogger("helyosfer").addHandler(self.capture)
 
     def tearDown(self):
-        logging.getLogger("helysofer").removeHandler(self.capture)
+        logging.getLogger("helyosfer").removeHandler(self.capture)
         self.db_patch.stop()
         os.unlink(self.db_path)
 

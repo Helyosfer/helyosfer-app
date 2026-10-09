@@ -11,7 +11,7 @@ from app.accounts import FormError, _Mutating, read_amount
 from app.controllers import display_title, format_amount, short_date
 from services.background_task_manager import BackgroundTaskManager
 from app.language import later, say, tr
-from utils.errors import HelysoferError
+from utils.errors import HelyosferError
 from utils.logging_config import get_logger
 
 FREQUENCIES = (
@@ -353,7 +353,7 @@ class RecurringController(_Listing):
 
         try:
             charge = find_current_period_charge(payment_id)
-        except (sqlite3.Error, HelysoferError, ValueError) as error:
+        except (sqlite3.Error, HelyosferError, ValueError) as error:
             get_logger().exception(
                 "Dönem ücreti okunamadı.",
                 exc_info=(type(error), error, error.__traceback__),

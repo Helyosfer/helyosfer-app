@@ -78,7 +78,7 @@ def _default_db_path():
 
 MIGRATION_MARKER = "savings_json_to_sql"
 
-_JOURNAL_DIRNAME = ".helysofer-savings-migration"
+_JOURNAL_DIRNAME = ".helyosfer-savings-migration"
 _JOURNAL_NAME = "journal.json"
 
 STATE_READ = "OKUNDU"

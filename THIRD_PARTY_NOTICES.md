@@ -1,6 +1,6 @@
 # Third-party notices
 
-Helysofer is distributed under the Apache License 2.0. Its packaged builds include
+Helyosfer is distributed under the Apache License 2.0. Its packaged builds include
 third-party Python and native dependencies under their respective licenses.
 
 The release CycloneDX SBOM is the authoritative component/version inventory.

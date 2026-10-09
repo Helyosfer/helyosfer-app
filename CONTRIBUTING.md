@@ -1,6 +1,6 @@
-# Contributing to Helysofer
+# Contributing to Helyosfer
 
-Contributions are welcome. Helysofer handles sensitive financial state, so a
+Contributions are welcome. Helyosfer handles sensitive financial state, so a
 small, well-tested change is easier to review and safer to merge than a broad
 rewrite.
 
@@ -32,7 +32,7 @@ optional.
 - Use the private process in [SECURITY.md](SECURITY.md) for suspected
   vulnerabilities; do not open a public issue.
 
-Bug reports should identify the Helysofer version, operating system,
+Bug reports should identify the Helyosfer version, operating system,
 installation method, exact reproduction steps, expected and actual behavior,
 and sanitized logs. Explain whether the issue was reproduced with sample or
 real data without attaching real financial records.
@@ -83,9 +83,9 @@ Reproduce a CI type-check result in a **clean Python 3.12** environment with
 **both** requirement sets installed:
 
 ```bash
-python3.12 -m venv /tmp/helysofer-typecheck
-/tmp/helysofer-typecheck/bin/python -m pip install -r requirements-runtime.txt -r requirements-dev.txt
-/tmp/helysofer-typecheck/bin/python -m mypy --no-incremental services database
+python3.12 -m venv /tmp/helyosfer-typecheck
+/tmp/helyosfer-typecheck/bin/python -m pip install -r requirements-runtime.txt -r requirements-dev.txt
+/tmp/helyosfer-typecheck/bin/python -m mypy --no-incremental services database
 ```
 
 Three details matter, each of them learned from a diagnostic that appeared in

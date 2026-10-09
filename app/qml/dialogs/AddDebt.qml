@@ -83,7 +83,7 @@ Sheet {
         width: parent.width
         problem: false
         visible: automatic.checked && debts.message.length === 0
-        text: qsTr("Automatic installments are taken from your first account when you open Helysofer on or after that day.")
+        text: qsTr("Automatic installments are taken from your first account when you open Helyosfer on or after that day.")
     }
 
     Notice {

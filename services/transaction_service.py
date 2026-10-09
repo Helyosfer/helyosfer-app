@@ -1,7 +1,7 @@
 import sqlite3
 
 from utils.errors import (
-    HelysoferError,
+    HelyosferError,
     DecryptionError,
     FinancialDataIntegrityError,
     KeyUnavailableError,
@@ -250,7 +250,7 @@ class TransactionService:
                         "UPDATE transactions SET status = 'completed' WHERE id = ?",
                         (row["id"],),
                     )
-                except (sqlite3.Error, ValueError, HelysoferError):
+                except (sqlite3.Error, ValueError, HelyosferError):
 
 
                     from utils.logging_config import get_logger

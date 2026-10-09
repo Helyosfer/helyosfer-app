@@ -12,10 +12,10 @@ import calendar
 import datetime
 import sqlite3
 
-from utils.errors import HelysoferError
+from utils.errors import HelyosferError
 from utils.logging_config import get_logger
 
-_ITEM_ERRORS = (sqlite3.Error, HelysoferError, ValueError, TypeError, ArithmeticError)
+_ITEM_ERRORS = (sqlite3.Error, HelyosferError, ValueError, TypeError, ArithmeticError)
 
 
 def due_debt_installments(debt: dict, today: datetime.date) -> int:

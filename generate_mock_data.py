@@ -1,5 +1,5 @@
 """generate_mock_data.py -- produces a year of realistic usage data for
-Helysofer stress testing.
+Helyosfer stress testing.
 
 To run:  .venv/bin/python generate_mock_data.py
 
@@ -26,7 +26,7 @@ from database.db import (
     update_debt_auto_pay, update_debt_last_auto_pay, update_debt_progress,
 )
 from utils.crypto import encrypt
-from utils.errors import HelysoferError
+from utils.errors import HelyosferError
 
 random.seed(2026)
 
@@ -250,7 +250,7 @@ def _main(conn):
     for ym, t, enc_amt in cursor.fetchall():
         try:
             amt = float(decrypt(enc_amt, SECRET_KEY))
-        except (HelysoferError, TypeError, ValueError):
+        except (HelyosferError, TypeError, ValueError):
 
 
             continue

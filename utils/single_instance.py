@@ -1,4 +1,4 @@
-"""Cross-platform, OS-released exclusive lock for one Helysofer profile."""
+"""Cross-platform, OS-released exclusive lock for one Helyosfer profile."""
 
 import os
 import sys
@@ -64,7 +64,7 @@ class SingleInstanceLock:
         except (OSError, BlockingIOError) as exc:
             stream.close()
             raise AlreadyRunningError(
-                "Helysofer bu kullanıcı profili için zaten çalışıyor."
+                "Helyosfer bu kullanıcı profili için zaten çalışıyor."
             ) from exc
 
 
@@ -105,7 +105,7 @@ def notify_already_running(message):
             import ctypes
 
             ctypes.windll.user32.MessageBoxW(
-                None, message, "Helysofer", 0x00000030
+                None, message, "Helyosfer", 0x00000030
             )
             return
         except (AttributeError, OSError):

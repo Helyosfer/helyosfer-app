@@ -73,7 +73,7 @@ class FinancialSummaryIntegrityTest(unittest.TestCase):
 class LogRedactionTest(unittest.TestCase):
     def test_sensitive_values_and_ciphertext_are_redacted(self):
         record = logging.LogRecord(
-            "helysofer", logging.ERROR, __file__, 1,
+            "helyosfer", logging.ERROR, __file__, 1,
             "token=super-secret AEADv1:QUJDREVGRw==", (), None,
         )
         self.assertTrue(SensitiveDataFilter().filter(record))

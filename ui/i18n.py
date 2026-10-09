@@ -1,4 +1,4 @@
-"""Helysofer's lightweight, local, dependency-free translation layer.
+"""Helyosfer's lightweight, local, dependency-free translation layer.
 
 Turkish strings are used as source keys. This approach makes migrating the
 existing interface piece by piece easier while falling back safely to the
@@ -44,7 +44,7 @@ EN = {
     "Şifre": "Password",
     "Şifre Tekrar": "Confirm Password",
     "ŞİFRE OLUŞTUR": "CREATE PASSWORD",
-    "Şifre yalnızca bu cihazda saklanır; Helysofer verilerinizi bir sunucuya göndermez.": "Your password is stored only on this device; Helysofer does not send your data to a server.",
+    "Şifre yalnızca bu cihazda saklanır; Helyosfer verilerinizi bir sunucuya göndermez.": "Your password is stored only on this device; Helyosfer does not send your data to a server.",
     "Şifre en az 12 karakter olmalıdır.": "Password must be at least 12 characters long.",
     "Şifre en fazla 64 karakter olabilir.": "Password can be at most 64 characters long.",
     "Şifre en az 1 büyük harf içermelidir.": "Password must contain at least 1 uppercase letter.",
@@ -71,7 +71,7 @@ EN = {
     "Ayarlar": "Settings",
     "Karanlık Mod": "Dark Mode",
     "Ana Sayfa": "Home",
-    "Helysofer'de ara...": "Search in Helysofer...",
+    "Helyosfer'de ara...": "Search in Helyosfer...",
 
 
     "Hesap, kategori veya işlem ara...": "Search accounts, categories or transactions...",
@@ -279,7 +279,7 @@ EN = {
     "Bu borç zaten tamamen ödenmiş!": "This debt has already been paid off!",
     "İşlem bulunamadı.": "This transaction no longer exists.",
     "Bu işlem uygulama tarafından oluşturuldu ve buradan değiştirilemez.":
-        "Helysofer made this record as part of a payment or a trade, so it cannot be changed here.",
+        "Helyosfer made this record as part of a payment or a trade, so it cannot be changed here.",
     "Taksitli bir alışveriş buradan değiştirilemez.":
         "A purchase in installments cannot be changed here.",
     "Bekleyen bir işlem Borçlar ve ödemeler bölümünden değiştirilir.":
@@ -356,7 +356,7 @@ EN = {
     "Hedef Miktar (₺)": "Target Amount (₺)",
     "Hedef tutar 0'dan büyük olmalıdır!": "The target amount must be greater than zero!",
     "Henüz hesap eklenmedi — yukarıdaki butondan ekleyebilirsin.": "No accounts yet — use the button above to add one.",
-    "Soru, öneri ve hata bildirimleri için GitHub sayfamızı kullanabilirsiniz:\n\n[b]github.com/Helyosfer/helysofer[/b]": "For questions, feedback, or bug reports, use our GitHub page:\n\n[b]github.com/Helyosfer/helysofer[/b]",
+    "Soru, öneri ve hata bildirimleri için GitHub sayfamızı kullanabilirsiniz:\n\n[b]github.com/Helyosfer/helyosfer-app[/b]": "For questions, feedback, or bug reports, use our GitHub page:\n\n[b]github.com/Helyosfer/helyosfer-app[/b]",
     "Hisse eklendi! Fiyatlar güncelleniyor…": "Stock added! Updating prices…",
     "Hisse eklenirken hata oluştu!": "Could not add the stock!",
     "Kalem Adı (Örn: Maaş, Kira)": "Item Name (e.g. Salary, Rent)",

@@ -15,7 +15,7 @@ from pathlib import Path
 from unittest import mock
 
 from scripts.audit.test_adversarial_reproductions import _TemporaryProfile
-from utils.errors import HelysoferError, DataMigrationError
+from utils.errors import HelyosferError, DataMigrationError
 
 
 class RestoreRollbackReproduction(_TemporaryProfile):
@@ -25,7 +25,7 @@ class RestoreRollbackReproduction(_TemporaryProfile):
         account_id = self.create_account()
         config_path = self.root / "config.json"
         config_path.write_text('{"profile":"from-backup"}', encoding="utf-8")
-        package = self.root / "with-config.helysofer-backup"
+        package = self.root / "with-config.helyosfer-backup"
         backup_service.create_backup(
             package,
             self.PASSPHRASE,
@@ -65,7 +65,7 @@ class RestoreRollbackReproduction(_TemporaryProfile):
                     db_path=self.db_path,
                     key_path=self.key_path,
                     config_path=config_path,
-                    safety_backup_path=self.root / "safety.helysofer-backup",
+                    safety_backup_path=self.root / "safety.helyosfer-backup",
                 )
             except DataMigrationError as exc:
                 caught = exc
@@ -104,7 +104,7 @@ class InputBoundaryReproduction(_TemporaryProfile):
             )
 
 
-        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, HelysoferError) as exc:
+        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, HelyosferError) as exc:
             caught = exc
 
         with closing(sqlite3.connect(self.db_path)) as conn:
@@ -214,7 +214,7 @@ class NonFiniteCorruptionReproduction(_TemporaryProfile):
                 transaction_date="2026-08-01 10:00:00",
                 detect_subscription=False,
             )
-        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, HelysoferError) as exc:
+        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, HelyosferError) as exc:
             raised = type(exc).__name__
 
         after_balance, after_total, after_events = state()
@@ -226,7 +226,7 @@ class NonFiniteCorruptionReproduction(_TemporaryProfile):
                 transaction_date="2026-08-02 10:00:00",
                 detect_subscription=False,
             )
-        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, HelysoferError):
+        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, HelyosferError):
             pass
         null_balance, null_total, _ = state()
 

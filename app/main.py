@@ -36,7 +36,7 @@ def _acquire_instance_lock():
         AlreadyRunningError, SingleInstanceLock, notify_already_running,
     )
 
-    lock = SingleInstanceLock(os.path.join(data_dir(), "helysofer.instance.lock"))
+    lock = SingleInstanceLock(os.path.join(data_dir(), "helyosfer.instance.lock"))
     try:
         lock.acquire()
     except AlreadyRunningError as exc:
@@ -49,15 +49,15 @@ def _acquire_instance_lock():
 def _warm_crypto_key() -> None:
     def warm():
         from utils.crypto import _get_aead_key
-        from utils.errors import HelysoferError
+        from utils.errors import HelyosferError
         from utils.logging_config import get_logger
 
         try:
             _get_aead_key()
-        except (HelysoferError, OSError):
+        except (HelyosferError, OSError):
             get_logger().exception("Şifreleme anahtarı arka planda ısıtılamadı")
 
-    threading.Thread(target=warm, name="helysofer-key-warmup", daemon=True).start()
+    threading.Thread(target=warm, name="helyosfer-key-warmup", daemon=True).start()
 
 
 def prepare_profile(config_path: str):
@@ -189,7 +189,7 @@ def build(app: QGuiApplication):
             say("Backup restored"),
             say("Your records, encryption key and settings were replaced with the "
                 "ones in the backup."),
-            say("Close Helysofer and open it again to continue."),
+            say("Close Helyosfer and open it again to continue."),
         ))
         # Text the controllers hold was built in the old language.
         controller.languageChanged.connect(refresh_all)
@@ -228,7 +228,7 @@ def run() -> int:
     os.chdir(resource_dir())
     QQuickStyle.setStyle("Basic")
     app = QGuiApplication(sys.argv)
-    app.setApplicationName("Helysofer")
+    app.setApplicationName("Helyosfer")
     app.setWindowIcon(QIcon(os.path.join(resource_dir(), "assets", "icon.png")))
     engine = build(app)  # noqa: F841 -- keeps the engine alive for the event loop
     return app.exec()

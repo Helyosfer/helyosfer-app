@@ -162,7 +162,7 @@ class FileKeyProvider(KeyProvider):
 class KeyringKeyProvider(KeyProvider):
     """Secret Service/KWallet provider through the standard keyring API."""
 
-    def __init__(self, service="Helysofer", username="encryption-key",
+    def __init__(self, service="Helyosfer", username="encryption-key",
                  keyring_module=None):
         self.service = service
         self.username = username
@@ -357,7 +357,7 @@ def _dpapi_call(data, *, protect):
         else ctypes.windll.crypt32.CryptUnprotectData
     )
     args = (
-        (ctypes.byref(source), "Helysofer key", None, None, None, 0,
+        (ctypes.byref(source), "Helyosfer key", None, None, None, 0,
          ctypes.byref(destination))
         if protect
         else (ctypes.byref(source), None, None, None, None, 0,

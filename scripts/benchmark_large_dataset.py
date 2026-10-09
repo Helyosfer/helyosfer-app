@@ -1,4 +1,4 @@
-"""Repeatable isolated 1K/10K/50K Helysofer service benchmark."""
+"""Repeatable isolated 1K/10K/50K Helyosfer service benchmark."""
 
 import argparse
 import base64
@@ -208,7 +208,7 @@ def main():
         "--sizes", nargs="+", type=int, default=[1000, 10000, 50000]
     )
     args = parser.parse_args()
-    with tempfile.TemporaryDirectory(prefix="helysofer-benchmark-") as temp:
+    with tempfile.TemporaryDirectory(prefix="helyosfer-benchmark-") as temp:
         results = [run_size(Path(temp), size) for size in args.sizes]
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)

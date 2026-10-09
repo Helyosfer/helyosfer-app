@@ -4,7 +4,7 @@ from __future__ import annotations
 import zipfile
 
 from scripts.audit.test_adversarial_reproductions import _TemporaryProfile
-from utils.errors import HelysoferError, IntegrityVerificationError
+from utils.errors import HelyosferError, IntegrityVerificationError
 import sqlite3
 
 
@@ -13,7 +13,7 @@ class BackupArchiveSecurityReproduction(_TemporaryProfile):
         from services.backup_service import create_backup
 
         self.create_account()
-        package = self.root / "source.helysofer-backup"
+        package = self.root / "source.helyosfer-backup"
         create_backup(package, self.PASSPHRASE, db_path=self.db_path, key_path=self.key_path)
         return package
 
@@ -30,7 +30,7 @@ class BackupArchiveSecurityReproduction(_TemporaryProfile):
         caught = None
         try:
             verify_backup(package, self.PASSPHRASE)
-        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelysoferError) as exc:
+        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelyosferError) as exc:
             caught = exc
         return caught
 

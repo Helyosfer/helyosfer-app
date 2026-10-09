@@ -9,7 +9,7 @@ from pathlib import Path
 
 from utils.app_paths import log_dir
 
-_LOGGER_NAME = "helysofer"
+_LOGGER_NAME = "helyosfer"
 _configured = False
 
 
@@ -41,7 +41,7 @@ def get_logger():
     destination = Path(log_dir())
     destination.mkdir(parents=True, exist_ok=True)
     handler = RotatingFileHandler(
-        destination / "helysofer.log",
+        destination / "helyosfer.log",
         maxBytes=1_000_000,
         backupCount=3,
         encoding="utf-8",
@@ -52,7 +52,7 @@ def get_logger():
         "%(message)s"
     ))
     logger.addHandler(handler)
-    debug = os.environ.get("HELYSOFER_DEBUG", "").strip().lower() in {
+    debug = os.environ.get("HELYOSFER_DEBUG", "").strip().lower() in {
         "1", "true", "yes",
     }
     logger.setLevel(logging.DEBUG if debug else logging.INFO)

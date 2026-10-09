@@ -376,7 +376,7 @@ Item {
             Section {
                 heading: qsTr("About")
                 SettingRow {
-                    title: "Helysofer " + app.version
+                    title: "Helyosfer " + app.version
                     detail: qsTr("Questions, feedback and bug reports: %1").arg(settings.projectUrl)
                         + "  ·  " + settings.contactEmail
                 }
@@ -493,7 +493,7 @@ Item {
         id: backupFile
         title: qsTr("Save backup")
         fileMode: FileDialog.SaveFile
-        nameFilters: [qsTr("Helysofer backup") + " (*" + settings.backupSuffix + ")"]
+        nameFilters: [qsTr("Helyosfer backup") + " (*" + settings.backupSuffix + ")"]
         defaultSuffix: settings.backupSuffix.substring(1)
         onAccepted: settings.createBackup(selectedFile, phrase.text, phraseAgain.text)
     }
@@ -502,7 +502,7 @@ Item {
         id: restoreFile
         title: qsTr("Choose a backup to restore")
         fileMode: FileDialog.OpenFile
-        nameFilters: [qsTr("Helysofer backup") + " (*" + settings.backupSuffix + ")", qsTr("All files") + " (*)"]
+        nameFilters: [qsTr("Helyosfer backup") + " (*" + settings.backupSuffix + ")", qsTr("All files") + " (*)"]
         onAccepted: restorePrompt.openFor({ file: selectedFile.toString() }, "")
     }
 
@@ -566,7 +566,7 @@ Item {
         objectName: "restorePrompt"
         source: settings
         title: qsTr("Restore this backup?")
-        subtitle: qsTr("Everything on this device is replaced, then Helysofer closes so it can start from the restored data.")
+        subtitle: qsTr("Everything on this device is replaced, then Helyosfer closes so it can start from the restored data.")
         fieldLabel: qsTr("Backup password")
         secret: true
         danger: true

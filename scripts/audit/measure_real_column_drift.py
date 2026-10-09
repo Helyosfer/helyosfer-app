@@ -106,7 +106,7 @@ def measure_business_decisions():
     balance is built up FIRST with enough mutations to produce drift, and the
     boundary decision attempted AFTERWARDS.
     """
-    tempdir = tempfile.TemporaryDirectory(prefix="helysofer-realaudit-")
+    tempdir = tempfile.TemporaryDirectory(prefix="helyosfer-realaudit-")
     root = Path(tempdir.name)
     db_path = root / "finance.db"
     key = os.urandom(32)

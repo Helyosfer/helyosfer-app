@@ -1,6 +1,6 @@
 # Code of conduct
 
-Helysofer welcomes people who contribute code, testing, documentation,
+Helyosfer welcomes people who contribute code, testing, documentation,
 translation, design feedback, and careful bug reports.
 
 ## Expected behavior
@@ -35,4 +35,4 @@ privately as the available GitHub tools allow; no response-time guarantee is
 made.
 
 This code applies to project repositories, issues, pull requests, discussions,
-and other spaces where someone is representing Helysofer.
+and other spaces where someone is representing Helyosfer.

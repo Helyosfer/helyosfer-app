@@ -26,7 +26,7 @@ from typing import cast
 
 from platformdirs import PlatformDirs
 
-APP_NAME = "Helysofer"
+APP_NAME = "Helyosfer"
 
 
 _PRE_RENAME_APP_NAME = base64.b64decode("Zmlub3Jh").decode("ascii")
@@ -71,7 +71,7 @@ def resource_dir() -> str:
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-HOME_OVERRIDE_ENV = "HELYSOFER_HOME"
+HOME_OVERRIDE_ENV = "HELYOSFER_HOME"
 
 
 def _override_root() -> str | None:

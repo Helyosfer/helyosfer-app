@@ -38,7 +38,7 @@ LARGE_MIB = 16
 
 
 def _write_file(path, mebibytes):
-    block = b"helysofer-hash-benchmark-block\n" * 33_000  # ~1 MiB
+    block = b"helyosfer-hash-benchmark-block\n" * 33_000  # ~1 MiB
     block = block[:1024 * 1024]
     with open(path, "wb") as handle:
         for _ in range(mebibytes):
@@ -143,7 +143,7 @@ class BackupWithoutWholeFileReadsTest(unittest.TestCase):
         root = Path(self.tempdir.name)
         self.db_path = root / "finance.db"
         self.key_path = root / "encryption.key"
-        self.package = root / "backup.helysofer-backup"
+        self.package = root / "backup.helyosfer-backup"
         self.key = os.urandom(32)
         self.key_path.write_bytes(self.key)
         os.chmod(self.key_path, 0o600)

@@ -197,15 +197,15 @@ TEXT = {
     "Account name": "Hesap adı",
     "Main account": "Ana hesap",
     "Current balance (₺)": "Güncel bakiye (₺)",
-    "Open Helysofer": "Helysofer'i aç",
+    "Open Helyosfer": "Helyosfer'i aç",
     "Something went wrong. Try again.": "Bir sorun oluştu. Yeniden deneyin.",
     "Nothing was changed. Close this window when you are ready.":
         "Hiçbir şey değiştirilmedi. Hazır olduğunuzda bu pencereyi kapatın.",
     "Backup restored": "Yedek geri yüklendi",
     "Your records, encryption key and settings were replaced with the ones in the backup.":
         "Kayıtlarınız, şifreleme anahtarınız ve ayarlarınız yedektekilerle değiştirildi.",
-    "Close Helysofer and open it again to continue.":
-        "Devam etmek için Helysofer'i kapatıp yeniden açın.",
+    "Close Helyosfer and open it again to continue.":
+        "Devam etmek için Helyosfer'i kapatıp yeniden açın.",
 
     # -- overview ----------------------------------------------------------
     "Search transactions, accounts and categories   Ctrl+K":
@@ -310,9 +310,9 @@ TEXT = {
     "Months": "Ay",
     "Pay automatically each month": "Her ay otomatik öde",
     "On day": "Gün",
-    "Automatic installments are taken from your first account when you open Helysofer "
+    "Automatic installments are taken from your first account when you open Helyosfer "
     "on or after that day.":
-        "Otomatik taksitler, o gün ya da sonrasında Helysofer'i açtığınızda ilk hesabınızdan alınır.",
+        "Otomatik taksitler, o gün ya da sonrasında Helyosfer'i açtığınızda ilk hesabınızdan alınır.",
     "Pay installments": "Taksit öde",
     "Pay off this debt": "Bu borcu kapat",
     "Installments to pay (1–%1)": "Ödenecek taksit sayısı (1–%1)",
@@ -652,7 +652,7 @@ TEXT = {
     "Repeat backup password": "Yedek şifresini yineleyin",
     "Choose where to save": "Kaydedilecek yeri seç",
     "Save backup": "Yedeği kaydet",
-    "Helysofer backup": "Helysofer yedeği",
+    "Helyosfer backup": "Helyosfer yedeği",
     "All files": "Tüm dosyalar",
     "The backup password must be at least 12 characters.": "Yedek şifresi en az 12 karakter olmalı.",
     "The two backup passwords do not match.": "İki yedek şifresi aynı değil.",
@@ -665,14 +665,14 @@ TEXT = {
         "kopyası verilerinizin yanında tutulur.",
     "Choose a backup to restore": "Geri yüklenecek yedeği seçin",
     "Restore this backup?": "Bu yedek geri yüklensin mi?",
-    "Everything on this device is replaced, then Helysofer closes so it can start from "
+    "Everything on this device is replaced, then Helyosfer closes so it can start from "
     "the restored data.":
-        "Bu cihazdaki her şey değiştirilir; ardından Helysofer, geri yüklenen veriyle "
+        "Bu cihazdaki her şey değiştirilir; ardından Helyosfer, geri yüklenen veriyle "
         "başlayabilmek için kapanır.",
     "Backup password": "Yedek şifresi",
     "This backup could not be restored. Check the backup password and that the file is a "
-    "Helysofer backup.":
-        "Bu yedek geri yüklenemedi. Yedek şifresini ve dosyanın bir Helysofer yedeği olduğunu "
+    "Helyosfer backup.":
+        "Bu yedek geri yüklenemedi. Yedek şifresini ve dosyanın bir Helyosfer yedeği olduğunu "
         "kontrol edin.",
     "Import and export": "İçe ve dışa aktarma",
     "Export to CSV": "CSV'ye aktar",
@@ -692,8 +692,8 @@ TEXT = {
         "Her satır kendi tarihiyle bir işlem olarak eklenir ve hesabın bakiyesini değiştirir.",
     "Choose the account the transactions belong to.": "İşlemlerin ait olduğu hesabı seçin.",
     "Imported {0} transactions": "{0} işlem içe aktarıldı",
-    "This file could not be read. Choose a CSV file exported from Helysofer.":
-        "Bu dosya okunamadı. Helysofer'den dışa aktarılmış bir CSV dosyası seçin.",
+    "This file could not be read. Choose a CSV file exported from Helyosfer.":
+        "Bu dosya okunamadı. Helyosfer'den dışa aktarılmış bir CSV dosyası seçin.",
     "The file could not be saved there. Choose another location.":
         "Dosya oraya kaydedilemedi. Başka bir konum seçin.",
     "Choose a file first.": "Önce bir dosya seçin.",

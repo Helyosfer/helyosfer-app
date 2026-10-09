@@ -65,7 +65,7 @@ def main():
     from services.backup_service import _sha256_file
 
     size = args.mib * 1024 * 1024
-    with tempfile.TemporaryDirectory(prefix="helysofer-hash-bench-") as temp:
+    with tempfile.TemporaryDirectory(prefix="helyosfer-hash-bench-") as temp:
         path = Path(temp) / "finance.db"
         chunk = os.urandom(1024 * 1024)
         with open(path, "wb") as handle:

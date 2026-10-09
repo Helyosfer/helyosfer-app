@@ -37,7 +37,7 @@ jobs:
 
       - name: Run test suite
         env:
-          HELYSOFER_HEADLESS: "1"
+          HELYOSFER_HEADLESS: "1"
         run: python run_tests.py
 
   test-windows:
@@ -60,7 +60,7 @@ jobs:
 
       - name: Run test suite
         env:
-          HELYSOFER_HEADLESS: "1"
+          HELYOSFER_HEADLESS: "1"
         run: python run_tests.py
 
   reliability-gates:

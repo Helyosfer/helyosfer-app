@@ -25,7 +25,7 @@ from ui import i18n
 
 ENGLISH, TURKISH = "en", "tr"
 LANGUAGES = ((ENGLISH, "English"), (TURKISH, "Türkçe"))
-OVERRIDE_ENV = "HELYSOFER_LANGUAGE"
+OVERRIDE_ENV = "HELYOSFER_LANGUAGE"
 
 _current = ENGLISH
 

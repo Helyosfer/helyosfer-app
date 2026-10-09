@@ -42,7 +42,7 @@ from utils.crypto import decrypt
 from utils.errors import DecryptionError, KeyUnavailableError
 
 
-CSV_VERSION_COLUMN = "_helysofer_csv_version"
+CSV_VERSION_COLUMN = "_helyosfer_csv_version"
 
 
 CSV_ESCAPE_VERSION = 2
@@ -152,11 +152,11 @@ def get_export_path():
     for candidate in ("Masaüstü", "Desktop"):
         desktop = os.path.join(home, candidate)
         if os.path.isdir(desktop):
-            return os.path.join(desktop, "helysofer_export.csv")
+            return os.path.join(desktop, "helyosfer_export.csv")
 
 
     from utils.app_paths import data_dir
-    return os.path.join(data_dir(), "helysofer_export.csv")
+    return os.path.join(data_dir(), "helyosfer_export.csv")
 
 
 def _dec(value):
@@ -242,7 +242,7 @@ def export_all_to_csv(path=None):
     # existing symlink target.
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    fd, staged = tempfile.mkstemp(prefix=".helysofer-export-", dir=target.parent)
+    fd, staged = tempfile.mkstemp(prefix=".helyosfer-export-", dir=target.parent)
     fd_handed_off = False
     try:
 

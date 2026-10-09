@@ -44,9 +44,9 @@ class RestoreCommittedRecoveryTest(unittest.TestCase):
         self.db_path = root / "finance.db"
         self.key_path = root / "encryption.key"
         self.config_path = root / "config.json"
-        self.package = root / "backup.helysofer-backup"
-        self.safety = root / "safety.helysofer-backup"
-        self.journal = root / ".helysofer-restore"
+        self.package = root / "backup.helyosfer-backup"
+        self.safety = root / "safety.helyosfer-backup"
+        self.journal = root / ".helyosfer-restore"
         self.key = os.urandom(32)
         self.key_path.write_bytes(self.key)
         os.chmod(self.key_path, 0o600)

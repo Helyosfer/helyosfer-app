@@ -18,7 +18,7 @@ did not even increase:
 
     a 1-row file headed KAYIT_TURU -> ([], 0)
 
-The solution: an `_helysofer_csv_version` column. It is carried per row,
+The solution: an `_helyosfer_csv_version` column. It is carried per row,
 because a file may have been edited by hand and its rows shuffled.
 
 """

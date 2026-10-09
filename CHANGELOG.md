@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-Helysofer is in development and has no published release yet.
+Helyosfer is in development and has no published release yet.
 
 - Core domain, persistence, encryption, backup, and recovery layers with their
   test suite.

@@ -1,7 +1,7 @@
 """Builds the Windows package and checks that it starts.
 
-    python scripts/build_windows.py            build dist/Helysofer and check it
-    python scripts/build_windows.py --zip      also write dist/Helysofer-<version>-windows.zip
+    python scripts/build_windows.py            build dist/Helyosfer and check it
+    python scripts/build_windows.py --zip      also write dist/Helyosfer-<version>-windows.zip
     python scripts/build_windows.py --installer  also compile the installer (needs Inno Setup)
 
 PyInstaller is a build tool, not a dependency of the application:
@@ -21,7 +21,7 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACKAGING = os.path.join(ROOT, "packaging")
 DIST = os.path.join(ROOT, "dist")
-PROGRAM = os.path.join(DIST, "Helysofer", "Helysofer.exe")
+PROGRAM = os.path.join(DIST, "Helyosfer", "Helyosfer.exe")
 
 sys.path.insert(0, ROOT)
 from utils.version import APP_VERSION  # noqa: E402
@@ -31,13 +31,13 @@ VSVersionInfo(
   ffi=FixedFileInfo(filevers=({numbers}), prodvers=({numbers})),
   kids=[
     StringFileInfo([StringTable('040904B0', [
-      StringStruct('CompanyName', 'Helysofer'),
-      StringStruct('FileDescription', 'Helysofer'),
+      StringStruct('CompanyName', 'Helyosfer'),
+      StringStruct('FileDescription', 'Helyosfer'),
       StringStruct('FileVersion', '{version}'),
-      StringStruct('InternalName', 'Helysofer'),
-      StringStruct('LegalCopyright', 'Copyright 2026 Helysofer. Apache License 2.0.'),
-      StringStruct('OriginalFilename', 'Helysofer.exe'),
-      StringStruct('ProductName', 'Helysofer'),
+      StringStruct('InternalName', 'Helyosfer'),
+      StringStruct('LegalCopyright', 'Copyright 2026 Helyosfer. Apache License 2.0.'),
+      StringStruct('OriginalFilename', 'Helyosfer.exe'),
+      StringStruct('ProductName', 'Helyosfer'),
       StringStruct('ProductVersion', '{version}'),
     ])]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])]),
@@ -62,7 +62,7 @@ def build() -> None:
         [
             sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
             "--distpath", DIST, "--workpath", os.path.join(PACKAGING, "build", "work"),
-            os.path.join(PACKAGING, "helysofer.spec"),
+            os.path.join(PACKAGING, "helyosfer.spec"),
         ],
         cwd=ROOT, check=True,
     )
@@ -137,8 +137,8 @@ def check_starts(seconds: float = 12.0) -> None:
     and counts as a failure too: an interface file that could not be loaded
     is reported there and nowhere else.
     """
-    home = tempfile.mkdtemp(prefix="helysofer-package-")
-    env = dict(os.environ, HELYSOFER_HOME=home)
+    home = tempfile.mkdtemp(prefix="helyosfer-package-")
+    env = dict(os.environ, HELYOSFER_HOME=home)
     report = os.path.join(home, "startup.txt")
     started = time.monotonic()
     with open(report, "wb") as output:
@@ -163,7 +163,7 @@ def check_starts(seconds: float = 12.0) -> None:
         raise SystemExit(
             f"The package closed after {time.monotonic() - started:.1f} s with code {code}.\n{said}"
         )
-    if "Helysofer" not in titles:
+    if "Helyosfer" not in titles:
         raise SystemExit(f"The package ran but showed no window (windows: {titles}).\n{said}")
     if said:
         raise SystemExit(f"The package started with complaints:\n{said}")
@@ -189,14 +189,14 @@ def check_price_worker() -> None:
 
     fd, output = tempfile.mkstemp(suffix=".json")
     os.close(fd)
-    home = tempfile.mkdtemp(prefix="helysofer-package-")
+    home = tempfile.mkdtemp(prefix="helyosfer-package-")
     request = [{"id": 1, "asset_name": "USD", "asset_code": "USD", "asset_type": "D\u00f6viz",
                 "purchase_price": 1.0, "quantity": 1.0}]
     try:
         done = subprocess.run(
             [PROGRAM, "--price-worker", output],
             input=json.dumps(request, ensure_ascii=False).encode("utf-8"),
-            env=dict(os.environ, HELYSOFER_HOME=home, HELYSOFER_ASSET_PRICE_CHILD="1"),
+            env=dict(os.environ, HELYOSFER_HOME=home, HELYOSFER_ASSET_PRICE_CHILD="1"),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120, check=False,
         )
         with open(output, encoding="utf-8") as stream:
@@ -215,8 +215,8 @@ def check_price_worker() -> None:
 
 
 def make_zip() -> str:
-    target = os.path.join(DIST, f"Helysofer-{APP_VERSION}-windows")
-    path = shutil.make_archive(target, "zip", DIST, "Helysofer")
+    target = os.path.join(DIST, f"Helyosfer-{APP_VERSION}-windows")
+    path = shutil.make_archive(target, "zip", DIST, "Helyosfer")
     print(f"Wrote {path} ({os.path.getsize(path) / 2**20:.0f} MB).")
     return path
 
@@ -247,7 +247,7 @@ def main() -> None:
         raise SystemExit("The Windows package is built on Windows.")
     if not options.skip_build:
         build()
-    print(f"dist/Helysofer is {folder_size(os.path.dirname(PROGRAM)) / 2**20:.0f} MB.")
+    print(f"dist/Helyosfer is {folder_size(os.path.dirname(PROGRAM)) / 2**20:.0f} MB.")
     check_libraries()
     check_starts()
     check_itself()

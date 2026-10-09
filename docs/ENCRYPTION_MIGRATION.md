@@ -1,6 +1,6 @@
 # Legacy encryption migration
 
-Helysofer writes new records in the `AEADv1` (AES-256-GCM) format. AES-CBC
+Helyosfer writes new records in the `AEADv1` (AES-256-GCM) format. AES-CBC
 records from older installations remain readable, but they have no integrity
 authentication and must be migrated through the controlled process.
 
@@ -24,7 +24,7 @@ The security sequence is:
 The migration is repeatable. Fields prefixed with `AEADv1:` are skipped; when
 no legacy fields remain, neither the database nor backup files are modified.
 
-A second Helysofer instance cannot use the same profile during migration. The
+A second Helyosfer instance cannot use the same profile during migration. The
 single-instance lock is acquired before migration begins.
 
 ## Conditions for removing the legacy reader

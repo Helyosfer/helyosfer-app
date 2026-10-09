@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from utils.errors import HelysoferError
+from utils.errors import HelyosferError
 from contextlib import closing
 from datetime import date
 
@@ -21,7 +21,7 @@ class NonFiniteServiceMatrix(_TemporaryProfile):
         caught = None
         try:
             account_id = AccountService.create_account("Inf open", "checking", float("inf"))
-        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelysoferError) as exc:
+        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelyosferError) as exc:
             caught = exc
             account_id = None
         print(f"AUDIT_STATE nonfinite_account caught={type(caught).__name__ if caught else 'NONE'} id={account_id}")
@@ -35,7 +35,7 @@ class NonFiniteServiceMatrix(_TemporaryProfile):
         caught = None
         try:
             SavingsService.deposit_to_goal(goal_id, float("inf"), account_id)
-        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelysoferError) as exc:
+        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelyosferError) as exc:
             caught = exc
         with closing(sqlite3.connect(self.db_path)) as conn:
             goal = conn.execute("SELECT current_amount FROM savings_goals WHERE id=?", (goal_id,)).fetchone()[0]
@@ -50,7 +50,7 @@ class NonFiniteServiceMatrix(_TemporaryProfile):
         caught = None
         try:
             AssetPurchaseService.create_purchase(asset_name="Inf", asset_code="INF", asset_type="Altın", purchase_price=float("inf"), quantity=1, account_id=account_id)
-        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelysoferError) as exc:
+        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelyosferError) as exc:
             caught = exc
         print(f"AUDIT_STATE nonfinite_asset caught={type(caught).__name__ if caught else 'NONE'} before={before} after={self._counts()} balance={self.balance(account_id)!r}")
         self.assertIsNotNone(caught)
@@ -71,7 +71,7 @@ class NonFiniteServiceMatrix(_TemporaryProfile):
         caught = None
         try:
             insert_recurring_payment("Inf recurring", float("inf"), "Inf", "monthly", date.today().isoformat(), False, account_id=account_id, recurrence_day=date.today().day)
-        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelysoferError) as exc:
+        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelyosferError) as exc:
             caught = exc
         print(f"AUDIT_STATE nonfinite_recurring_insert caught={type(caught).__name__ if caught else 'NONE'} before={before} after={self._counts()}")
         self.assertIsNotNone(caught)
@@ -88,7 +88,7 @@ class NonFiniteServiceMatrix(_TemporaryProfile):
         caught = None
         try:
             process_due_recurring_payment(payment)
-        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelysoferError) as exc:
+        except (ValueError, TypeError, ArithmeticError, sqlite3.Error, OSError, HelyosferError) as exc:
             caught = exc
         print(f"AUDIT_STATE nonfinite_recurring caught={type(caught).__name__ if caught else 'NONE'} before={before} after={self._counts()} balance={self.balance(account_id)!r}")
         self.assertIsNotNone(caught)

@@ -41,7 +41,7 @@ AuthFrame {
 
     PrimaryButton {
         width: parent.width
-        text: qsTr("Open Helysofer")
+        text: qsTr("Open Helyosfer")
         enabled: name.text.trim().length > 0
         onClicked: submit()
     }

@@ -30,7 +30,7 @@ class StartupRecoveryContractTest(unittest.TestCase):
         self.root = Path(self.tempdir.name)
         self.db_path = self.root / "finance.db"
         self.db_path.write_bytes(b"eski-db")
-        self.journal = self.root / ".helysofer-restore"
+        self.journal = self.root / ".helyosfer-restore"
 
     def tearDown(self):
         self.tempdir.cleanup()

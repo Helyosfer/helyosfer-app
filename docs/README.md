@@ -1,4 +1,4 @@
-# Helysofer documentation
+# Helyosfer documentation
 
 Start with the [project README](../README.md) for the overview and current
 status.

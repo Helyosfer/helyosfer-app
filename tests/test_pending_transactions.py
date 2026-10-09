@@ -270,7 +270,7 @@ class PendingTransactionTestCase(unittest.TestCase):
         user's rent or salary went unprocessed there was not a single trace
         left. The test is expected to pass with the handler as
         `except Exception` too -- what it really verifies is that the NARROWED
-        set (`sqlite3.Error, ValueError, HelysoferError`) still catches the
+        set (`sqlite3.Error, ValueError, HelyosferError`) still catches the
         error that actually occurs: `adjust_account_balance` raises ValueError
         for a non-existent account and that exception MUST NOT KILL the
         loop.

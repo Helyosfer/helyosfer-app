@@ -81,7 +81,7 @@ Rectangle {
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "Helysofer"
+                    text: "Helyosfer"
                     color: Theme.text
                     font.family: Theme.uiFont
                     font.pixelSize: 14

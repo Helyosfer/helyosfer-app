@@ -114,7 +114,7 @@ def main():
     parser.add_argument("--repeats", type=int, default=15)
     args = parser.parse_args()
 
-    with tempfile.TemporaryDirectory(prefix="helysofer-index-bench-") as temp:
+    with tempfile.TemporaryDirectory(prefix="helyosfer-index-bench-") as temp:
         path = str(Path(temp) / "finance.db")
         _seed(path, args.rows, args.accounts)
         print(f"{args.rows:,} işlem / {args.accounts} hesap "
