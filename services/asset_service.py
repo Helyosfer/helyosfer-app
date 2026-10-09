@@ -698,7 +698,11 @@ def fetch_portfolio_with_prices(assets: list, callback, item_callback=None,
                 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 proc = subprocess.run(
                     [sys.executable, "-m", "services.asset_price_worker", output_path],
+                    # Asset kinds carry non-ASCII letters. Both ends name the
+                    # encoding: left to the locale, parent and child can
+                    # disagree and the child then rejects the whole request.
                     input=json.dumps(assets, ensure_ascii=False), text=True,
+                    encoding="utf-8", errors="replace",
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     timeout=70, check=False, env=env, cwd=project_root,
                 )

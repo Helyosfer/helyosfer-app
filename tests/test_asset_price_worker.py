@@ -63,6 +63,39 @@ class SubprocessInvocationTest(unittest.TestCase):
         captured, _ = self._run_isolated(fake_proc)
         self.assertEqual(captured["kwargs"].get("cwd"), PROJECT_ROOT)
 
+    def test_the_request_is_sent_as_utf8_whatever_the_locale(self):
+        """Asset kinds carry non-ASCII letters; a locale-encoded request is
+        rejected by a child that reads UTF-8, and every price is lost."""
+        fake_proc = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout="", stderr="")
+        captured, _ = self._run_isolated(fake_proc)
+        self.assertEqual(captured["kwargs"].get("encoding"), "utf-8")
+
+    def test_the_worker_reads_its_request_as_utf8(self):
+        import io as _io
+        import json
+        import tempfile
+
+        import services.asset_price_worker as worker
+
+        request = [{"id": 1, "asset_code": "USD", "asset_type": "Döviz",
+                    "asset_name": "Altın", "quantity": 1, "purchase_price": 1.0}]
+        seen = []
+
+        def fake_fetch(assets, callback):
+            seen.append(assets)
+            callback(assets)
+
+        stdin = mock.Mock()
+        stdin.buffer = _io.BytesIO(json.dumps(request, ensure_ascii=False).encode("utf-8"))
+        with tempfile.TemporaryDirectory() as folder:
+            output = os.path.join(folder, "out.json")
+            with mock.patch.object(sys, "stdin", stdin),                  mock.patch.object(sys, "argv", ["worker", output]),                  mock.patch.dict(os.environ),                  mock.patch("services.asset_service.fetch_portfolio_with_prices", fake_fetch):
+                worker.main()
+            with open(output, encoding="utf-8") as stream:
+                self.assertEqual(json.load(stream), request)
+        self.assertEqual(seen, [request])
+
     def test_subprocess_captures_streams_not_devnull(self):
         """stderr must be visible: PIPE, not DEVNULL."""
         fake_proc = subprocess.CompletedProcess(
