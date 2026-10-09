@@ -36,7 +36,10 @@ a second computer, where it runs. Not yet tried by anyone but the author.
    window came up in under a second, everything it loaded came from its own
    folder or from Windows, and a price was fetched. Both computers run the
    same build of Windows 11 in English; Windows 10 and a computer set to
-   Turkish have not been tried. What the build itself checks: the package
+   Turkish have not been tried. On such a computer the interface starts in
+   Turkish when either Windows is displayed in Turkish or Turkish is its
+   regional format; that rule is tested, the computer is not. What the build
+   itself checks: the package
    builds (`python scripts/build_windows.py --zip`), and on the build
    computer it was driven with real keyboard and mouse input through setup,
    every section, saving a transaction, and a CSV, a PDF, a backup and a

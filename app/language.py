@@ -30,11 +30,35 @@ OVERRIDE_ENV = "HELYOSFER_LANGUAGE"
 _current = ENGLISH
 
 
+def _windows_shows_turkish() -> bool:
+    """True when Windows itself is displayed in Turkish.
+
+    The display language and the regional format are two settings. The
+    locale only reports the second, so a Turkish Windows that formats dates
+    the English way would otherwise be taken for an English one.
+    """
+    if os.name != "nt":
+        return False
+    try:
+        import ctypes
+
+        # The low ten bits are the language; 0x1F is Turkish.
+        return ctypes.windll.kernel32.GetUserDefaultUILanguage() & 0x3FF == 0x1F
+    except (AttributeError, OSError):
+        return False
+
+
 def system_language() -> str:
-    """Turkish on a computer set to Turkish, English everywhere else."""
+    """Turkish on a computer set to Turkish, English everywhere else.
+
+    Either setting counts: Windows displayed in Turkish, or Turkish chosen
+    as the regional format.
+    """
     forced = os.environ.get(OVERRIDE_ENV, "").strip().lower()
     if forced in (ENGLISH, TURKISH):
         return forced
+    if _windows_shows_turkish():
+        return TURKISH
     try:
         name = locale.getlocale()[0] or ""
     except (ValueError, TypeError):

@@ -197,8 +197,28 @@ class LanguageSwitchTest(unittest.TestCase):
              mock.patch("locale.getlocale", return_value=("Turkish_Türkiye", "1254")):
             self.assertEqual(language.system_language(), "tr")
         with mock.patch.dict(os.environ, {language.OVERRIDE_ENV: ""}), \
+             mock.patch("app.language._windows_shows_turkish", return_value=False), \
              mock.patch("locale.getlocale", return_value=("en_US", "UTF-8")):
             self.assertEqual(language.system_language(), "en")
+        # Windows displayed in Turkish counts even when dates and numbers are
+        # formatted the English way; the locale reports only the format.
+        with mock.patch.dict(os.environ, {language.OVERRIDE_ENV: ""}), \
+             mock.patch("app.language._windows_shows_turkish", return_value=True), \
+             mock.patch("locale.getlocale", return_value=("English_United Kingdom", "1252")):
+            self.assertEqual(language.system_language(), "tr")
+
+    def test_the_display_language_of_windows_is_read_from_its_low_bits(self):
+        import os
+        from unittest import mock
+
+        if os.name != "nt":
+            self.assertFalse(language._windows_shows_turkish())
+            return
+        for identifier, expected in ((0x041F, True), (0x0409, False), (0x0809, False)):
+            with self.subTest(identifier=hex(identifier)), mock.patch(
+                "ctypes.windll.kernel32.GetUserDefaultUILanguage", return_value=identifier,
+            ):
+                self.assertEqual(language._windows_shows_turkish(), expected)
 
 
 if __name__ == "__main__":
