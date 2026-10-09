@@ -202,6 +202,7 @@ Flickable {
                     height: 220
                     values: dashboard.series
                     labels: dashboard.seriesLabels
+                    directional: true
                 }
 
                 Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }

@@ -10,12 +10,21 @@ Item {
     property var compare: []
     property var labels: []
     property string emptyText: "Not enough history to draw yet"
+    // With `directional`, the line takes the gain or loss color of the span
+    // it covers, last point against first; otherwise it is the accent.
+    property bool directional: false
+    readonly property color stroke: {
+        if (!directional || values.length < 2) return Theme.accent
+        var change = values[values.length - 1] - values[0]
+        return change > 0 ? Theme.up : change < 0 ? Theme.down : Theme.accent
+    }
 
     readonly property real padLeft: 52
     readonly property real padBottom: 22
     readonly property real padTop: 8
 
     onValuesChanged: canvas.requestPaint()
+    onStrokeChanged: canvas.requestPaint()
     onCompareChanged: canvas.requestPaint()
     onWidthChanged: canvas.requestPaint()
     onHeightChanged: canvas.requestPaint()
@@ -95,8 +104,8 @@ Item {
             }
 
             var fade = ctx.createLinearGradient(0, top, 0, top + plotHeight)
-            fade.addColorStop(0, Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22))
-            fade.addColorStop(1, Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0))
+            fade.addColorStop(0, Qt.rgba(root.stroke.r, root.stroke.g, root.stroke.b, 0.22))
+            fade.addColorStop(1, Qt.rgba(root.stroke.r, root.stroke.g, root.stroke.b, 0))
             ctx.beginPath()
             ctx.moveTo(px(0), py(points[0]))
             for (var a = 1; a < points.length; a++) ctx.lineTo(px(a), py(points[a]))
@@ -118,7 +127,7 @@ Item {
             ctx.beginPath()
             ctx.moveTo(px(0), py(points[0]))
             for (var b = 1; b < points.length; b++) ctx.lineTo(px(b), py(points[b]))
-            ctx.strokeStyle = Theme.accent
+            ctx.strokeStyle = root.stroke
             ctx.lineWidth = 1.75
             ctx.lineJoin = "round"
             ctx.stroke()
