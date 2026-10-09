@@ -289,6 +289,7 @@ EN = {
     "İşlem tarihi geçersiz.": "Enter a valid date.",
     "Bu kategori bu işlem türü için kullanılamaz.": "Choose a category from the list.",
     "Kategori bulunamadı.": "This category no longer exists.",
+    "Kayıtların taşınacağı kategori geçersiz.": "Choose the category that takes over its records.",
     "Hazır kategoriler değiştirilemez.": "Built-in categories cannot be renamed or removed.",
     "Bu kategori kullanımda olduğu için silinemez. Yeniden adlandırabilirsiniz.":
         "This category is in use, so it cannot be removed. You can rename it instead.",

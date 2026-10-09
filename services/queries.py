@@ -38,14 +38,30 @@ MAX_CATEGORY_NAME_LENGTH = 40
 CATEGORY_TYPES = ("income", "expense")
 
 
+# Every place a category is stored by name.
+_CATEGORY_COLUMNS = (
+    ("transactions", "category"),
+    ("monthly_budget_plan", "category_name"),
+    ("recurring_payments", "category"),
+)
+
+
 def list_categories():
-    """Every category as {category, type, importance, custom}, in stored order."""
+    """Every category as {category, type, importance, custom, in_use}, in stored order."""
     with managed_connection() as conn:
         rows = conn.execute(
             "SELECT name, type, IFNULL(importance, 'extra'), custom FROM categories ORDER BY id"
         ).fetchall()
+        used = set()
+        for table, column in _CATEGORY_COLUMNS:
+            used.update(
+                found[0] for found in conn.execute(
+                    f"SELECT DISTINCT {column} FROM {table}"  # nosec B608
+                ).fetchall()
+            )
     return [
-        {"category": row[0], "type": row[1], "importance": row[2], "custom": bool(row[3])}
+        {"category": row[0], "type": row[1], "importance": row[2], "custom": bool(row[3]),
+         "in_use": row[0] in used}
         for row in rows
     ]
 
@@ -69,14 +85,6 @@ def _own_category(conn, name):
     if not row[2]:
         raise ValueError("Hazır kategoriler değiştirilemez.")
     return row
-
-
-# Every place a category is stored by name.
-_CATEGORY_COLUMNS = (
-    ("transactions", "category"),
-    ("monthly_budget_plan", "category_name"),
-    ("recurring_payments", "category"),
-)
 
 
 def rename_category(name, new_name):
@@ -105,20 +113,46 @@ def rename_category(name, new_name):
     return new_name
 
 
-def delete_category(name):
-    """Removes a category the user added, as long as nothing is filed under it."""
+def delete_category(name, move_to=None):
+    """Removes a category the user added.
+
+    While something is filed under it, it can only go together with those
+    records: `move_to` names the category of the same kind that takes them
+    over. Without it a category in use is refused.
+    """
     with managed_connection() as conn:
         row = _own_category(conn, name)
-        for table, column in _CATEGORY_COLUMNS:
-            used = conn.execute(
+        used = any(
+            conn.execute(
                 f"SELECT 1 FROM {table} WHERE {column} = ? LIMIT 1", (name,)  # nosec B608
+            ).fetchone() is not None
+            for table, column in _CATEGORY_COLUMNS
+        )
+        if used and not move_to:
+            raise ValueError(
+                "Bu kategori kullanımda olduğu için silinemez. Yeniden adlandırabilirsiniz."
+            )
+        if used:
+            from services.transaction_edit_service import SYSTEM_CATEGORIES
+
+            kind = conn.execute(
+                "SELECT type FROM categories WHERE id = ?", (row[0],)).fetchone()[0]
+            target = conn.execute(
+                "SELECT name FROM categories WHERE name = ? AND type = ?", (move_to, kind)
             ).fetchone()
-            if used is not None:
-                raise ValueError(
-                    "Bu kategori kullanımda olduğu için silinemez. Yeniden adlandırabilirsiniz."
+            if target is None or move_to == name or move_to in SYSTEM_CATEGORIES:
+                raise ValueError("Kayıtların taşınacağı kategori geçersiz.")
+            for table, column in _CATEGORY_COLUMNS:
+                conn.execute(
+                    f"UPDATE {table} SET {column} = ? WHERE {column} = ?",  # nosec B608
+                    (move_to, name),
                 )
         conn.execute("DELETE FROM categories WHERE id = ?", (row[0],))
         conn.commit()
+    if used:
+        from services.asset_service import mark_financial_data_changed
+
+        mark_financial_data_changed()
     return True
 
 

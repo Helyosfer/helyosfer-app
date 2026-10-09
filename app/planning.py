@@ -8,7 +8,7 @@ from PySide6.QtCore import Property, Signal, Slot
 
 from app.accounts import FormError, read_amount
 from app.controllers import format_amount, short_date
-from app.language import say, tr
+from app.language import percent, say, tr
 from app.payments import _Listing, read_day
 from services.background_task_manager import BackgroundTaskManager
 
@@ -77,7 +77,7 @@ class SavingsController(_Listing):
                 "targetText": f"{format_amount(wanted)} ₺",
                 "remainingText": f"{format_amount(remaining)} ₺",
                 "progress": min(1.0, current / wanted) if wanted > 0 else 0.0,
-                "percent": f"{min(100.0, current / wanted * 100):.0f} %" if wanted > 0 else "",
+                "percent": percent(min(100.0, current / wanted * 100)) if wanted > 0 else "",
                 "due": due,
                 "pace": pace,
                 "done": done,
@@ -172,6 +172,7 @@ class CategoriesController(_Listing):
                     "kind": row["type"],
                     "essential": row["importance"] == "main",
                     "custom": row["custom"],
+                    "inUse": row["in_use"],
                 }
                 for row in rows
             ),
@@ -197,6 +198,18 @@ class CategoriesController(_Listing):
         from services.queries import delete_category
 
         self._mutate(lambda: delete_category(key), announce=False)
+
+    @Slot(str, str)
+    def removeAndMove(self, key, target):
+        """Removes a category in use; what is filed under it goes to `target`."""
+        from services.queries import delete_category
+
+        def work():
+            if not target:
+                raise FormError(say("Choose the category that takes over its records."))
+            delete_category(key, move_to=target)
+
+        self._mutate(work)
 
     @Slot(str, bool)
     def setEssential(self, key, essential):

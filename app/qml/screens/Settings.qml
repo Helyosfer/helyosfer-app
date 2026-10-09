@@ -288,7 +288,10 @@ Item {
                                 compact: true
                                 text: qsTr("Remove")
                                 enabled: !categories.busy
-                                onClicked: categories.remove(categoryRow.modelData.key)
+                                onClicked: {
+                                    if (categoryRow.modelData.inUse) moveDialog.openFor(categoryRow.modelData)
+                                    else categories.remove(categoryRow.modelData.key)
+                                }
                             }
                         }
                         Toggle {
@@ -501,6 +504,51 @@ Item {
         fileMode: FileDialog.OpenFile
         nameFilters: [qsTr("Helysofer backup") + " (*" + settings.backupSuffix + ")", qsTr("All files") + " (*)"]
         onAccepted: restorePrompt.openFor({ file: selectedFile.toString() }, "")
+    }
+
+    Sheet {
+        id: moveDialog
+        objectName: "moveDialog"
+        property var subject: null
+        title: subject ? qsTr("Remove %1?").arg(subject.name) : ""
+        subtitle: qsTr("Transactions, plan items and recurring payments are filed under it. Choose the category that takes them over.")
+
+        function openFor(item) {
+            subject = item
+            categories.clearMessage()
+            successor.select("")
+            open()
+        }
+
+        Connections {
+            target: categories
+            function onSaved() { if (moveDialog.visible) moveDialog.close() }
+        }
+
+        Choice {
+            id: successor
+            width: parent.width
+            label: qsTr("Move its records to")
+            placeholder: qsTr("Choose a category")
+            model: moveDialog.subject
+                ? (transactions.categoryRevision, transactions.categories(moveDialog.subject.kind)).filter(
+                      function (option) { return option.key !== moveDialog.subject.key })
+                : []
+        }
+        Notice { width: parent.width; text: categories.message }
+
+        footer: [
+            PrimaryButton { quiet: true; text: qsTr("Cancel"); onClicked: moveDialog.close() },
+            PrimaryButton {
+                quiet: true
+                danger: true
+                text: categories.busy ? qsTr("Working…") : qsTr("Move and remove")
+                enabled: !categories.busy
+                onClicked: categories.removeAndMove(
+                    moveDialog.subject.key,
+                    successor.currentKey === undefined ? "" : successor.currentKey)
+            }
+        ]
     }
 
     Prompt {

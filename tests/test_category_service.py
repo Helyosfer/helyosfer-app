@@ -141,6 +141,41 @@ class CategoryServiceTest(unittest.TestCase):
                     delete_category(name)
         self.assertIsNotNone(self._category("Evcil bakıcı"))
 
+    def test_the_list_says_which_categories_are_in_use(self):
+        from services.queries import add_category
+
+        add_category("Evcil bakıcı", "expense")
+        self.assertFalse(self._category("Evcil bakıcı")["in_use"])
+        self._file_under("Evcil bakıcı")
+        self.assertTrue(self._category("Evcil bakıcı")["in_use"])
+        self.assertFalse(self._category("Maaş")["in_use"])
+
+    def test_a_category_in_use_goes_when_its_records_are_moved(self):
+        from database.db import get_connection
+        from services.queries import add_category, delete_category
+
+        add_category("Evcil bakıcı", "expense")
+        self._file_under("Evcil bakıcı")
+        self.assertTrue(delete_category("Evcil bakıcı", move_to="Taksi"))
+        self.assertIsNone(self._category("Evcil bakıcı"))
+        conn = get_connection()
+        try:
+            filed = [row[0] for row in conn.execute("SELECT category FROM transactions")]
+        finally:
+            conn.close()
+        self.assertEqual(filed, ["Taksi"])
+
+    def test_records_only_move_to_a_real_category_of_the_same_kind(self):
+        from services.queries import add_category, delete_category
+
+        add_category("Evcil bakıcı", "expense")
+        self._file_under("Evcil bakıcı")
+        for target in ("Maaş", "Yok Böyle", "Evcil bakıcı", "Kredi Taksiti"):
+            with self.subTest(target=target):
+                with self.assertRaises(ValueError):
+                    delete_category("Evcil bakıcı", move_to=target)
+        self.assertTrue(self._category("Evcil bakıcı")["in_use"])
+
     def test_changing_importance_ages_the_derived_figures(self):
         from services.asset_service import get_financial_data_revision
         from services.queries import set_category_importance
