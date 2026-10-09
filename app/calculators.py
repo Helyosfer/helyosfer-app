@@ -17,6 +17,9 @@ from utils.logging_config import get_logger
 LOAN_KINDS = (("consumer", later("Consumer (up to 36 months)")),
               ("vehicle", later("Vehicle (up to 48 months)")),
               ("housing", later("Housing (up to 120 months)")))
+# Printed on the schedule PDF and nowhere on screen; named here so that the
+# Turkish table is required to have them.
+_PDF_ONLY = (later("Loan repayment schedule"), later("Loan amount"), later("Total deducted"))
 _UPFRONT_LABELS = {
     "allocation_fee": later("Allocation fee (with tax)"),
     "insurance": later("Life insurance (estimate)"),
@@ -213,9 +216,12 @@ class LoanController(_Mutating):
         self._set_busy(True)
 
         def work():
-            from services.loan_report import write_loan_schedule_pdf
+            from services.loan_report import PRINTED_TEXT, write_loan_schedule_pdf
 
-            return write_loan_schedule_pdf(local_path(url, ".pdf"), result, principal=principal)
+            return write_loan_schedule_pdf(
+                local_path(url, ".pdf"), result, principal=principal,
+                labels={text: say(text) for text in PRINTED_TEXT},
+            )
 
         def done(path):
             import os
