@@ -173,14 +173,22 @@ class BudgetController(_Monthly):
     def addItem(self, kind, name, amount_text, category, every_month):
         self.saveItem(-1, kind, name, amount_text, category, every_month, False, "80")
 
+    @Slot(int, str, str, str, str, bool, str)
+    def saveItemOnward(self, item_id, kind, name, amount_text, category,
+                       rollover, threshold_text):
+        """Changes a repeating item for the month shown and all that follow."""
+        self.saveItem(item_id, kind, name, amount_text, category, True,
+                      rollover, threshold_text, onward=True)
+
     @Slot(int, str, str, str, str, bool, bool, str)
     def saveItem(self, item_id, kind, name, amount_text, category, every_month,
-                 rollover, threshold_text):
+                 rollover, threshold_text, onward=False):
         """Adds an item (`item_id` -1) or changes an existing one.
 
         Changing an item that repeats every month changes this month only:
         the service stores it as this month's own item, which takes the
-        repeating one's place.
+        repeating one's place. `saveItemOnward` changes the months after it
+        as well.
         """
         month, year = self._month, self._year
         was_repeating = any(
@@ -202,6 +210,7 @@ class BudgetController(_Monthly):
                 ),
                 item_id=item_id if item_id >= 0 else None,
                 editing_a_template=was_repeating,
+                from_this_month_on=onward and was_repeating,
             )
 
         self._notice = ""

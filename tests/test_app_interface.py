@@ -245,11 +245,12 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertEqual(form.property("locked"), "")
         self.assertEqual(form.property("chosenAccount"), main["id"])
         self.assertEqual(form.property("chosenCategory"), "Taksi")
-        self.transactions.update(ride["id"], "", "Taksi", "Night ride", "")
+        self.transactions.update(ride["id"], "expense", "", main["id"], "Taksi", "Night ride", "")
         self._settle()
         self.assertEqual(self.transactions.message, "Enter the amount.")
         self.assertTrue(form.property("visible"))
-        self.transactions.update(ride["id"], "65,50", "Süpermarket", "Late shop", "")
+        self.transactions.update(
+            ride["id"], "expense", "65,50", main["id"], "Süpermarket", "Late shop", "")
         self._settle()
         self.assertEqual(self.transactions.message, "")
         self.assertFalse(form.property("visible"))
@@ -529,6 +530,13 @@ class InterfaceSmokeTest(unittest.TestCase):
 
         salary = next(i for i in self.budget.items if i["name"] == "Salary")
         self.assertTrue(salary["everyMonth"])
+        # A raise from this month on: it still repeats, at the new amount.
+        self.budget.saveItemOnward(salary["id"], "income", "Salary", "5.200", "Maaş", False, "80")
+        self._settle()
+        self.assertEqual(self.budget.message, "")
+        salary = next(i for i in self.budget.items if i["name"] == "Salary")
+        self.assertTrue(salary["everyMonth"])
+        self.assertEqual(salary["amountText"], "5.200,00 ₺")
         self.budget.saveItem(salary["id"], "income", "Salary", "5.500", "Maaş", False, False, "80")
         self._settle()
         salary = next(i for i in self.budget.items if i["name"] == "Salary")
@@ -536,9 +544,10 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertFalse(salary["everyMonth"])
         self.assertEqual(self.budget.incomeText, "5.500,00 ₺")
 
+        # The month's own change stays there; the raise carries on.
         self.budget.next()
         self._settle()
-        self.assertEqual(self.budget.incomeText, "5.000,00 ₺")
+        self.assertEqual(self.budget.incomeText, "5.200,00 ₺")
         carried = next(
             (row for row in self.budget.progress if row["category"] == "Groceries"), None
         )

@@ -470,6 +470,9 @@ TEXT = {
     "Groceries": "Market",
     "Category (optional)": "Kategori (isteğe bağlı)",
     "Use this for every month": "Her ay için kullan",
+    "Change the following months as well": "Sonraki ayları da değiştir",
+    "This item repeats every month. Your change applies from %1 on.":
+        "Bu kalem her ay tekrarlanıyor. Değişikliğiniz %1 ve sonraki aylar için geçerli olur.",
     "Carry what is left into next month": "Kalanı sonraki aya devret",
     "Warn at (%)": "Uyarı eşiği (%)",
 

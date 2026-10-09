@@ -12,7 +12,9 @@ Sheet {
 
     title: editing ? qsTr("Edit plan item") : qsTr("Add plan item")
     subtitle: editing && editing.everyMonth
-        ? qsTr("This item repeats every month. Your change applies to %1 only.").arg(budget.monthTitle)
+        ? (onward.checked
+           ? qsTr("This item repeats every month. Your change applies from %1 on.").arg(budget.monthTitle)
+           : qsTr("This item repeats every month. Your change applies to %1 only.").arg(budget.monthTitle))
         : qsTr("For %1. Give spending a category to track it against what you actually spend.").arg(budget.monthTitle)
 
     function openFresh() {
@@ -35,6 +37,7 @@ Sheet {
         name.text = item.name
         amount.text = item.amountForm
         everyMonth.checked = false
+        onward.checked = false
         rollover.checked = item.rollover
         threshold.text = item.threshold.toString()
         category.select(item.categoryKey)
@@ -44,6 +47,12 @@ Sheet {
     }
 
     function submit() {
+        if (editing && editing.everyMonth && onward.checked) {
+            budget.saveItemOnward(editing.id, kind, name.text, amount.text,
+                                  category.currentKey === undefined ? "" : category.currentKey,
+                                  rollover.checked, threshold.text)
+            return
+        }
         budget.saveItem(editing ? editing.id : -1, kind, name.text, amount.text,
                         category.currentKey === undefined ? "" : category.currentKey,
                         everyMonth.checked, rollover.checked, threshold.text)
@@ -95,6 +104,12 @@ Sheet {
         id: everyMonth
         visible: root.editing === null
         text: qsTr("Use this for every month")
+    }
+
+    Toggle {
+        id: onward
+        visible: root.editing !== null && root.editing.everyMonth
+        text: qsTr("Change the following months as well")
     }
 
     Row {

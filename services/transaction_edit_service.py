@@ -32,6 +32,7 @@ UNREADABLE = "Bu kayıt okunamadığı için değiştirilemez."
 FUTURE = "İşlem tarihi gelecekte olamaz."
 BAD_DATE = "İşlem tarihi geçersiz."
 BAD_CATEGORY = "Bu kategori bu işlem türü için kullanılamaz."
+BAD_KIND = "İşlem türü geçersiz."
 
 _OPPOSITE = {"income": "expense", "expense": "income"}
 
@@ -140,11 +141,12 @@ def _stamp(transaction_date, previous: str) -> str:
     return f"{day.isoformat()} {clock}"
 
 
-def update_transaction(transaction_id, amount, category, description, transaction_date) -> dict:
+def update_transaction(transaction_id, amount, category, description, transaction_date,
+                       account_id=None, kind=None) -> dict:
     """Rewrites a transaction's amount, category, description and date.
 
-    The account and the direction stay as they are; moving a transaction to
-    another account is a removal and a new entry.
+    With `account_id` it moves to that account, and with `kind` it turns from
+    spending into income or back. Left out, both stay as they are.
     """
     amount = fiat(amount)
     if amount <= 0:
@@ -159,7 +161,10 @@ def update_transaction(transaction_id, amount, category, description, transactio
         current = _load(cursor, transaction_id)
         if current["locked"]:
             raise ValueError(current["locked"])
-        kind, account_id = current["type"], current["account_id"]
+        kind = current["type"] if kind is None else str(kind)
+        if kind not in _OPPOSITE:
+            raise ValueError(BAD_KIND)
+        account_id = current["account_id"] if account_id is None else int(account_id)
         known = cursor.execute(
             "SELECT 1 FROM categories WHERE name = ? AND type = ?", (category, kind)
         ).fetchone()
@@ -167,21 +172,23 @@ def update_transaction(transaction_id, amount, category, description, transactio
             raise ValueError(BAD_CATEGORY)
         stamp = _stamp(transaction_date, current["date"])
 
+        # The old effect leaves the account it was made on, as it was made.
         adjust_account_balance(
-            cursor, account_id, _OPPOSITE[kind], current["amount"],
+            cursor, current["account_id"], _OPPOSITE[current["type"]], current["amount"],
             ref_id=current["id"], source="transaction_removed", effective_at=current["date"],
         )
         # Decided with the old amount already taken back, so only the
-        # difference counts against a card's limit.
+        # difference counts against a card's limit. An account that is gone
+        # is refused here as well.
         AccountService.assert_spending_allowed(cursor, account_id, amount, kind)
         adjust_account_balance(
             cursor, account_id, kind, amount, ref_id=current["id"], effective_at=stamp,
         )
         cursor.execute(
-            "UPDATE transactions SET amount = ?, category = ?, description = ?,"
-            " transaction_date = ?, execution_date = ? WHERE id = ?",
+            "UPDATE transactions SET account_id = ?, type = ?, amount = ?, category = ?,"
+            " description = ?, transaction_date = ?, execution_date = ? WHERE id = ?",
             (
-                encrypt(str(amount), SECRET_KEY), category,
+                account_id, kind, encrypt(str(amount), SECRET_KEY), category,
                 encrypt(str(description or ""), SECRET_KEY), stamp, stamp, current["id"],
             ),
         )
@@ -190,5 +197,6 @@ def update_transaction(transaction_id, amount, category, description, transactio
         # Closing without a commit discards everything since BEGIN.
         conn.close()
     _changed()
-    return {**current, "amount": amount, "category": category,
+    return {**current, "account_id": account_id, "type": kind,
+            "amount": amount, "category": category,
             "description": str(description or ""), "date": stamp}

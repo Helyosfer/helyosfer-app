@@ -57,7 +57,8 @@ Sheet {
     function submit() {
         if (locked.length > 0) return
         if (editing >= 0) {
-            transactions.update(editing, amount.text,
+            transactions.update(editing, kind, amount.text,
+                                account.currentKey === undefined ? -1 : account.currentKey,
                                 category.currentKey === undefined ? "" : category.currentKey,
                                 description.text, date.text)
             return
@@ -80,8 +81,7 @@ Sheet {
     Segmented {
         model: [{ key: "expense", label: qsTr("Spending") }, { key: "income", label: qsTr("Income") }]
         current: root.kind
-        // The direction and the account of a saved transaction stay as they are.
-        enabled: root.editing < 0
+        enabled: root.locked.length === 0
         opacity: enabled ? 1 : 0.55
         onChosen: function (key) { root.kind = key }
     }
@@ -107,7 +107,7 @@ Sheet {
             label: qsTr("Account")
             placeholder: qsTr("Choose an account")
             model: accounts.options
-            enabled: root.editing < 0
+            enabled: root.locked.length === 0
             opacity: enabled ? 1 : 0.55
         }
         Choice {

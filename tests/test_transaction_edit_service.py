@@ -119,6 +119,75 @@ class TransactionEditServiceTest(unittest.TestCase):
             delete_transaction(tx)
         self.assertEqual(self._numbers(), (10000.0, 10000.0, 0))
 
+    # -- moving and turning ----------------------------------------------------
+    def _balance_of(self, account):
+        from database.db import get_connection
+
+        conn = get_connection()
+        try:
+            row = conn.execute(
+                "SELECT a.balance, (SELECT SUM(delta) FROM balance_events"
+                " WHERE entity_id = a.id) FROM accounts a WHERE a.id = ?", (account,)).fetchone()
+        finally:
+            conn.close()
+        return round(row[0], 2), round(row[1], 2)
+
+    def test_moving_to_another_account_takes_the_effect_along(self):
+        from services.account_service import AccountService
+        from services.transaction_edit_service import get_transaction, update_transaction
+
+        other = AccountService.create_account("Second", "checking", 3000.0)
+        tx = self._add(amount=500.0, offset=5)
+        update_transaction(tx, 500.0, "Taksi", "Not", _day(5), account_id=other)
+        self.assertEqual(self._balance_of(self.account), (10000.0, 10000.0))
+        self.assertEqual(self._balance_of(other), (2500.0, 2500.0))
+        self.assertEqual(get_transaction(tx)["account_id"], other)
+        # The total is what it was on every day; only the account differs.
+        self.assertEqual(self._balance_at(2), 12500.0)
+        self.assertEqual(self._balance_at(0), 12500.0)
+
+    def test_turning_spending_into_income_moves_the_balance_twice_the_amount(self):
+        from services.transaction_edit_service import get_transaction, update_transaction
+
+        tx = self._add(amount=500.0)
+        update_transaction(tx, 500.0, "Maaş", "Not", _day(0), kind="income")
+        self.assertEqual(self._numbers(), (10500.0, 10500.0, 1))
+        self.assertEqual(get_transaction(tx)["type"], "income")
+        update_transaction(tx, 200.0, "Taksi", "Not", _day(0), kind="expense")
+        self.assertEqual(self._numbers(), (9800.0, 9800.0, 1))
+
+    def test_a_turned_transaction_needs_a_category_of_its_new_kind(self):
+        from services.transaction_edit_service import (
+            BAD_CATEGORY, BAD_KIND, update_transaction,
+        )
+
+        tx = self._add(amount=500.0)
+        for kind, category, message in (
+            ("income", "Taksi", BAD_CATEGORY), ("transfer", "Taksi", BAD_KIND),
+        ):
+            with self.subTest(kind=kind):
+                with self.assertRaises(ValueError) as caught:
+                    update_transaction(tx, 500.0, category, "Not", _day(0), kind=kind)
+                self.assertEqual(str(caught.exception), message)
+                self.assertEqual(self._numbers(), (9500.0, 9500.0, 1))
+
+    def test_a_move_the_new_account_cannot_carry_changes_nothing(self):
+        from services.account_service import AccountService
+        from services.transaction_edit_service import update_transaction
+
+        card = AccountService.create_account("Card", "credit_card", 0.0, credit_limit=300.0)
+        tx = self._add(amount=500.0)
+        for target in (card, 9999):
+            with self.subTest(target=target):
+                with self.assertRaises(ValueError):
+                    update_transaction(tx, 500.0, "Taksi", "Not", _day(0), account_id=target)
+                self.assertEqual(self._numbers(), (9500.0, 9500.0, 1))
+        self.assertEqual(self._balance_of(card)[0], 0.0)
+        # Within the limit the card takes it, as a debt.
+        update_transaction(tx, 250.0, "Taksi", "Not", _day(0), account_id=card)
+        self.assertEqual(self._numbers(), (10000.0, 10000.0, 1))
+        self.assertEqual(self._balance_of(card)[0], -250.0)
+
     # -- changing ------------------------------------------------------------
     def test_changing_the_amount_moves_the_balance_by_the_difference(self):
         from services.transaction_edit_service import get_transaction, update_transaction

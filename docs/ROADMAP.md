@@ -8,7 +8,8 @@ is a promise of a date; the order is the order of work.
 Working and covered by tests:
 
 - Sign-in, first-run setup, password change, lock.
-- Accounts and credit cards; adding, changing and removing transactions;
+- Accounts and credit cards; adding, changing (amount, date, category,
+  account, direction) and removing transactions;
   pending transactions that apply themselves on their day.
 - Debts and installments, recurring payments, savings goals with an optional
   monthly contribution.
@@ -51,8 +52,6 @@ author.
 
 ## Known limits
 
-- A transaction cannot be moved to another account or turned from spending
-  into income; it is removed and entered again.
 - Records the application writes itself (loan installments, card payments,
   asset trades, installment purchases) cannot be changed from the
   transaction form.
@@ -60,7 +59,8 @@ author.
 - A back-dated transaction moves back the history of its own account and of
   the accounts opened on the profile's first day. An account opened on a
   later day joins the chart on that day.
-- Changing a repeating budget item changes that month only.
+- Removing a repeating budget item removes it from every month, the past
+  ones included; changing one can be kept to a month or start from it.
 - Amount fields take two decimals; asset unit prices are left free for
   smaller values.
 - The loan schedule PDF takes its font from Windows. Elsewhere it falls back

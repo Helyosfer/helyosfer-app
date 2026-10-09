@@ -377,17 +377,21 @@ class TransactionFormController(_Mutating):
             "locked": tr(found["locked"]) if found["locked"] else "",
         }
 
-    @Slot(int, str, str, str, str)
-    def update(self, transaction_id, amount_text, category, description, date_text):
+    @Slot(int, str, str, int, str, str, str)
+    def update(self, transaction_id, transaction_type, amount_text, account_id,
+               category, description, date_text):
         def work():
             from services.transaction_edit_service import update_transaction
 
+            if account_id < 0:
+                raise FormError(say("Choose an account."))
             if not category:
                 raise FormError(say("Choose a category."))
             amount = read_amount(amount_text, say("amount"))
             stamp = read_date(date_text) or datetime.date.today().isoformat()
             update_transaction(
                 transaction_id, amount, category, (description or "").strip(), stamp[:10],
+                account_id=account_id, kind=transaction_type,
             )
             self._last_pending = False
 

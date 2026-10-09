@@ -331,6 +331,64 @@ class PlanItemWriteBoundaryTest(AccountFixtureMixin, unittest.TestCase):
                          "şablondan türetilen kalem yine şablon oldu")
         self.assertEqual(created["amount"], 900.0)
 
+    def _amounts(self, *months):
+        from services.budget_service import get_effective_plan_items
+
+        return [
+            [(item["name"], item["amount"]) for item in get_effective_plan_items(month, year)]
+            for year, month in months
+        ]
+
+    def test_a_change_from_one_month_on_leaves_earlier_months_alone(self):
+        self._save(is_template=True, month=3)
+        template_id = self._rows()[0]["id"]
+        self._save(item_id=template_id, month=8, amount=1800.0, from_this_month_on=True)
+        self.assertEqual(
+            self._amounts((2026, 2), (2026, 7), (2026, 8), (2026, 12), (2027, 5)),
+            [[("Market", 1500.0)], [("Market", 1500.0)], [("Market", 1800.0)],
+             [("Market", 1800.0)], [("Market", 1800.0)]],
+        )
+
+    def test_a_renamed_item_does_not_leave_its_old_self_in_later_months(self):
+        self._save(is_template=True, month=3, name="Kira", category=None)
+        template_id = self._rows()[0]["id"]
+        self._save(item_id=template_id, month=8, name="Yeni ev", category=None,
+                   amount=2400.0, from_this_month_on=True)
+        self.assertEqual(
+            self._amounts((2026, 7), (2026, 8), (2026, 9)),
+            [[("Kira", 1500.0)], [("Yeni ev", 2400.0)], [("Yeni ev", 2400.0)]],
+        )
+
+    def test_changing_twice_in_the_same_month_keeps_one_item(self):
+        from services.budget_service import get_effective_plan_items
+
+        self._save(is_template=True, month=3)
+        self._save(item_id=self._rows()[0]["id"], month=8, amount=1800.0,
+                   from_this_month_on=True)
+        current = get_effective_plan_items(8, 2026)[0]["id"]
+        self._save(item_id=current, month=8, amount=1900.0, from_this_month_on=True)
+        self.assertEqual(len(self._rows()), 2)
+        self.assertEqual(
+            self._amounts((2026, 7), (2026, 8), (2026, 10)),
+            [[("Market", 1500.0)], [("Market", 1900.0)], [("Market", 1900.0)]],
+        )
+        # A later change still leaves the months between as they were.
+        self._save(item_id=current, month=11, amount=2100.0, from_this_month_on=True)
+        self.assertEqual(
+            self._amounts((2026, 7), (2026, 10), (2026, 11)),
+            [[("Market", 1500.0)], [("Market", 1900.0)], [("Market", 2100.0)]],
+        )
+
+    def test_an_item_that_does_not_repeat_cannot_be_changed_onward(self):
+        from services.budget_service import NOT_REPEATING
+
+        self._save()
+        item_id = self._rows()[0]["id"]
+        with self.assertRaises(ValueError) as caught:
+            self._save(item_id=item_id, amount=10.0, from_this_month_on=True)
+        self.assertEqual(str(caught.exception), NOT_REPEATING)
+        self.assertEqual(self._rows()[0]["amount"], 1500.0)
+
     def test_propagated_copies_are_written_and_are_never_templates(self):
         self._save(is_template=False, propagate_to_months=(9, 10, 8))
         rows = self._rows()

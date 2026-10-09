@@ -24,6 +24,9 @@ SECRET_KEY = "fi" + "nora_secure_2026"
 EXPENSE_TYPES = {"expense", "Gider"}
 
 
+NOT_REPEATING = "Bu kalem her ay tekrarlanmıyor."
+
+
 def _amount(value, *, table, record_id, field="amount"):
     """Read an amount or invalidate the complete derived budget result."""
     try:
@@ -44,6 +47,10 @@ def _month_shift(year, month, delta):
     return index // 12, index % 12 + 1
 
 
+def _month_index(year, month):
+    return int(year) * 12 + int(month) - 1
+
+
 def _identity(row):
     category = row["category_name"]
     if category:
@@ -59,8 +66,15 @@ def _effective_plan_rows(conn, target_month, target_year):
         "ORDER BY id",
         (target_month, target_year),
     ).fetchall()
+    # A repeating item may cover only a stretch of months; of two that cover
+    # this month, the one that starts later is the one in force.
+    index = _month_index(target_year, target_month)
     templates = conn.execute(
-        "SELECT * FROM monthly_budget_plan WHERE is_template = 1 ORDER BY id"
+        "SELECT * FROM monthly_budget_plan WHERE is_template = 1"
+        " AND (template_from IS NULL OR template_from <= ?)"
+        " AND (template_until IS NULL OR template_until > ?)"
+        " ORDER BY IFNULL(template_from, -1), id",
+        (index, index),
     ).fetchall()
 
     concrete_keys = {_identity(row) for row in concrete}
@@ -188,6 +202,7 @@ def save_plan_item(
     item_id=None,
     editing_a_template=False,
     propagate_to_months=(),
+    from_this_month_on=False,
 ):
     """Creates or updates a budget plan item -- in a single transaction.
 
@@ -210,6 +225,11 @@ def save_plan_item(
     months as well, and the copies are never templates. The copying happens in
     the SAME commit as the original write: a half-finished propagation would
     leave an incomplete plan the user cannot see.
+
+    With `from_this_month_on`, `item_id` names a repeating item and the change
+    holds for `month` and every month after it: the item as it was stops
+    before this month and a new repeating item starts here. Earlier months
+    keep what they showed.
     """
     item_type = str(item_type or "").strip()
     if item_type not in PLAN_ITEM_TYPES:
@@ -248,7 +268,38 @@ def save_plan_item(
     try:
         cursor = conn.cursor()
         cursor.execute("BEGIN IMMEDIATE")
-        if item_id is not None and not editing_a_template:
+        if item_id is not None and from_this_month_on:
+            start = _month_index(year, month)
+            previous = cursor.execute(
+                "SELECT template_from, template_until FROM monthly_budget_plan"
+                " WHERE id = ? AND is_template = 1", (int(item_id),),
+            ).fetchone()
+            if previous is None:
+                raise ValueError(NOT_REPEATING)
+            values = (item_type, name, stored_amount, month, year, category,
+                      rollover, alert_threshold_pct)
+            if previous["template_from"] == start:
+                # It already starts this month: there is nothing earlier to keep.
+                cursor.execute(
+                    "UPDATE monthly_budget_plan SET type=?, name=?, amount=?,"
+                    " target_month=?, target_year=?, category_name=?,"
+                    " rollover_enabled=?, alert_threshold_pct=? WHERE id=?",
+                    values + (int(item_id),),
+                )
+            else:
+                cursor.execute(
+                    "UPDATE monthly_budget_plan SET template_until = ? WHERE id = ?",
+                    (start, int(item_id)),
+                )
+                cursor.execute(
+                    "INSERT INTO monthly_budget_plan"
+                    " (type,name,amount,target_month,target_year,category_name,"
+                    "  rollover_enabled,alert_threshold_pct,is_template,"
+                    "  template_from,template_until)"
+                    " VALUES (?,?,?,?,?,?,?,?,1,?,?)",
+                    values + (start, previous["template_until"]),
+                )
+        elif item_id is not None and not editing_a_template:
             cursor.execute(
                 "UPDATE monthly_budget_plan SET"
                 " type=?, name=?, amount=?, target_month=?, target_year=?,"

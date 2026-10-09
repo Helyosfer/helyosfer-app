@@ -301,7 +301,9 @@ def _initialize_database(conn):
             category_name TEXT,
             rollover_enabled INTEGER DEFAULT 0,
             is_template INTEGER DEFAULT 0,
-            alert_threshold_pct INTEGER DEFAULT 80
+            alert_threshold_pct INTEGER DEFAULT 80,
+            template_from INTEGER,
+            template_until INTEGER
         )
     """)
     cursor.execute("PRAGMA table_info(monthly_budget_plan)")
@@ -317,6 +319,11 @@ def _initialize_database(conn):
         "rollover_enabled": "INTEGER DEFAULT 0",
         "is_template": "INTEGER DEFAULT 0",
         "alert_threshold_pct": "INTEGER DEFAULT 80",
+        # The months a repeating item covers, counted as year * 12 + month - 1:
+        # from the first of them up to, but not including, the second. Empty
+        # means no bound on that side.
+        "template_from": "INTEGER",
+        "template_until": "INTEGER",
     }
     for column, definition in budget_migrations.items():
         if column not in existing_budget_cols:
