@@ -52,7 +52,7 @@ class SearchController(QObject):
         def work():
             from services.search_service import search
 
-            return query, search(query, limit=MAX_RESULTS)
+            return query, search(query, limit=MAX_RESULTS, category_label=tr)
 
         def done(result):
             found_for, rows = result

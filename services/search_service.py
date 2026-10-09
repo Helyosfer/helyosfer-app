@@ -104,6 +104,11 @@ def match_names(query, items):
     scored = []
     for position, item in enumerate(items):
         rank = _rank(needle, normalize(item.get("name")))
+        # `alias` is another name the item is known by on screen.
+        if item.get("alias"):
+            other = _rank(needle, normalize(item["alias"]))
+            if rank is None or (other is not None and other < rank):
+                rank = other
         if rank is None:
             continue
 
@@ -170,7 +175,7 @@ def search_transactions(query, limit=DEFAULT_LIMIT,
     return results
 
 
-def search(query, limit=DEFAULT_LIMIT):
+def search(query, limit=DEFAULT_LIMIT, category_label=None):
     """Searches account and category names and returns a single ordered list.
 
     An empty or whitespace-only query returns an EMPTY list -- "list
@@ -196,8 +201,11 @@ def search(query, limit=DEFAULT_LIMIT):
         cursor.execute(
             "SELECT name, type FROM categories ORDER BY name"
         )
+        # `category_label` gives the name a category is shown under, so a
+        # search for what is on screen finds it as well as its stored name.
         categories = [
-            {"kind": CATEGORY, "id": None, "name": row[0], "detail": row[1]}
+            {"kind": CATEGORY, "id": None, "name": row[0], "detail": row[1],
+             "alias": category_label(row[0]) if category_label else None}
             for row in cursor.fetchall()
         ]
 
