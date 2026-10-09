@@ -9,6 +9,7 @@ Flickable {
     signal addTransactionRequested(int accountId)
     signal payDebtRequested(var account)
     signal deleteRequested(var account)
+    signal editRequested(int transactionId)
 
     contentWidth: width
     contentHeight: page.implicitHeight + 48
@@ -249,6 +250,91 @@ Flickable {
                                         color: line.modelData.income ? Theme.up : Theme.text
                                         font.family: Theme.dataFont
                                         font.pixelSize: 12
+                                    }
+                                }
+                            }
+                        }
+
+                        // purchases in installments, as the statements carry them
+                        Column {
+                            width: parent.width
+                            visible: card.modelData.installments.length > 0
+
+                            Item {
+                                width: parent.width
+                                height: 30
+                                Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: qsTr("Installment purchases")
+                                    color: Theme.muted
+                                    font.family: Theme.uiFont
+                                    font.pixelSize: 12
+                                    font.weight: Font.DemiBold
+                                }
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.right: parent.right
+                                    text: qsTr("%1 still to be billed").arg(card.modelData.installmentsLeftText)
+                                    color: Theme.muted
+                                    font.family: Theme.uiFont
+                                    font.pixelSize: 12
+                                }
+                            }
+
+                            Repeater {
+                                model: card.modelData.installments
+                                Item {
+                                    id: plan
+                                    required property var modelData
+                                    width: parent.width
+                                    height: 30
+
+                                    Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        anchors.topMargin: 1
+                                        color: Theme.text
+                                        opacity: planArea.containsMouse ? 0.05 : 0
+                                        Behavior on opacity { NumberAnimation { duration: Theme.fast } }
+                                    }
+                                    Text {
+                                        id: count
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: 60
+                                        text: plan.modelData.progress
+                                        color: Theme.faint
+                                        font.family: Theme.dataFont
+                                        font.pixelSize: 11
+                                    }
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: count.right
+                                        anchors.right: monthly.left
+                                        anchors.rightMargin: 12
+                                        text: plan.modelData.title + "  ·  " + qsTr("next %1").arg(plan.modelData.next)
+                                        color: Theme.text
+                                        font.family: Theme.uiFont
+                                        font.pixelSize: 12
+                                        elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        id: monthly
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.right: parent.right
+                                        text: qsTr("%1 a month").arg(plan.modelData.monthlyText)
+                                        color: Theme.text
+                                        font.family: Theme.dataFont
+                                        font.pixelSize: 12
+                                    }
+                                    // Opens the purchase the plan belongs to.
+                                    MouseArea {
+                                        id: planArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        enabled: plan.modelData.id >= 0
+                                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                        onClicked: root.editRequested(plan.modelData.id)
                                     }
                                 }
                             }

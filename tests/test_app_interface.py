@@ -285,6 +285,27 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertEqual(self.transactions.message, "")
         self.assertEqual([a["balanceText"] for a in self.accounts.accounts], owed)
         form.setProperty("visible", False)
+
+        # A purchase in installments is listed on its card, and opens from there.
+        self.transactions.add("expense", "600", card["id"], "Kıyafet", "Coat", "", 6)
+        self._settle()
+        self.assertEqual(self.transactions.message, "")
+        shown = next(a for a in self.accounts.accounts if a["id"] == card["id"])
+        plan = next(p for p in shown["installments"] if p["title"] == "Coat")
+        self.assertEqual(
+            (plan["title"], plan["monthlyText"], plan["progress"][-2:]),
+            ("Coat", "100,00 ₺", "/6"),
+        )
+        self.assertNotEqual(shown["installmentsLeftText"], "0,00 ₺")
+        QMetaObject.invokeMethod(form, "openForEdit", Q_ARG("QVariant", plan["id"]))
+        self.assertTrue(form.property("visible"), self._warnings())
+        self.assertEqual(form.property("locked"), "")
+        form.setProperty("visible", False)
+        self.transactions.remove(plan["id"])
+        self._settle()
+        shown = next(a for a in self.accounts.accounts if a["id"] == card["id"])
+        self.assertNotIn("Coat", [p["title"] for p in shown["installments"]])
+        self.assertEqual([a["balanceText"] for a in self.accounts.accounts], owed)
         self.assertNotIn(
             "Debt Payment", [c["label"] for c in self.transactions.categories("expense")]
         )

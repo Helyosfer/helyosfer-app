@@ -32,7 +32,7 @@ Hesaplar, kartlar, borçlar, bütçe ve yatırımlar için kişisel bir masaüst
 | | |
 | --- | --- |
 | **Genel bakış** | İşlemlerinizin tarihlerine göre çizilen grafiğiyle toplam bakiyeniz, yaklaşan ödemeler, son işlemler ve her şeyi kapsayan tek bir arama (<kbd>Ctrl</kbd>+<kbd>K</kbd>). |
-| **Kartlar ve hesaplar** | Nakit ve vadesiz hesaplar; limiti, hesap kesim günü ve dondurma anahtarı olan kredi kartları. Kart borcu kendi hesabınızdan ödenir. |
+| **Kartlar ve hesaplar** | Nakit ve vadesiz hesaplar; limiti, hesap kesim günü ve dondurma anahtarı olan kredi kartları. Kart borcu kendi hesabınızdan ödenir; taksitli alışverişlerde kaç taksitin ekstreye yansıdığı görünür. |
 | **Borçlar ve ödemeler** | Aylık taksitli borçlar; elle ya da seçtiğiniz hesaptan otomatik ödenir. İleri tarihli bir işlem bekler ve günü gelince kendiliğinden işlenir. |
 | **Abonelikler** | Haftalıktan yıllığa tekrarlayan ödemeler ve gelirler; otomatik ya da elle. Tekrarlıyor gibi görünen ödemeler fark edilir ve takibe almanız önerilir. |
 | **Birikim hedefleri** | Para ekleyip geri alabildiğiniz hedefler; isterseniz her ay otomatik katkıyla. |

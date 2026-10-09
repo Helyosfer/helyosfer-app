@@ -32,7 +32,7 @@ No sign-up, no server, nothing to sync. Your records never leave the computer.
 | | |
 | --- | --- |
 | **Overview** | Your total balance with a chart drawn from the dates of your transactions, what is coming up, what just happened, and one search over everything (<kbd>Ctrl</kbd>+<kbd>K</kbd>). |
-| **Cards and accounts** | Cash and checking accounts, and credit cards with a limit, a statement day and a freeze switch. Card debt is paid from an account of yours. |
+| **Cards and accounts** | Cash and checking accounts, and credit cards with a limit, a statement day and a freeze switch. Card debt is paid from an account of yours, and a purchase in installments shows how many the statements have carried. |
 | **Debts and payments** | Debts in monthly installments, paid by hand or automatically from the account you choose. A transaction dated in the future waits and applies itself on its day. |
 | **Subscriptions** | Recurring payments and income, from weekly to yearly, taken automatically or by hand. Payments that look recurring are noticed and offered for tracking. |
 | **Savings goals** | Targets you move money into and out of, with an optional automatic contribution every month. |

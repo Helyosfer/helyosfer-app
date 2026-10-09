@@ -208,6 +208,7 @@ Rectangle {
             onAddTransactionRequested: function (accountId) { addTransaction.openFor(accountId) }
             onPayDebtRequested: function (account) { payDebt.openFor(account) }
             onDeleteRequested: function (account) { confirmDelete.openFor(account) }
+            onEditRequested: function (transactionId) { addTransaction.openForEdit(transactionId) }
         }
     }
 

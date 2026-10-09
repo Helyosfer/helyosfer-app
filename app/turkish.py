@@ -20,6 +20,9 @@ TEXT = {
 
     # -- counts and amounts -----------------------------------------------
     "%1 a month": "ayda %1",
+    "Installment purchases": "Taksitli alışverişler",
+    "%1 still to be billed": "ekstreye yansıyacak %1",
+    "next %1": "sonraki %1",
     "%1 available": "%1 kullanılabilir",
     "%1 holdings have no current price and are counted at cost":
         "%1 varlığın güncel fiyatı yok; maliyetiyle sayılıyor",

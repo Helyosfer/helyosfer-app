@@ -201,10 +201,16 @@ class AccountsController(_Mutating):
         from services.account_service import AccountService
         from services.transaction_service import TransactionService
 
+        from services.installment_service import card_installments
+
         accounts = AccountService.get_accounts()
         for account in accounts:
             account["recent"] = TransactionService.get_recent_for_account(
                 account["id"], limit=3
+            )
+            account["installments"] = (
+                card_installments(account["id"])
+                if account["account_type"] == CREDIT_CARD else []
             )
         return accounts
 
@@ -263,6 +269,20 @@ class AccountsController(_Mutating):
                 }
                 for item in account["recent"]
             ],
+            # Purchases in installments that still have something to bill.
+            "installments": [
+                {
+                    "id": plan["transaction_id"] if plan["transaction_id"] is not None else -1,
+                    "title": display_title(plan["description"]),
+                    "progress": f"{plan['billed_installments']}/{plan['total_installments']}",
+                    "monthlyText": f"{format_amount(plan['monthly_amount'])} ₺",
+                    "next": short_date(plan["next_date"].isoformat()),
+                }
+                for plan in account.get("installments", [])
+            ],
+            "installmentsLeftText": format_amount(
+                sum(plan["remaining_amount"] for plan in account.get("installments", []))
+            ) + " ₺",
         }
 
     # -- actions -------------------------------------------------------------

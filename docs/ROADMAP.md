@@ -65,8 +65,9 @@ author.
 - The five categories the application files its own records under, or
   recognises a subscription by, cannot be renamed or removed. A category
   that was removed does not come back by itself; it is added again by name.
-- An installment purchase keeps its plan, but the plan is not shown
-  anywhere yet.
+- A purchase in installments is charged to the card in full on its day.
+  The card screen shows how many installments the statements have carried,
+  worked out from the statement day; they are not separate records.
 - A back-dated transaction moves back the history of its own account and of
   the accounts opened on the profile's first day. An account opened on a
   later day joins the chart on that day.
