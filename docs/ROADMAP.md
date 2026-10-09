@@ -21,7 +21,7 @@ Working and covered by tests:
 - Categories: the user's own can be added, renamed and removed; one that is
   in use hands its records to another.
 - Encrypted backup and restore, CSV export and import.
-- Dark and light themes; English and Turkish.
+- Dark and light themes; English and Turkish; motion that can be turned off.
 
 Tried by hand in a real window on Windows as well as by the test suite, which
 also runs on GitHub on Linux and Windows. Not yet tried by anyone but the

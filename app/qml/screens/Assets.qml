@@ -172,12 +172,14 @@ Flickable {
                                     { text: row.modelData.pnlText, width: root.colPnl,
                                       tone: row.modelData.priced ? (row.modelData.direction === 0 ? 3 : row.modelData.direction) : 2 }
                                 ]
-                                Text {
+                                Counting {
                                     required property var modelData
+                                    required property int index
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: modelData.width
                                     horizontalAlignment: Text.AlignRight
-                                    text: modelData.text
+                                    value: modelData.text
+                                    place: "asset:" + row.modelData.id + ":" + index
                                     color: modelData.tone === 1 ? Theme.up
                                         : modelData.tone === -1 ? Theme.down
                                         : modelData.tone === 2 ? Theme.faint

@@ -6,6 +6,11 @@ import "../components"
 Flickable {
     id: root
     signal addRequested()
+
+    // Rows arrive one after another when the overview opens. Once it has
+    // settled, a row added by a refresh is simply there.
+    property bool settled: false
+    Timer { interval: 900; running: true; onTriggered: root.settled = true }
     signal editRequested(int transactionId)
     signal openRequested(string section, string argument)
     contentWidth: width
@@ -272,8 +277,9 @@ Flickable {
                         required property var modelData
                         required property int index
                         opacity: 0
+                        Component.onCompleted: if (root.settled) opacity = 1; else dueArrival.start()
                         SequentialAnimation {
-                            running: true
+                            id: dueArrival
                             PauseAnimation { duration: Theme.motion ? due.index * 35 : 0 }
                             NumberAnimation { target: due; property: "opacity"; to: 1; duration: Theme.medium }
                         }
@@ -379,8 +385,9 @@ Flickable {
                         required property var modelData
                         required property int index
                         opacity: 0
+                        Component.onCompleted: if (root.settled) opacity = 1; else rowArrival.start()
                         SequentialAnimation {
-                            running: true
+                            id: rowArrival
                             PauseAnimation { duration: Theme.motion ? row.index * 35 : 0 }
                             NumberAnimation { target: row; property: "opacity"; to: 1; duration: Theme.medium }
                         }
