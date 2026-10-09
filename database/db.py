@@ -198,14 +198,23 @@ def _extend_ledger_back(cursor, account_id, stamp):
     the account would read as that change alone until its opening day. The
     anchor moves to the start of the earlier day instead.
 
+    Accounts opened on the ledger's first day move with it. They were entered
+    while the profile was being set up, as balances the user already had; left
+    behind, they would join the total on the setup day and draw a jump that
+    never happened. An account opened on a later day is a real event and
+    stays where it is.
+
     Snapshots from that day on were taken without the change, so they are
     dropped; balances for those days are replayed from the ledger.
     """
     day = stamp[:10]
+    start = f"{day} 00:00:00"
+    first = cursor.execute("SELECT MIN(ts) FROM balance_events").fetchone()[0]
     cursor.execute(
         "UPDATE balance_events SET ts = ?"
-        " WHERE entity_type = ? AND entity_id = ? AND source = 'account_opened' AND ts > ?",
-        (f"{day} 00:00:00", ACCOUNT, int(account_id), f"{day} 00:00:00"),
+        " WHERE entity_type = ? AND source = 'account_opened' AND ts > ?"
+        "   AND (entity_id = ? OR substr(ts, 1, 10) = ?)",
+        (start, ACCOUNT, start, int(account_id), (first or "")[:10]),
     )
     cursor.execute(
         "DELETE FROM daily_balance_snapshot WHERE snapshot_date >= ?", (day,)

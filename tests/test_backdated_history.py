@@ -74,13 +74,39 @@ class BackdatedHistoryTest(unittest.TestCase):
         self.assertEqual(series[0]["balance"], 59500.0)
         self.assertEqual(series[-1]["balance"], 59500.0)
 
-    def test_another_account_keeps_its_own_opening_day(self):
+    def test_accounts_from_the_setup_day_move_back_together(self):
         from services.account_service import AccountService
 
         AccountService.create_account("Second", "checking", 10000.0)
         self._add("expense", 500.0, 50)
+        self.assertEqual(self._balance(50), 69500.0)
+        self.assertEqual(self._balance(1), 69500.0)
+        self.assertEqual(self._balance(0), 69500.0)
+        self._add("expense", 100.0, 80)
+        self.assertEqual(self._balance(80), 69900.0)
+        self.assertEqual(self._balance(50), 69400.0)
+
+    def test_an_account_opened_later_keeps_its_own_opening_day(self):
+        from database.db import get_connection
+        from services.account_service import AccountService
+
+        second = AccountService.create_account("Second", "checking", 10000.0)
+        conn = get_connection()
+        try:
+            for account, offset in ((self.account, 30), (second, 10)):
+                conn.execute(
+                    "UPDATE balance_events SET ts = ? WHERE entity_id = ?"
+                    " AND source = 'account_opened'",
+                    (f"{_day(offset).isoformat()} 09:00:00", account),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+
+        self._add("expense", 500.0, 50)
         self.assertEqual(self._balance(50), 59500.0)
-        self.assertEqual(self._balance(1), 59500.0)
+        self.assertEqual(self._balance(11), 59500.0)
+        self.assertEqual(self._balance(10), 69500.0)
         self.assertEqual(self._balance(0), 69500.0)
 
     def test_the_current_balance_is_what_the_ledger_adds_up_to(self):
