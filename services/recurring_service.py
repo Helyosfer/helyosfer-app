@@ -86,12 +86,18 @@ def apply_category_trigger(category, recurring_switch) -> bool:
 
 def next_due_for_recurrence(
         from_date: str | date, frequency: str, recurrence_day: int) -> str:
-    """Returns the next period, pinned to the selected day of the month."""
+    """Returns the next period, pinned to the selected day of the month.
+
+    A period counted in weeks has no day of the month to return to: it is
+    the same weekday, seven or fourteen days on.
+    """
     day = int(recurrence_day)
     if not 1 <= day <= 31:
         raise ValueError("Tekrarlama günü 1 ile 31 arasında olmalıdır.")
     source = from_date if isinstance(from_date, date) else date.fromisoformat(from_date)
     advanced = date.fromisoformat(_advance_due_date(source.isoformat(), frequency))
+    if frequency in ("weekly", "biweekly"):
+        return advanced.isoformat()
     valid_day = min(day, calendar.monthrange(advanced.year, advanced.month)[1])
     return advanced.replace(day=valid_day).isoformat()
 

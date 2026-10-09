@@ -38,8 +38,10 @@ author.
    anywhere else. The installer script (`packaging/installer.iss`) has never been
    compiled.
 2. **Use it for real for a few weeks.** Items that settle themselves over
-   time (pending transactions, recurring payments, installments) have tests
-   but have not been watched across real days.
+   time (pending transactions, recurring payments, installments) are played
+   through five months of days by the test suite, opened daily and opened
+   now and then, and must leave the same books either way. They have not
+   been watched across real days.
 
 ## Open decisions
 
@@ -61,6 +63,11 @@ author.
   later day joins the chart on that day.
 - Amount fields take two decimals; asset unit prices are left free for
   smaller values.
+- Automatic payments and installments missed while the application was
+  closed are recorded on the days they were due. An automatic savings
+  contribution is not made up for a month that was missed.
+- A new debt's first automatic installment is the next pay day; one that
+  has passed this month is not taken.
 - The loan schedule PDF takes its font from Windows. Elsewhere it falls back
   to a font without Turkish letters.
 

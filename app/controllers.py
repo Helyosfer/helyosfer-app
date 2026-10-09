@@ -140,6 +140,7 @@ class Dispatcher(QObject):
 
 class AppController(QObject):
     screenChanged = Signal()
+    dayChanged = Signal()
     darkChanged = Signal()
     failureChanged = Signal()
     languageChanged = Signal()
@@ -166,6 +167,22 @@ class AppController(QObject):
     @Property(str, notify=screenChanged)
     def screen(self):
         return self._screen
+
+    @Slot()
+    def checkDay(self) -> None:
+        """Says so, once, when the date is no longer the one last seen.
+
+        The application may stay open for days. What falls due on a new day
+        is settled then, not at the next sign-in.
+        """
+        import datetime
+
+        today = datetime.date.today()
+        if getattr(self, "_day", None) is None:
+            self._day = today
+        elif today != self._day:
+            self._day = today
+            self.dayChanged.emit()
 
     def show(self, screen: str) -> None:
         if screen != self._screen:

@@ -110,7 +110,7 @@ class ProcessDueItemsTest(AccountFixtureMixin, unittest.TestCase):
         from database.db import get_active_debts
         from services.debt_payment_service import DebtPaymentService
 
-        DebtPaymentService.create_debt("Telefon", 1250.0, 6, True, 1)
+        DebtPaymentService.create_debt("Telefon", 1250.0, 6, True, self.today.day)
         self.assertTrue(self._process())
         self.assertEqual(self._balance(), 48750.0)
         self.assertEqual(get_active_debts()[0]["paid_installments"], 1)

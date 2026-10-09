@@ -113,6 +113,13 @@ Sheet {
 
     Notice {
         width: parent.width
+        problem: false
+        visible: automatic.checked && recurring.message.length === 0
+        text: qsTr("Each automatic payment is recorded on its due day, even if Helyosfer is opened later. A date in the past records every payment since then.")
+    }
+
+    Notice {
+        width: parent.width
         text: recurring.message
     }
 

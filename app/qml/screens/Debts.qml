@@ -123,8 +123,10 @@ Flickable {
 
                             Text {
                                 text: row.modelData.progressText + "  ·  " + qsTr("%1 a month").arg(row.modelData.monthlyText)
-                                    + (row.modelData.autoPay
-                                       ? "  ·  " + qsTr("automatic on day %1").arg(row.modelData.autoPayDay) : "")
+                                    + (!row.modelData.autoPay ? ""
+                                       : "  ·  " + (row.modelData.autoPayAccount.length > 0
+                                           ? qsTr("automatic on day %1 from %2").arg(row.modelData.autoPayDay).arg(row.modelData.autoPayAccount)
+                                           : qsTr("automatic on day %1").arg(row.modelData.autoPayDay)))
                                 color: Theme.muted
                                 font.family: Theme.uiFont
                                 font.pixelSize: 12
@@ -141,7 +143,7 @@ Flickable {
                                 compact: true; quiet: true
                                 text: row.modelData.autoPay ? qsTr("Automatic: on") : qsTr("Automatic: off")
                                 onClicked: row.modelData.autoPay
-                                    ? debts.setAutoPay(row.modelData.id, false, "")
+                                    ? debts.setAutoPay(row.modelData.id, false, "", -1)
                                     : root.autoPayRequested(row.modelData)
                             }
                             PrimaryButton {

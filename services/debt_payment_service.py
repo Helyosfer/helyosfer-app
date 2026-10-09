@@ -7,7 +7,12 @@ from utils.financial_decimal import fiat
 
 class DebtPaymentService:
     @staticmethod
-    def pay_auto(debt_id, account_id, installments, month, _fault_hook=None):
+    def pay_auto(debt_id, account_id, installments, month, _fault_hook=None, paid_on=None):
+        """Takes `installments` for `month`; never twice for the same month.
+
+        `paid_on` is the day the instalment was due. When that day has
+        passed, the record and the ledger carry it instead of today.
+        """
         conn = get_connection()
         try:
             with conn:
@@ -20,13 +25,20 @@ class DebtPaymentService:
                 if count <= 0: return False
                 amount = float(fiat(decrypt(row["monthly_payment"], SECRET_KEY)) * count)
                 desc = decrypt(row["debt_name"], SECRET_KEY) + " (Otomatik Taksit Ödemesi)"
-                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                moment = datetime.now()
+                now = moment.strftime("%Y-%m-%d %H:%M:%S")
+                late = paid_on is not None and paid_on.isoformat() < now[:10]
+                if late:
+                    now = f"{paid_on.isoformat()} {moment.strftime('%H:%M:%S')}"
                 cur.execute("INSERT INTO transactions (account_id,amount,type,category,description,transaction_date) VALUES (?,?,'expense','Kredi Taksiti',?,?)", (account_id, encrypt(str(amount), SECRET_KEY), encrypt(desc, SECRET_KEY), now))
 
 
                 transaction_id = cur.lastrowid
                 if _fault_hook: _fault_hook("after_transaction")
-                adjust_account_balance(cur, account_id, "expense", amount, ref_id=transaction_id, source="debt_payment")
+                adjust_account_balance(
+                    cur, account_id, "expense", amount, ref_id=transaction_id,
+                    source="debt_payment", effective_at=now if late else None,
+                )
                 if _fault_hook: _fault_hook("after_balance")
                 paid = row["paid_installments"] + count
                 cur.execute("UPDATE active_debts SET paid_installments=?, last_auto_pay_date=?, is_active=? WHERE id=?", (paid, month, 0 if paid >= row["total_installments"] else 1, debt_id))
@@ -95,7 +107,8 @@ class DebtPaymentService:
             conn.close()
 
     @staticmethod
-    def create_debt(name, monthly_payment, installments, auto_pay=False, auto_pay_day=1):
+    def create_debt(name, monthly_payment, installments, auto_pay=False, auto_pay_day=1,
+                    auto_pay_account_id=None):
         """Records an instalment debt.
 
         The total is derived from the ROUNDED instalment times the count, so
@@ -115,4 +128,7 @@ class DebtPaymentService:
         day = int(auto_pay_day or 1)
         if not 1 <= day <= 31:
             raise ValueError("Ödeme günü 1 ile 31 arasında olmalıdır.")
-        insert_debt(name, monthly * count, monthly, count, int(bool(auto_pay)), day)
+        insert_debt(
+            name, monthly * count, monthly, count, int(bool(auto_pay)), day,
+            auto_pay_account_id if auto_pay else None,
+        )

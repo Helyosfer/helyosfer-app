@@ -213,7 +213,7 @@ class TransactionService:
         try:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT t.id, t.account_id, t.amount, t.type,"
+                "SELECT t.id, t.account_id, t.amount, t.type, t.execution_date,"
                 " COALESCE(a.is_frozen, 0) AS is_frozen"
                 " FROM transactions AS t"
                 " LEFT JOIN accounts AS a ON a.id = t.account_id"
@@ -242,9 +242,11 @@ class TransactionService:
 
                 cursor.execute("SAVEPOINT settle_tx")
                 try:
+                    # Settled late, it still belongs to its own day: balances
+                    # over time follow the date of the transaction.
                     adjust_account_balance(
                         cursor, row["account_id"], row["type"], amount,
-                        ref_id=row["id"],
+                        ref_id=row["id"], effective_at=row["execution_date"],
                     )
                     cursor.execute(
                         "UPDATE transactions SET status = 'completed' WHERE id = ?",

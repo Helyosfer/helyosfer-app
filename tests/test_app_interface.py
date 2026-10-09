@@ -317,10 +317,10 @@ class InterfaceSmokeTest(unittest.TestCase):
         # -- debts and pending transactions --------------------------------
         shell.setProperty("section", "debts")
         self._settle()
-        self.debts.addDebt("", "100", "3", False, "")
+        self.debts.addDebt("", "100", "3", False, "", -1)
         self._settle()
         self.assertEqual(self.debts.message, "Enter a name for the debt.")
-        self.debts.addDebt("Phone", "100", "3", False, "")
+        self.debts.addDebt("Phone", "100", "3", False, "", -1)
         self._settle()
         debt = self.debts.debts[0]
         self.assertEqual(debt["remainingText"], "300,00 ₺")

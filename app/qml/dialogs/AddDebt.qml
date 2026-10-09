@@ -14,13 +14,16 @@ Sheet {
         count.text = ""
         day.text = "1"
         automatic.checked = false
+        if (accounts.checkingOptions.length > 0) account.select(accounts.checkingOptions[0].key)
+        else account.select(-1)
         debts.clearMessage()
         open()
         name.input.forceActiveFocus()
     }
 
     function submit() {
-        debts.addDebt(name.text, monthly.text, count.text, automatic.checked, day.text)
+        debts.addDebt(name.text, monthly.text, count.text, automatic.checked, day.text,
+                      account.currentKey === undefined ? -1 : account.currentKey)
     }
 
     Connections {
@@ -58,24 +61,30 @@ Sheet {
         }
     }
 
+    Toggle {
+        id: automatic
+        text: qsTr("Pay automatically each month")
+    }
+
     Row {
         width: parent.width
-        spacing: 16
+        spacing: 12
+        visible: automatic.checked
 
-        Toggle {
-            id: automatic
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 10
-            text: qsTr("Pay automatically each month")
-        }
         Field {
             id: day
-            visible: automatic.checked
-            width: 110
+            width: (parent.width - 12) * 0.35
             label: qsTr("On day")
             placeholder: "1–31"
             input.inputMethodHints: Qt.ImhDigitsOnly
             onAccepted: root.submit()
+        }
+        Choice {
+            id: account
+            width: (parent.width - 12) * 0.65
+            label: qsTr("Pay from")
+            placeholder: qsTr("Choose an account")
+            model: accounts.checkingOptions
         }
     }
 
@@ -83,7 +92,7 @@ Sheet {
         width: parent.width
         problem: false
         visible: automatic.checked && debts.message.length === 0
-        text: qsTr("Automatic installments are taken from your first account when you open Helyosfer on or after that day.")
+        text: qsTr("The first automatic installment is the next one. Each is recorded on its day, even if Helyosfer is opened later.")
     }
 
     Notice {

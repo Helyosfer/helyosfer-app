@@ -1,3 +1,4 @@
+import calendar
 import sqlite3
 import os
 from contextlib import contextmanager
@@ -282,7 +283,24 @@ def adjust_account_balance(cursor, account_id, transaction_type, amount,
     _extend_ledger_back(cursor, account_id, stamp)
     record_balance_event(cursor, ACCOUNT, account_id, delta, None, source, ref_id, ts=stamp)
 
-def insert_debt(debt_name, total_amount, monthly_payment, total_installments, is_auto_pay=0, auto_pay_day=1):
+def auto_pay_baseline(auto_pay_day, today=None):
+    """The month automatic payment counts as settled when it is turned on.
+
+    Automatic payment looks ahead only: its first instalment is the next pay
+    day, today included. Without this, turning it on after this month's pay
+    day would take an instalment at once, and turning it back on after a
+    break would take one for every month of the break.
+    """
+    today = today or datetime.now().date()
+    pay_day = min(int(auto_pay_day or 1), calendar.monthrange(today.year, today.month)[1])
+    index = today.year * 12 + today.month - 1
+    if today.day <= pay_day:
+        index -= 1
+    return f"{index // 12}-{index % 12 + 1:02d}"
+
+
+def insert_debt(debt_name, total_amount, monthly_payment, total_installments, is_auto_pay=0,
+                auto_pay_day=1, auto_pay_account_id=None):
     with managed_connection() as conn:
         cursor = conn.cursor()
 
@@ -292,9 +310,10 @@ def insert_debt(debt_name, total_amount, monthly_payment, total_installments, is
         enc_monthly = encrypt(str(fiat(monthly_payment)), SECRET_KEY)
 
         cursor.execute("""
-            INSERT INTO active_debts (debt_name, total_amount, monthly_payment, total_installments, paid_installments, is_active, is_auto_pay, auto_pay_day)
-            VALUES (?, ?, ?, ?, 0, 1, ?, ?)
-        """, (enc_name, enc_total, enc_monthly, total_installments, int(is_auto_pay), auto_pay_day))
+            INSERT INTO active_debts (debt_name, total_amount, monthly_payment, total_installments, paid_installments, is_active, is_auto_pay, auto_pay_day, auto_pay_account_id, last_auto_pay_date)
+            VALUES (?, ?, ?, ?, 0, 1, ?, ?, ?, ?)
+        """, (enc_name, enc_total, enc_monthly, total_installments, int(is_auto_pay), auto_pay_day,
+              auto_pay_account_id, auto_pay_baseline(auto_pay_day) if is_auto_pay else None))
         conn.commit()
 
 def update_debt_progress(debt_id, extra_installments_paid, is_active=1):
@@ -307,14 +326,20 @@ def update_debt_progress(debt_id, extra_installments_paid, is_active=1):
         """, (extra_installments_paid, is_active, debt_id))
         conn.commit()
 
-def update_debt_auto_pay(debt_id, is_auto_pay, auto_pay_day):
+def update_debt_auto_pay(debt_id, is_auto_pay, auto_pay_day, account_id=None):
+    """Turns automatic payment on or off; `account_id` is where it is taken from."""
     with managed_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE active_debts
-            SET is_auto_pay = ?, auto_pay_day = ?
+            SET is_auto_pay = ?, auto_pay_day = ?, auto_pay_account_id = ?
             WHERE id = ?
-        """, (int(is_auto_pay), auto_pay_day, debt_id))
+        """, (int(is_auto_pay), auto_pay_day, account_id, debt_id))
+        if is_auto_pay:
+            cursor.execute(
+                "UPDATE active_debts SET last_auto_pay_date = ? WHERE id = ?",
+                (auto_pay_baseline(auto_pay_day), debt_id),
+            )
         conn.commit()
 
 def get_active_debts():
@@ -344,7 +369,8 @@ def get_active_debts():
             "paid_installments": r["paid_installments"],
             "is_auto_pay": bool(r["is_auto_pay"]) if "is_auto_pay" in r.keys() and r["is_auto_pay"] else False,
             "auto_pay_day": r["auto_pay_day"] if "auto_pay_day" in r.keys() and r["auto_pay_day"] else 1,
-            "last_auto_pay_date": r["last_auto_pay_date"] if "last_auto_pay_date" in r.keys() else None
+            "last_auto_pay_date": r["last_auto_pay_date"] if "last_auto_pay_date" in r.keys() else None,
+            "auto_pay_account_id": r["auto_pay_account_id"] if "auto_pay_account_id" in r.keys() else None,
         })
     return debts
 
@@ -640,8 +666,14 @@ def _advance_due_date(date_str, frequency):
     return date(year, month, day).isoformat()
 
 
-def process_due_recurring_payment(payment):
-    """Processes a due recurring income/expense and advances the due date."""
+def process_due_recurring_payment(payment, on_due_date=False):
+    """Processes a due recurring income/expense and advances the due date.
+
+    With `on_due_date` a charge whose day has passed is written on that day
+    instead of today. Automatic charges use it: the money left the account
+    when it was due, whether or not the application was open. A payment the
+    user makes by hand is made today and is written today.
+    """
     from datetime import datetime
 
 
@@ -684,8 +716,12 @@ def process_due_recurring_payment(payment):
         )
         enc_amount = encrypt(str(amount), SECRET_KEY)
         enc_desc = encrypt(f"{payment['name']} (Otomatik)", SECRET_KEY)
-        tx_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+        now = datetime.now()
+        tx_date = now.strftime("%Y-%m-%d %H:%M:%S")
+        due_day = str(payment["next_due_date"])[:10]
+        late = bool(on_due_date) and due_day < tx_date[:10]
+        if late:
+            tx_date = f"{due_day} {now.strftime('%H:%M:%S')}"
 
         cursor.execute("""
             INSERT INTO transactions (account_id, amount, type, category, description, transaction_date)
@@ -698,7 +734,7 @@ def process_due_recurring_payment(payment):
         adjust_account_balance(
             cursor, payment["account_id"], transaction_type,
             amount, ref_id=transaction_id,
-            source="recurring_payment",
+            source="recurring_payment", effective_at=tx_date if late else None,
         )
 
         cursor.execute("UPDATE recurring_payments SET next_due_date = ? WHERE id = ?", (new_due, payment["id"]))

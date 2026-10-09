@@ -379,6 +379,10 @@ def _initialize_database(conn):
         cursor.execute("ALTER TABLE active_debts ADD COLUMN auto_pay_day INTEGER DEFAULT 1")
     if "last_auto_pay_date" not in existing_debt_cols:
         cursor.execute("ALTER TABLE active_debts ADD COLUMN last_auto_pay_date TEXT")
+    # The account automatic instalments are taken from; empty leaves the
+    # choice to the application.
+    if "auto_pay_account_id" not in existing_debt_cols:
+        cursor.execute("ALTER TABLE active_debts ADD COLUMN auto_pay_account_id INTEGER")
 
 
     cursor.execute("""

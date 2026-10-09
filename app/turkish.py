@@ -310,9 +310,15 @@ TEXT = {
     "Months": "Ay",
     "Pay automatically each month": "Her ay otomatik öde",
     "On day": "Ayın günü",
-    "Automatic installments are taken from your first account when you open Helyosfer "
-    "on or after that day.":
-        "Otomatik taksitler, o gün ya da sonrasında Helyosfer'i açtığınızda ilk hesabınızdan alınır.",
+    "The first automatic installment is the next one. Each is recorded on its day, "
+    "even if Helyosfer is opened later.":
+        "İlk otomatik taksit bir sonraki taksittir. Helyosfer daha sonra açılsa bile her taksit "
+        "kendi gününe kaydedilir.",
+    "Each automatic payment is recorded on its due day, even if Helyosfer is opened later. "
+    "A date in the past records every payment since then.":
+        "Her otomatik ödeme, Helyosfer daha sonra açılsa bile kendi vade gününe kaydedilir. "
+        "Geçmiş bir tarih, o günden bugüne tüm ödemeleri kaydeder.",
+    "automatic on day %1 from %2": "her ayın %1. günü %2 hesabından otomatik",
     "Pay installments": "Taksit öde",
     "Pay off this debt": "Bu borcu kapat",
     "Installments to pay (1–%1)": "Ödenecek taksit sayısı (1–%1)",

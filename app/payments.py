@@ -48,9 +48,9 @@ def due_phrase(iso_date: str, today: datetime.date | None = None) -> tuple[str, 
     if delta < 0:
         when = say("1 day overdue") if delta == -1 else say("{0} days overdue", -delta)
     elif delta == 0:
-        when = "today"
+        when = say("today")
     elif delta == 1:
-        when = "tomorrow"
+        when = say("tomorrow")
     else:
         when = say("in {0} days", delta)
     return f"{short_date(iso_date)}  ·  {when}", delta < 0
@@ -123,8 +123,14 @@ class DebtsController(_Listing):
         from services.account_service import AccountService
         from services.transaction_service import TransactionService
 
-        names = {a["id"]: a["name"] for a in AccountService.get_accounts()}
-        return get_active_debts(), TransactionService.get_pending_transactions(), names
+        from services.scheduled_service import auto_pay_account
+
+        accounts = AccountService.get_accounts()
+        names = {a["id"]: a["name"] for a in accounts}
+        debts = get_active_debts()
+        for debt in debts:
+            debt["pay_from"] = auto_pay_account(debt, accounts)
+        return debts, TransactionService.get_pending_transactions(), names
 
     def _show(self, data) -> None:
         debts, pending, names = data
@@ -149,6 +155,7 @@ class DebtsController(_Listing):
                 "remainingCount": remaining,
                 "autoPay": debt["is_auto_pay"],
                 "autoPayDay": debt["auto_pay_day"],
+                "autoPayAccount": names.get(debt.get("pay_from"), "") if debt["is_auto_pay"] else "",
             })
         self._debts = views
         self._total = f"{format_amount(total)} ₺"
@@ -167,17 +174,19 @@ class DebtsController(_Listing):
         ]
 
     # -- actions -------------------------------------------------------------
-    @Slot(str, str, str, bool, str)
-    def addDebt(self, name, monthly_text, installments_text, auto_pay, day_text):
+    @Slot(str, str, str, bool, str, int)
+    def addDebt(self, name, monthly_text, installments_text, auto_pay, day_text, account_id):
         def work():
             from services.debt_payment_service import DebtPaymentService
 
+            monthly = read_amount(monthly_text, say("monthly payment"))
+            count = read_count(installments_text, say("number of installments"), 1, 600)
+            day = read_count(day_text, say("payment day"), 1, 31) if auto_pay else 1
+            if auto_pay and account_id < 0:
+                raise FormError(say("Choose the account to pay from."))
             DebtPaymentService.create_debt(
-                name,
-                read_amount(monthly_text, say("monthly payment")),
-                read_count(installments_text, say("number of installments"), 1, 600),
-                auto_pay,
-                read_count(day_text, say("payment day"), 1, 31) if auto_pay else 1,
+                name, monthly, count, auto_pay, day,
+                auto_pay_account_id=account_id if auto_pay else None,
             )
 
         self._mutate(work)
@@ -196,13 +205,15 @@ class DebtsController(_Listing):
 
         self._mutate(work)
 
-    @Slot(int, bool, str)
-    def setAutoPay(self, debt_id, enabled, day_text):
+    @Slot(int, bool, str, int)
+    def setAutoPay(self, debt_id, enabled, day_text, account_id):
         def work():
             from database.db import update_debt_auto_pay
 
             day = read_count(day_text, say("payment day"), 1, 31) if enabled else 1
-            update_debt_auto_pay(debt_id, enabled, day)
+            if enabled and account_id < 0:
+                raise FormError(say("Choose the account to pay from."))
+            update_debt_auto_pay(debt_id, enabled, day, account_id if enabled else None)
 
         self._mutate(work)
 

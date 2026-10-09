@@ -7,7 +7,7 @@ import os
 import sys
 import threading
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
@@ -179,6 +179,25 @@ def build(app: QGuiApplication):
 
         auth.signedIn.connect(refresh_all)
         auth.signedIn.connect(settle_due_items)
+
+        # Left open over midnight, the day's dues are settled when it comes.
+        # Locked, they wait for the sign-in, which settles them anyway.
+        def new_day():
+            from services import auth_service as screens
+
+            if controller.screen == screens.HOME:
+                refresh_all()
+                settle_due_items()
+
+        controller.dayChanged.connect(new_day)
+        # An automatic payment set up for today is taken now, not tomorrow.
+        recurring.saved.connect(settle_due_items)
+        debts.saved.connect(settle_due_items)
+        controller.checkDay()
+        day_watch = QTimer(app)
+        day_watch.setInterval(60_000)
+        day_watch.timeout.connect(controller.checkDay)
+        day_watch.start()
 
         settings = SettingsController(auth_service, store, tasks, app)
         settings.dataChanged.connect(refresh_all)

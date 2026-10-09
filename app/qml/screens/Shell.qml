@@ -276,16 +276,7 @@ Rectangle {
     PayInstallments { id: payInstallments; objectName: "payInstallments" }
     AddRecurring { id: addRecurring; objectName: "addRecurring" }
     StopRecurring { id: stopRecurring; objectName: "stopRecurring" }
-    Prompt {
-        id: autoPayDay
-        objectName: "autoPayDay"
-        source: debts
-        title: qsTr("Pay automatically")
-        subtitle: subject ? qsTr("%1 is taken for %2 each month.").arg(subject.monthlyText).arg(subject.name) : ""
-        fieldLabel: qsTr("Day of the month (1–31)")
-        confirmText: qsTr("Turn on")
-        onSubmitted: function (text) { debts.setAutoPay(subject.id, true, text) }
-    }
+    AutoPay { id: autoPayDay; objectName: "autoPayDay" }
     Prompt {
         id: reschedule
         objectName: "reschedule"
