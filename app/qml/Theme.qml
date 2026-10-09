@@ -37,9 +37,12 @@ QtObject {
     readonly property int gap: 20
 
     // How long things take to move: a hover, a panel arriving, a card turning.
-    readonly property int fast: 120
-    readonly property int medium: 220
-    readonly property int slow: 420
+    // With motion turned off every duration is zero, so nothing travels: it
+    // is simply where it ends up.
+    property bool motion: true
+    readonly property int fast: motion ? 120 : 0
+    readonly property int medium: motion ? 220 : 0
+    readonly property int slow: motion ? 420 : 0
 
     function direction(value) {
         return value > 0 ? up : value < 0 ? down : muted

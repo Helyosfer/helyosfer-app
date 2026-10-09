@@ -17,6 +17,24 @@ ApplicationWindow {
     property string resumeSection: "overview"
 
     Binding { target: Theme; property: "dark"; value: app.dark }
+    Binding { target: Theme; property: "motion"; value: app.motion }
+
+    // A change of theme fades from the old page color instead of snapping.
+    Rectangle {
+        id: themeVeil
+        anchors.fill: parent
+        z: 1000
+        opacity: 0
+        visible: opacity > 0
+        NumberAnimation on opacity { id: themeFade; running: false; from: 1; to: 0; duration: Theme.medium * 1.5 }
+    }
+    Connections {
+        target: app
+        function onDarkChanged() {
+            themeVeil.color = app.dark ? "#f3f5f8" : "#0d1117"
+            themeFade.restart()
+        }
+    }
 
     // Screens are created on demand, so an unopened screen costs no memory.
     Loader {

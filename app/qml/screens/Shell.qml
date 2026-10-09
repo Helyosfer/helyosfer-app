@@ -92,6 +92,7 @@ Rectangle {
             Item { width: 1; height: 8 }
 
             Repeater {
+                id: navigation
                 model: root.sections
                 NavItem {
                     required property var modelData

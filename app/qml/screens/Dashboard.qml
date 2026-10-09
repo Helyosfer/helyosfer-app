@@ -162,10 +162,18 @@ Flickable {
                             font.pixelSize: 12
                         }
                         Row {
+                            id: balanceFigure
                             spacing: 2
+                            property real counted: dashboard.balanceValue
+                            Behavior on counted {
+                                NumberAnimation { duration: Theme.slow * 1.5; easing.type: Easing.OutCubic }
+                            }
+                            readonly property var parts: dashboard.hasBalance
+                                ? app.amountParts(counted)
+                                : [dashboard.balanceWhole, dashboard.balanceFraction]
                             Text {
                                 id: whole
-                                text: dashboard.balanceWhole
+                                text: balanceFigure.parts[0]
                                 color: Theme.text
                                 font.family: Theme.displayFont
                                 font.pixelSize: 48
@@ -173,7 +181,7 @@ Flickable {
                             }
                             Text {
                                 anchors.baseline: whole.baseline
-                                text: dashboard.balanceFraction
+                                text: balanceFigure.parts[1]
                                 color: Theme.muted
                                 font.family: Theme.displayFont
                                 font.pixelSize: 22
@@ -262,6 +270,13 @@ Flickable {
                     AbstractButton {
                         id: due
                         required property var modelData
+                        required property int index
+                        opacity: 0
+                        SequentialAnimation {
+                            running: true
+                            PauseAnimation { duration: Theme.motion ? due.index * 35 : 0 }
+                            NumberAnimation { target: due; property: "opacity"; to: 1; duration: Theme.medium }
+                        }
                         width: parent.width
                         height: 46
                         hoverEnabled: true
@@ -362,6 +377,13 @@ Flickable {
                     Item {
                         id: row
                         required property var modelData
+                        required property int index
+                        opacity: 0
+                        SequentialAnimation {
+                            running: true
+                            PauseAnimation { duration: Theme.motion ? row.index * 35 : 0 }
+                            NumberAnimation { target: row; property: "opacity"; to: 1; duration: Theme.medium }
+                        }
                         width: parent.width
                         height: 40
 

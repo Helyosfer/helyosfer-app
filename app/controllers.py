@@ -143,6 +143,7 @@ class AppController(QObject):
     darkChanged = Signal()
     failureChanged = Signal()
     languageChanged = Signal()
+    motionChanged = Signal()
 
     def __init__(self, store, parent=None):
         super().__init__(parent)
@@ -153,10 +154,12 @@ class AppController(QObject):
         self._failure_message = ""
         self._failure_note = ""
         chosen = None
+        self._motion = True
         if store is not None:
             display = store.get("display")
             self._dark = display.get("style", "Dark") != "Light"
             chosen = display.get("language")
+            self._motion = display.get("motion", True) is not False
         # Until a language is chosen the computer's own decides.
         language.set_language(chosen or language.system_language())
 
@@ -188,6 +191,24 @@ class AppController(QObject):
         self._dark = not self._dark
         self._remember(style="Dark" if self._dark else "Light")
         self.darkChanged.emit()
+
+    @Property(bool, notify=motionChanged)
+    def motion(self):
+        """Whether the interface animates; off makes every change immediate."""
+        return self._motion
+
+    @Slot(bool)
+    def setMotion(self, enabled):
+        if bool(enabled) != self._motion:
+            self._motion = bool(enabled)
+            self._remember(motion=self._motion)
+            self.motionChanged.emit()
+
+    @Slot(float, result="QVariantList")
+    def amountParts(self, value):
+        """An amount as the overview's headline writes it: ["247.790", ",00 ₺"]."""
+        whole, _, fraction = format_amount(value).partition(",")
+        return [("−" if value < 0 else "") + whole, f",{fraction} ₺"]
 
     @Property(str, notify=languageChanged)
     def language(self):
@@ -358,7 +379,7 @@ class DashboardController(QObject):
     @staticmethod
     def _empty_state() -> dict:
         return {
-            "whole": "—", "fraction": "", "change": "", "direction": 0,
+            "value": None, "whole": "—", "fraction": "", "change": "", "direction": 0,
             "income": "—", "expense": "—", "net": "—", "net_direction": 0,
             "series": [], "series_labels": [], "axis": [],
             "recent": [], "upcoming": [], "error": "",
@@ -380,6 +401,15 @@ class DashboardController(QObject):
     @Property(str, notify=changed)
     def balanceWhole(self):
         return self._state["whole"]
+
+    @Property(bool, notify=changed)
+    def hasBalance(self):
+        return self._state["value"] is not None
+
+    @Property(float, notify=changed)
+    def balanceValue(self):
+        """The total as a number, for a headline that counts its way there."""
+        return self._state["value"] or 0.0
 
     @Property(str, notify=changed)
     def balanceFraction(self):
@@ -483,6 +513,7 @@ class DashboardController(QObject):
 
         net = metrics["period_net"]
         self._state = {
+            "value": float(metrics["total_balance"]),
             "whole": ("−" if negative else "") + whole,
             "fraction": f",{fraction} ₺",
             "change": change_text,

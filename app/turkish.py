@@ -641,6 +641,8 @@ TEXT = {
     "Applies immediately and is remembered on this device.":
         "Hemen uygulanır ve bu cihazda hatırlanır.",
     "Language": "Dil",
+    "Animations": "Animasyonlar",
+    "Turn off to make every change immediate.": "Kapatınca her değişiklik anında olur.",
     "Amounts and dates are written the same way in both.":
         "Tutarlar ve tarihler iki dilde de aynı biçimde yazılır.",
     "Security": "Güvenlik",

@@ -797,6 +797,20 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertEqual((display["language"], display["style"]), ("en", "Light"))
         self.app.toggleTheme()
 
+        # Animations can be turned off; the choice is kept with the others.
+        self.assertTrue(self.app.motion)
+        self.app.setMotion(False)
+        self._settle()
+        self.assertFalse(self.app.motion)
+        self.assertEqual(self._warnings(), [])
+        with open(os.path.join(self._tmp.name, "config.json"), encoding="utf-8") as stream:
+            display = json.load(stream)["display"]
+        self.assertEqual((display["motion"], display["language"]), (False, "en"))
+        self.app.setMotion(True)
+        self.assertEqual(self.app.amountParts(1234567.5), ["1.234.567", ",50 ₺"])
+        self.assertEqual(self.app.amountParts(-250.0), ["−250", ",00 ₺"])
+        self.assertTrue(self.dashboard.hasBalance)
+
     def _settings(self):
         from PySide6.QtCore import QObject
 

@@ -38,8 +38,15 @@ Rectangle {
         }
     }
 
+    ParallelAnimation {
+        running: true
+        NumberAnimation { target: column; property: "opacity"; from: 0; to: 1; duration: Theme.slow }
+        NumberAnimation { target: rise; property: "y"; from: 14; to: 0; duration: Theme.slow; easing.type: Easing.OutCubic }
+    }
+
     Column {
         id: column
+        transform: Translate { id: rise }
         anchors.centerIn: parent
         width: Math.min(380, root.width - 48)
         spacing: 16

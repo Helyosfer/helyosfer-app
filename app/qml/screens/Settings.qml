@@ -134,6 +134,15 @@ Item {
                     }
                 }
                 SettingRow {
+                    title: qsTr("Animations")
+                    detail: qsTr("Turn off to make every change immediate.")
+                    Toggle {
+                        objectName: "motionToggle"
+                        checked: app.motion
+                        onToggled: app.setMotion(checked)
+                    }
+                }
+                SettingRow {
                     title: qsTr("Language")
                     detail: qsTr("Amounts and dates are written the same way in both.")
                     Segmented {

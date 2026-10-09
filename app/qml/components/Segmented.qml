@@ -16,12 +16,33 @@ Rectangle {
     border.width: 1
     border.color: Theme.line
 
+    readonly property int currentIndex: {
+        for (var i = 0; i < model.length; i++) if (model[i].key === current) return i
+        return -1
+    }
+
+    // The marker under the chosen option; it travels when the choice changes.
+    Rectangle {
+        id: marker
+        readonly property Item chosenItem: root.currentIndex >= 0 ? options.itemAt(root.currentIndex) : null
+        visible: chosenItem !== null
+        x: row.x + (chosenItem ? chosenItem.x : 0)
+        y: row.y
+        width: chosenItem ? chosenItem.width : 0
+        height: row.height
+        radius: Theme.controlRadius - 1
+        color: Theme.accentSoft
+        Behavior on x { NumberAnimation { duration: Theme.medium; easing.type: Easing.OutCubic } }
+        Behavior on width { NumberAnimation { duration: Theme.medium; easing.type: Easing.OutCubic } }
+    }
+
     Row {
         id: row
         anchors.centerIn: parent
         height: parent.height - 2
 
         Repeater {
+            id: options
             model: root.model
 
             AbstractButton {
@@ -37,7 +58,7 @@ Rectangle {
                 onClicked: root.chosen(modelData.key)
 
                 background: Rectangle {
-                    color: option.selected ? Theme.accentSoft : (option.hovered ? Theme.raised : "transparent")
+                    color: !option.selected && option.hovered ? Theme.raised : "transparent"
                     radius: Theme.controlRadius - 1
                     border.width: option.visualFocus ? 2 : 0
                     border.color: Theme.accent
@@ -54,6 +75,7 @@ Rectangle {
                     id: label
                     text: option.modelData.label
                     color: option.selected ? Theme.text : Theme.muted
+                    Behavior on color { ColorAnimation { duration: Theme.fast } }
                     font.family: Theme.uiFont
                     font.pixelSize: 12
                     font.weight: Font.Medium

@@ -15,6 +15,7 @@ Switch {
         y: (control.height - height) / 2
         radius: 10
         color: control.checked ? Theme.accent : "transparent"
+        Behavior on color { ColorAnimation { duration: Theme.fast } }
         border.width: control.visualFocus ? 2 : 1
         border.color: control.visualFocus ? Theme.text : (control.checked ? Theme.accent : Theme.line)
 
@@ -25,7 +26,8 @@ Switch {
             y: 3
             x: control.checked ? parent.width - width - 3 : 3
             color: control.checked ? Theme.onAccent : Theme.muted
-            Behavior on x { NumberAnimation { duration: 90 } }
+            Behavior on x { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+            Behavior on color { ColorAnimation { duration: Theme.fast } }
         }
     }
 
