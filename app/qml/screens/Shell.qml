@@ -135,10 +135,13 @@ Rectangle {
     }
 
     Loader {
+        id: sectionLoader
         anchors.left: rail.right
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
+        transform: Translate { id: sectionShift }
+        onLoaded: sectionArrival.restart()
         sourceComponent: root.section === "overview" ? overview
             : root.section === "cards" ? cards
             : root.section === "debts" ? debtsSection
@@ -147,6 +150,12 @@ Rectangle {
             : root.section === "assets" ? assetsSection
             : root.section === "savings" ? savingsSection
             : root.section === "tools" ? toolsSection : pending
+    }
+
+    ParallelAnimation {
+        id: sectionArrival
+        NumberAnimation { target: sectionLoader; property: "opacity"; from: 0; to: 1; duration: Theme.medium }
+        NumberAnimation { target: sectionShift; property: "y"; from: 10; to: 0; duration: Theme.medium; easing.type: Easing.OutCubic }
     }
 
     Component {

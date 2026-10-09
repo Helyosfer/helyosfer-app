@@ -17,6 +17,8 @@ Button {
     font.pixelSize: compact ? 12 : 13
     font.weight: Font.DemiBold
     hoverEnabled: true
+    scale: down ? 0.97 : 1
+    Behavior on scale { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
 
     contentItem: Text {
         text: control.text
@@ -34,5 +36,7 @@ Button {
         border.width: control.visualFocus ? 2 : (control.quiet ? 1 : 0)
         border.color: control.visualFocus ? Theme.text : Theme.line
         opacity: !control.enabled ? 0.5 : (control.down ? 0.8 : (control.hovered && !control.quiet ? 0.9 : 1))
+        Behavior on color { ColorAnimation { duration: Theme.fast } }
+        Behavior on opacity { NumberAnimation { duration: Theme.fast } }
     }
 }

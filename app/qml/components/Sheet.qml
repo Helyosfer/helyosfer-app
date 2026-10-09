@@ -20,8 +20,14 @@ Popup {
 
     Overlay.modal: Rectangle { color: Theme.dark ? "#b3000000" : "#66121a26" }
 
-    enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 110 } }
-    exit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 90 } }
+    enter: Transition {
+        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.fast }
+        NumberAnimation { property: "scale"; from: 0.96; to: 1; duration: Theme.medium; easing.type: Easing.OutCubic }
+    }
+    exit: Transition {
+        NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 90 }
+        NumberAnimation { property: "scale"; from: 1; to: 0.98; duration: 90 }
+    }
 
     background: Rectangle {
         color: Theme.panel

@@ -63,6 +63,7 @@ Column {
                     color: Theme.lineSoft
                     Rectangle {
                         width: parent.width * insights.scoreRatio
+                        Behavior on width { NumberAnimation { duration: Theme.slow; easing.type: Easing.OutCubic } }
                         height: parent.height
                         radius: 3
                         color: insights.scoreRatio >= 0.6 ? Theme.up

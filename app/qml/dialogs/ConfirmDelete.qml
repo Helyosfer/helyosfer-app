@@ -18,7 +18,7 @@ Sheet {
 
     Connections {
         target: accounts
-        function onSaved() { if (root.opened) root.close() }
+        function onSaved() { if (root.visible) root.close() }
     }
 
     Notice {

@@ -143,6 +143,7 @@ Column {
                             color: Theme.lineSoft
                             Rectangle {
                                 width: parent.width * row.modelData.ratio
+                                Behavior on width { NumberAnimation { duration: Theme.slow; easing.type: Easing.OutCubic } }
                                 height: parent.height
                                 radius: 3
                                 color: row.modelData.over ? Theme.down

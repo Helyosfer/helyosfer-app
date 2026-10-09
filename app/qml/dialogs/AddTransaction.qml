@@ -74,7 +74,7 @@ Sheet {
 
     Connections {
         target: transactions
-        function onSaved() { if (root.opened) root.close() }
+        function onSaved() { if (root.visible) root.close() }
     }
 
     Segmented {

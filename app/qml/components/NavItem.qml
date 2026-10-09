@@ -14,6 +14,7 @@ AbstractButton {
     background: Rectangle {
         radius: Theme.controlRadius
         color: control.selected ? Theme.accentSoft : (control.hovered ? Theme.raised : "transparent")
+        Behavior on color { ColorAnimation { duration: Theme.fast } }
         border.width: control.visualFocus ? 2 : 0
         border.color: Theme.accent
     }

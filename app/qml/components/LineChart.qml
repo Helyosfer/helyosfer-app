@@ -33,7 +33,15 @@ Item {
     readonly property real padBottom: 22
     readonly property real padTop: 8
 
-    onValuesChanged: canvas.requestPaint()
+    onValuesChanged: { canvas.requestPaint(); if (values.length >= 2) drawing.restart() }
+
+    // How much of the chart is uncovered, from its left edge.
+    property real shown: 1
+    NumberAnimation {
+        id: drawing
+        target: root; property: "shown"; from: 0.04; to: 1
+        duration: Theme.slow * 1.6; easing.type: Easing.OutCubic
+    }
     onStrokeChanged: canvas.requestPaint()
     onCompareChanged: canvas.requestPaint()
     onWidthChanged: canvas.requestPaint()
@@ -60,10 +68,16 @@ Item {
         font.pixelSize: 13
     }
 
+    Item {
+        height: parent.height
+        width: parent.width * root.shown
+        clip: true
+        visible: root.values.length >= 2
+
     Canvas {
         id: canvas
-        anchors.fill: parent
-        visible: root.values.length >= 2
+        width: root.width
+        height: root.height
 
         onPaint: {
             var ctx = getContext("2d")
@@ -151,5 +165,6 @@ Item {
             ctx.lineWidth = 2
             ctx.stroke()
         }
+    }
     }
 }

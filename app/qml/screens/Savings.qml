@@ -116,6 +116,7 @@ Flickable {
                             color: Theme.lineSoft
                             Rectangle {
                                 width: parent.width * card.modelData.progress
+                                Behavior on width { NumberAnimation { duration: Theme.slow; easing.type: Easing.OutCubic } }
                                 height: parent.height
                                 radius: 3
                                 color: card.modelData.done ? Theme.up : Theme.accent
