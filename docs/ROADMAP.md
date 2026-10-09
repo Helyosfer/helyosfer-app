@@ -16,7 +16,8 @@ Working and covered by tests:
   interest, compound growth, time to a goal), insights, what-if, past balance.
 - Overview with search, upcoming items and a balance chart drawn from the
   dates of the transactions.
-- Categories: the user's own can be added, renamed and removed.
+- Categories: the user's own can be added, renamed and removed; one that is
+  in use hands its records to another.
 - Encrypted backup and restore, CSV export and import.
 - Dark and light themes; English and Turkish.
 
@@ -56,22 +57,17 @@ yet tried by anyone but the author.
 - Records the application writes itself (loan installments, card payments,
   asset trades, installment purchases) cannot be changed from the
   transaction form.
-- A category that is in use cannot be removed, only renamed. Built-in
-  categories cannot be changed.
+- Built-in categories cannot be renamed or removed.
 - A back-dated transaction moves back the history of its own account and of
   the accounts opened on the profile's first day. An account opened on a
   later day joins the chart on that day.
 - Changing a repeating budget item changes that month only.
 - Amount fields take two decimals; asset unit prices are left free for
   smaller values.
-- The loan schedule PDF is written in English in both languages: the font it
-  uses has no Turkish letters.
-- In Turkish, records the application writes itself (an asset trade, a debt
-  payment) are shown as they are stored, which is plainer than their English
-  rewording.
+- The loan schedule PDF takes its font from Windows. Elsewhere it falls back
+  to a font without Turkish letters.
 
 ## Later
 
 - Automatic contributions to a savings goal.
-- Removing a category together with moving its records to another.
 - Linux and macOS packages.

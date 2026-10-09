@@ -11,6 +11,7 @@ from app.controllers import display_title, format_amount, format_signed, short_d
 from app.payments import FREQUENCIES, _Listing, read_day
 from services.background_task_manager import BackgroundTaskManager
 from app.language import later, say, tr
+from app.language import percent as written_percent
 
 _SOURCE_LABELS = {
     "transaction": later("Transactions"),
@@ -27,7 +28,8 @@ HORIZONS = ((30, later("1 month")), (90, later("3 months")), (180, later("6 mont
 
 
 def percent(value: float) -> str:
-    return f"{value * 100:.0f} %"
+    """A share between 0 and 1 as a percentage."""
+    return written_percent(value * 100)
 
 
 def read_percent(text: str, label: str) -> float:

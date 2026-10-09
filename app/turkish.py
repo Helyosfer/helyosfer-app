@@ -517,6 +517,9 @@ TEXT = {
     "Added to your debts.": "Borçlarınıza eklendi.",
     "Saved {0}.": "{0} kaydedildi.",
     "Repayment schedule": "Ödeme planı",
+    "Loan repayment schedule": "Kredi ödeme planı",
+    "Loan amount": "Kredi tutarı",
+    "Total deducted": "Toplam kesinti",
     "Month": "Ay",
     "Installment": "Taksit",
     "Extra charges": "Ek masraflar",
@@ -703,6 +706,15 @@ TEXT = {
     "New income category": "Yeni gelir kategorisi",
     "Add category": "Kategori ekle",
     "Rename category": "Kategoriyi yeniden adlandır",
+    "Remove %1?": "%1 kaldırılsın mı?",
+    "Transactions, plan items and recurring payments are filed under it. Choose the category "
+    "that takes them over.":
+        "Altında işlemler, plan kalemleri ve tekrarlayan ödemeler var. Bunları devralacak "
+        "kategoriyi seçin.",
+    "Move its records to": "Kayıtların taşınacağı kategori",
+    "Move and remove": "Taşı ve kaldır",
+    "Choose the category that takes over its records.":
+        "Kayıtları devralacak kategoriyi seçin.",
     "Everything filed under it moves to the new name.":
         "Altındaki her şey yeni ada taşınır.",
     "Danger zone": "Tehlikeli bölge",

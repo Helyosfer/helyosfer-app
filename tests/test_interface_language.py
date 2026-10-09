@@ -119,6 +119,33 @@ class LanguageSwitchTest(unittest.TestCase):
         self.assertEqual(
             trf("Taksit Sayısı: {count}", count=6), "Number of Instalments: 6")
 
+    def test_a_percentage_is_written_the_way_each_language_writes_it(self):
+        language.set_language("en")
+        self.assertEqual(language.percent(27), "27 %")
+        self.assertEqual(language.percent(5.94, 1, signed=True), "+5,9 %")
+        self.assertEqual(language.percent(-19.2, 1, signed=True), "−19,2 %")
+        language.set_language("tr")
+        self.assertEqual(language.percent(27), "%27")
+        self.assertEqual(language.percent(5.94, 1, signed=True), "+%5,9")
+        self.assertEqual(language.percent(-19.2, 1, signed=True), "−%19,2")
+
+    def test_a_trade_the_application_recorded_reads_cleanly_in_turkish(self):
+        from app.controllers import display_title
+
+        stored = "THYAO (THYAO) alındı — 10.0000 adet"
+        language.set_language("tr")
+        self.assertEqual(display_title(stored), "THYAO (THYAO) alındı — 10 adet")
+        self.assertEqual(
+            display_title("Gram Altın (GC=F) satıldı — 2.5000 adet"),
+            "Gram Altın (GC=F) satıldı — 2,5 adet")
+        language.set_language("en")
+        self.assertEqual(display_title(stored), "Bought 10 × THYAO (THYAO)")
+
+    def test_the_schedule_pdf_has_turkish_for_everything_it_prints(self):
+        from services.loan_report import PRINTED_TEXT
+
+        self.assertEqual([text for text in PRINTED_TEXT if text not in TEXT], [])
+
     def test_month_names_tell_may_from_its_abbreviation(self):
         language.set_language("tr")
         self.assertEqual((language.month_name(5), language.month_short(5)), ("Mayıs", "May"))

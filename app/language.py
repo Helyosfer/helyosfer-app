@@ -92,6 +92,16 @@ def month_short(month: int) -> str:
     return _SHORT_MONTHS[_current][month - 1]
 
 
+def percent(value: float, digits: int = 0, signed: bool = False) -> str:
+    """A percentage as each language writes it: "5,9 %" or "%5,9".
+
+    With `signed` the sign leads in both: "+5,9 %" and "+%5,9".
+    """
+    number = f"{abs(value):.{digits}f}".replace(".", ",")
+    sign = ("−" if value < 0 else "+") if signed else ("−" if value < 0 else "")
+    return f"{sign}%{number}" if _current == TURKISH else f"{sign}{number} %"
+
+
 def later(text: str) -> str:
     """Marks text that is kept in a table and passed to `say` where it is shown.
 

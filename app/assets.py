@@ -13,7 +13,7 @@ from PySide6.QtCore import Property, Signal, Slot
 from app.accounts import FormError, _Mutating, read_amount
 from app.controllers import display_title, format_amount, short_date
 from services.background_task_manager import BackgroundTaskManager
-from app.language import later, say, tr
+from app.language import later, percent, say, tr
 from utils.logging_config import get_logger
 from utils.ui_dispatch import run_on_main_thread
 
@@ -234,7 +234,7 @@ class AssetsController(_Mutating):
                 "valueText": f"{format_amount(asset_value)} ₺" if priced else "—",
                 "pnlText": (
                     format_signed_amount(pnl)
-                    + (f"  ·  {'−' if pct < 0 else '+'}{abs(pct):.1f} %".replace(".", ",")
+                    + ("  ·  " + percent(pct, 1, signed=True)
                        if pct is not None else "")
                 ) if priced else say("No price"),
                 "direction": ((pnl > 0) - (pnl < 0)) if priced else 0,
@@ -248,8 +248,7 @@ class AssetsController(_Mutating):
             "cost": f"{format_amount(cost)} ₺",
             "pnl": (
                 format_signed_amount(total_pnl)
-                + (f"  ·  {'−' if total_pnl < 0 else '+'}"
-                   f"{abs(total_pnl / cost * 100):.1f} %".replace(".", ",") if cost else "")
+                + ("  ·  " + percent(total_pnl / cost * 100, 1, signed=True) if cost else "")
             ) if views else "",
             "direction": (total_pnl > 0) - (total_pnl < 0),
         }

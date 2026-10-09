@@ -17,7 +17,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 from services import auth_service
 from services.background_task_manager import BackgroundTaskManager
 from app import language
-from app.language import later, month_short, say, tr, turkish
+from app.language import later, month_short, percent, say, tr, turkish
 from utils.errors import FinancialDataIntegrityError
 from utils.logging_config import get_logger, log_integrity_error
 from utils.version import APP_VERSION
@@ -84,6 +84,14 @@ def display_title(text: str) -> str:
     They are stored in Turkish, so a Turkish interface shows them as they are.
     """
     if turkish():
+        # Stored text is already Turkish; only the quantity of a trade is
+        # tidied, from "10.0000 adet" to "10 adet".
+        match = _ASSET_TRADE.match(text or "")
+        if match:
+            quantity = match.group(4)
+            quantity = quantity.rstrip("0").rstrip(".") if "." in quantity else quantity
+            return (text[: match.start(4)] + quantity.replace(".", ",")
+                    + text[match.end(4):])
         return text or ""
     for suffix, replacement in _GENERATED_SUFFIXES:
         if text.endswith(suffix):
@@ -470,7 +478,7 @@ class DashboardController(QObject):
             direction = (change > 0) - (change < 0)
             change_text = format_signed(change)
             if rate is not None:
-                change_text += f"  ·  {'−' if rate < 0 else '+'}{abs(rate):.1f} %".replace(".", ",")
+                change_text += "  ·  " + percent(rate, 1, signed=True)
             change_text += f"  ·  {label}"
 
         net = metrics["period_net"]
