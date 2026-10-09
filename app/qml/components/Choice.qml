@@ -13,9 +13,18 @@ Column {
     readonly property var currentItem: box.currentIndex >= 0 && box.currentIndex < model.length
         ? model[box.currentIndex] : null
 
+    // The key last chosen, by `select` or by hand. A rebuilt model makes the
+    // box fall back to its first entry; `restore` puts this choice back.
+    property var wanted: undefined
+
     function select(key) {
+        wanted = key
+        restore()
+    }
+
+    function restore() {
         for (var i = 0; i < model.length; i++) {
-            if (model[i].key === key) { box.currentIndex = i; return }
+            if (model[i].key === wanted) { box.currentIndex = i; return }
         }
         box.currentIndex = -1
     }
@@ -37,6 +46,8 @@ Column {
         model: root.model
         textRole: "label"
         currentIndex: -1
+        onActivated: root.wanted = root.currentKey
+        onModelChanged: root.restore()
         font.family: Theme.uiFont
         font.pixelSize: 14
 

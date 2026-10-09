@@ -10,6 +10,8 @@ Sheet {
     property string kind: "expense"
     readonly property bool onCard: account.currentItem !== null
         && account.currentItem.kind === "credit_card" && kind === "expense"
+    readonly property var chosenAccount: account.currentKey
+    readonly property var chosenCategory: category.currentKey
 
     function openFor(accountKey) {
         kind = "expense"

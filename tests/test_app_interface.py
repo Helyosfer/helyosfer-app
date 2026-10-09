@@ -210,6 +210,22 @@ class InterfaceSmokeTest(unittest.TestCase):
             self.assertTrue(dialog.property("visible"), (name, self._warnings()))
             dialog.setProperty("visible", False)
 
+        # A list that is rebuilt under an open form keeps what was chosen
+        # there, and never picks its first entry on the user's behalf.
+        form = window.findChild(QObject, "addTransaction")
+        QMetaObject.invokeMethod(form, "openFor", Q_ARG("QVariant", card["id"]))
+        self.assertEqual(form.property("chosenAccount"), card["id"])
+        self.assertIsNone(form.property("chosenCategory"))
+        form.setProperty("kind", "income")
+        self._settle()
+        self.assertIsNone(form.property("chosenCategory"))
+        self.accounts.refresh()
+        self.transactions.categoriesEdited()
+        self._settle()
+        self.assertEqual(form.property("chosenAccount"), card["id"])
+        self.assertIsNone(form.property("chosenCategory"))
+        form.setProperty("visible", False)
+
         shows("addTransaction", "openFor", card["id"])
         shows("payDebt", "openFor", card)
         shows("confirmDelete", "openFor", card)
