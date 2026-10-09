@@ -653,6 +653,28 @@ def _store_cached_portfolio(enriched):
         conn.close()
 
 
+PRICE_WORKER_FLAG = "--price-worker"
+
+
+def price_worker_command(output_path: str) -> tuple[list[str], str]:
+    """The command that starts the price process, and the directory it runs in.
+
+    From source the interpreter runs the worker module. A packaged build has
+    no interpreter to call: the application's own executable is started again
+    with a flag that its entry point hands to the worker.
+    """
+    import os
+    import sys
+
+    if getattr(sys, "frozen", False):
+        return (
+            [sys.executable, PRICE_WORKER_FLAG, output_path],
+            os.path.dirname(os.path.abspath(sys.executable)),
+        )
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return [sys.executable, "-m", "services.asset_price_worker", output_path], project_root
+
+
 def fetch_portfolio_with_prices(assets: list, callback, item_callback=None,
                                 cache_callback=None, force_refresh=False) -> None:
     """Fetches the live prices of every asset in a SINGLE batch yfinance
@@ -686,7 +708,6 @@ def fetch_portfolio_with_prices(assets: list, callback, item_callback=None,
 
             import json
             import subprocess
-            import sys
             import tempfile
             fd, output_path = tempfile.mkstemp(prefix="helysofer_prices_", suffix=".json")
             os.close(fd)
@@ -695,9 +716,9 @@ def fetch_portfolio_with_prices(assets: list, callback, item_callback=None,
                 env["HELYSOFER_ASSET_PRICE_CHILD"] = "1"
 
 
-                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                command, project_root = price_worker_command(output_path)
                 proc = subprocess.run(
-                    [sys.executable, "-m", "services.asset_price_worker", output_path],
+                    command,
                     # Asset kinds carry non-ASCII letters. Both ends name the
                     # encoding: left to the locale, parent and child can
                     # disagree and the child then rejects the whole request.
@@ -705,6 +726,8 @@ def fetch_portfolio_with_prices(assets: list, callback, item_callback=None,
                     encoding="utf-8", errors="replace",
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     timeout=70, check=False, env=env, cwd=project_root,
+                    # No console window may flash up behind the application.
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                 )
 
 

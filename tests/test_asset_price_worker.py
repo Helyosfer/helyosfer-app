@@ -96,6 +96,38 @@ class SubprocessInvocationTest(unittest.TestCase):
                 self.assertEqual(json.load(stream), request)
         self.assertEqual(seen, [request])
 
+    def test_from_source_the_interpreter_runs_the_worker_module(self):
+        from services.asset_service import price_worker_command
+
+        command, folder = price_worker_command("out.json")
+        self.assertEqual(
+            command, [sys.executable, "-m", "services.asset_price_worker", "out.json"])
+        self.assertEqual(folder, PROJECT_ROOT)
+
+    def test_a_packaged_build_starts_itself_with_the_worker_flag(self):
+        from services.asset_service import PRICE_WORKER_FLAG, price_worker_command
+
+        program = os.path.join(PROJECT_ROOT, "dist", "Helysofer", "Helysofer.exe")
+        with mock.patch.object(sys, "frozen", True, create=True),              mock.patch.object(sys, "executable", program):
+            command, folder = price_worker_command("out.json")
+        self.assertEqual(command, [program, PRICE_WORKER_FLAG, "out.json"])
+        self.assertEqual(folder, os.path.dirname(program))
+
+    def test_the_entry_point_hands_the_flag_to_the_worker_without_the_interface(self):
+        import importlib
+
+        import services.asset_price_worker as worker
+        from services.asset_service import PRICE_WORKER_FLAG
+
+        entry = importlib.import_module("app.__main__")
+        self.assertEqual(entry.PRICE_WORKER_FLAG, PRICE_WORKER_FLAG)
+        seen = []
+        loaded_before = "app.main" in sys.modules
+        with mock.patch.object(sys, "argv", ["Helysofer.exe", PRICE_WORKER_FLAG, "out.json"]),              mock.patch.object(worker, "main", lambda: seen.append(list(sys.argv))):
+            self.assertEqual(entry.main(), 0)
+        self.assertEqual(seen, [["Helysofer.exe", "out.json"]])
+        self.assertEqual("app.main" in sys.modules, loaded_before)
+
     def test_subprocess_captures_streams_not_devnull(self):
         """stderr must be visible: PIPE, not DEVNULL."""
         fake_proc = subprocess.CompletedProcess(
