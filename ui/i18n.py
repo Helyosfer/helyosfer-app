@@ -355,7 +355,7 @@ EN = {
     "Hedef Miktar (₺)": "Target Amount (₺)",
     "Hedef tutar 0'dan büyük olmalıdır!": "The target amount must be greater than zero!",
     "Henüz hesap eklenmedi — yukarıdaki butondan ekleyebilirsin.": "No accounts yet — use the button above to add one.",
-    "Soru, öneri ve hata bildirimleri için GitHub sayfamızı kullanabilirsiniz:\n\n[b]github.com/Helysofer/helysofer[/b]": "For questions, feedback, or bug reports, use our GitHub page:\n\n[b]github.com/Helysofer/helysofer[/b]",
+    "Soru, öneri ve hata bildirimleri için GitHub sayfamızı kullanabilirsiniz:\n\n[b]github.com/Helyosfer/helysofer[/b]": "For questions, feedback, or bug reports, use our GitHub page:\n\n[b]github.com/Helyosfer/helysofer[/b]",
     "Hisse eklendi! Fiyatlar güncelleniyor…": "Stock added! Updating prices…",
     "Hisse eklenirken hata oluştu!": "Could not add the stock!",
     "Kalem Adı (Örn: Maaş, Kira)": "Item Name (e.g. Salary, Rent)",

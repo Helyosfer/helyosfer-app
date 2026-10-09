@@ -16,7 +16,7 @@ from utils.logging_config import get_logger
 
 BACKUP_SUFFIX = ".helysofer-backup"
 CONTACT_EMAIL = "cakirgozmehmetc@proton.me"
-PROJECT_URL = "github.com/Helysofer/helysofer"
+PROJECT_URL = "github.com/Helyosfer/helysofer"
 UNWRITABLE = later("The file could not be saved there. Choose another location.")
 UNREADABLE_CSV = later("This file could not be read. Choose a CSV file exported from Helysofer.")
 

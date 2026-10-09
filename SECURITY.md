@@ -10,7 +10,7 @@ For current guarantees and limitations, read the
 ## Report a vulnerability privately
 
 Do not open a public issue for a suspected vulnerability. Use a
-[private GitHub security advisory](https://github.com/Helysofer/helysofer/security/advisories/new).
+[private GitHub security advisory](https://github.com/Helyosfer/helysofer/security/advisories/new).
 If GitHub is unavailable or unsuitable, email
 `cakirgozmehmetc@proton.me`.
 
