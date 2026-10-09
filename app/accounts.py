@@ -339,9 +339,66 @@ class TransactionFormController(_Mutating):
     def categories(self, transaction_type):
         from services.queries import CategoryService
 
+        from services.transaction_edit_service import SYSTEM_CATEGORIES
+
         rows = CategoryService.get_categories(transaction_type)
-        options = [{"key": row[1], "label": tr(row[1])} for row in rows]
+        # Categories the application files its own records under are not
+        # offered: a record put there by hand would look like one of them.
+        options = [
+            {"key": row[1], "label": tr(row[1])}
+            for row in rows if row[1] not in SYSTEM_CATEGORIES
+        ]
         return sorted(options, key=lambda option: option["label"].casefold())
+
+    @Slot(int, result="QVariantMap")
+    def details(self, transaction_id):
+        """A transaction as the edit form shows it; empty when it is gone."""
+        from services.transaction_edit_service import get_transaction
+
+        try:
+            found = get_transaction(transaction_id)
+        except ValueError:
+            return {}
+        try:
+            day = datetime.date.fromisoformat(found["date"][:10]).strftime("%d.%m.%Y")
+        except ValueError:
+            day = ""
+        return {
+            "id": found["id"],
+            "kind": found["type"] if found["type"] in ("income", "expense") else "expense",
+            "accountId": found["account_id"],
+            "category": found["category"],
+            "amountText": "" if found["amount"] is None else format_amount(found["amount"]),
+            "description": found["description"],
+            "dateText": day,
+            "locked": tr(found["locked"]) if found["locked"] else "",
+        }
+
+    @Slot(int, str, str, str, str)
+    def update(self, transaction_id, amount_text, category, description, date_text):
+        def work():
+            from services.transaction_edit_service import update_transaction
+
+            if not category:
+                raise FormError("Choose a category.")
+            amount = read_amount(amount_text, "amount")
+            stamp = read_date(date_text) or datetime.date.today().isoformat()
+            update_transaction(
+                transaction_id, amount, category, (description or "").strip(), stamp[:10],
+            )
+            self._last_pending = False
+
+        self._mutate(work)
+
+    @Slot(int)
+    def remove(self, transaction_id):
+        def work():
+            from services.transaction_edit_service import delete_transaction
+
+            delete_transaction(transaction_id)
+            self._last_pending = False
+
+        self._mutate(work)
 
     @Slot(str, str, int, str, str, str, int)
     def add(self, transaction_type, amount_text, account_id, category,

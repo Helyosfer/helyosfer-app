@@ -277,6 +277,17 @@ EN = {
     "Bu abonelik zaten kayıtlı.": "This subscription is already tracked.",
     "Bu aralıkta bakiye hareketi yok.": "No balance activity in this period.",
     "Bu borç zaten tamamen ödenmiş!": "This debt has already been paid off!",
+    "İşlem bulunamadı.": "This transaction no longer exists.",
+    "Bu işlem uygulama tarafından oluşturuldu ve buradan değiştirilemez.":
+        "Helysofer made this record as part of a payment or a trade, so it cannot be changed here.",
+    "Taksitli bir alışveriş buradan değiştirilemez.":
+        "A purchase in installments cannot be changed here.",
+    "Bekleyen bir işlem Borçlar ve ödemeler bölümünden değiştirilir.":
+        "A pending transaction is changed under Debts and payments.",
+    "Bu kayıt okunamadığı için değiştirilemez.": "This record cannot be read, so it cannot be changed.",
+    "İşlem tarihi gelecekte olamaz.": "The date cannot be in the future. Add a new transaction to plan one.",
+    "İşlem tarihi geçersiz.": "Enter a valid date.",
+    "Bu kategori bu işlem türü için kullanılamaz.": "Choose a category from the list.",
     "Kategori adı boş olamaz.": "Enter a name for the category.",
     "Kategori adı en fazla 40 karakter olabilir.": "A category name can be at most 40 characters.",
     "Kategori türü geçersiz.": "Choose income or spending.",

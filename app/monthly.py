@@ -343,6 +343,7 @@ class CalendarController(_Monthly):
             self._day_title = f"{loaded_day.day} {_MONTH_NAMES[loaded_day.month - 1]}"
             self._day_items = [
                 {
+                    "id": item["id"],
                     "time": item["time"] or "",
                     "title": display_title(item["description"] or item["category"]),
                     "category": tr(item["category"] or ""),

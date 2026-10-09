@@ -226,6 +226,56 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertIsNone(form.property("chosenCategory"))
         form.setProperty("visible", False)
 
+        # Changing and removing a transaction through the same form.
+        self.accounts.setFrozen(card["id"], False)
+        self._settle()
+        before = self.accounts.accounts[0]["balanceText"]
+        self.transactions.add("expense", "40", main["id"], "Taksi", "Night ride", "", 1)
+        self._settle()
+        ride = self.dashboard.recent[0]
+        self.assertEqual((ride["title"], ride["amount"]), ("Night ride", "−40,00 ₺"))
+        QMetaObject.invokeMethod(form, "openForEdit", Q_ARG("QVariant", ride["id"]))
+        self.assertTrue(form.property("visible"), self._warnings())
+        self.assertEqual(form.property("editing"), ride["id"])
+        self.assertEqual(form.property("locked"), "")
+        self.assertEqual(form.property("chosenAccount"), main["id"])
+        self.assertEqual(form.property("chosenCategory"), "Taksi")
+        self.transactions.update(ride["id"], "", "Taksi", "Night ride", "")
+        self._settle()
+        self.assertEqual(self.transactions.message, "Enter the amount.")
+        self.assertTrue(form.property("visible"))
+        self.transactions.update(ride["id"], "65,50", "Süpermarket", "Late shop", "")
+        self._settle()
+        self.assertEqual(self.transactions.message, "")
+        self.assertFalse(form.property("visible"))
+        changed = self.dashboard.recent[0]
+        self.assertEqual(
+            (changed["id"], changed["title"], changed["category"], changed["amount"]),
+            (ride["id"], "Late shop", "Groceries", "−65,50 ₺"),
+        )
+        self.transactions.remove(ride["id"])
+        self._settle()
+        self.assertNotIn(ride["id"], [row["id"] for row in self.dashboard.recent])
+        self.assertEqual(self.accounts.accounts[0]["balanceText"], before)
+        self.assertEqual(self.transactions.details(ride["id"]), {})
+
+        # A record the application wrote opens locked.
+        payment = next(row for row in self.dashboard.recent
+                       if row["title"] == "Travel card debt payment")
+        QMetaObject.invokeMethod(form, "openForEdit", Q_ARG("QVariant", payment["id"]))
+        self.assertTrue(form.property("visible"), self._warnings())
+        self.assertIn("cannot be changed here", form.property("locked"))
+        self.transactions.remove(payment["id"])
+        self._settle()
+        self.assertIn("cannot be changed here", self.transactions.message)
+        self.transactions.clearMessage()
+        form.setProperty("visible", False)
+        self.assertNotIn(
+            "Debt Payment", [c["label"] for c in self.transactions.categories("expense")]
+        )
+        self.accounts.setFrozen(card["id"], True)
+        self._settle()
+
         shows("addTransaction", "openFor", card["id"])
         shows("payDebt", "openFor", card)
         shows("confirmDelete", "openFor", card)

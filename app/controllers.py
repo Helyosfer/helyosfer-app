@@ -498,6 +498,7 @@ class DashboardController(QObject):
         else:
             amount, title = "—", "Unreadable record"
         return {
+            "id": item["id"],
             "date": short_date(item["date"]),
             "title": title,
             "category": tr(item["category"]),

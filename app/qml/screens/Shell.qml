@@ -152,6 +152,7 @@ Rectangle {
         id: overview
         Dashboard {
             onAddRequested: addTransaction.openFor(-1)
+            onEditRequested: function (transactionId) { addTransaction.openForEdit(transactionId) }
             onOpenRequested: function (section, argument) { root.open(section, argument) }
         }
     }
@@ -212,6 +213,7 @@ Rectangle {
             }
             onAddPlanItemRequested: addPlanItem.openFresh()
             onEditPlanItemRequested: function (item) { addPlanItem.openFor(item) }
+            onEditTransactionRequested: function (transactionId) { addTransaction.openForEdit(transactionId) }
         }
     }
 

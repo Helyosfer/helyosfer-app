@@ -6,6 +6,7 @@ import "../components"
 Flickable {
     id: root
     signal addRequested()
+    signal editRequested(int transactionId)
     signal openRequested(string section, string argument)
     contentWidth: width
     contentHeight: page.implicitHeight + 48
@@ -363,7 +364,22 @@ Flickable {
                         width: parent.width
                         height: 40
 
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.leftMargin: -8
+                            anchors.rightMargin: -8
+                            radius: 6
+                            color: Theme.raised
+                            visible: rowArea.containsMouse
+                        }
                         Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+                        MouseArea {
+                            id: rowArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.editRequested(row.modelData.id)
+                        }
 
                         Text {
                             id: dateLabel

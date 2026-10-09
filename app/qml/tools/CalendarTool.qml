@@ -5,6 +5,7 @@ import "../components"
 
 Column {
     id: root
+    signal editRequested(int transactionId)
     spacing: Theme.gap
 
     Component.onCompleted: calendar.refresh()
@@ -147,7 +148,22 @@ Column {
                         width: parent.width
                         height: 44
 
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.leftMargin: -8
+                            anchors.rightMargin: -8
+                            radius: 6
+                            color: Theme.raised
+                            visible: lineArea.containsMouse
+                        }
                         Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+                        MouseArea {
+                            id: lineArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.editRequested(line.modelData.id)
+                        }
                         Text {
                             id: time
                             anchors.verticalCenter: parent.verticalCenter

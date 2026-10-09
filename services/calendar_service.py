@@ -44,7 +44,7 @@ def get_day_transactions(date_obj):
         cursor = conn.cursor()
         cursor.execute(
             f"""
-            SELECT type, category, amount, description,
+            SELECT id, type, category, amount, description,
                    strftime('%H:%M', transaction_date) AS time
             FROM transactions
             WHERE date(transaction_date) = ?
@@ -85,6 +85,7 @@ def get_day_transactions(date_obj):
                 date_obj, row["time"])
             description = ""
         items.append({
+            "id": row["id"],
             "type": row["type"],
             "category": row["category"] or "Diğer",
             "amount": amount,
