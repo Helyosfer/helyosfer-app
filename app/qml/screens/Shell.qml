@@ -15,7 +15,7 @@ Rectangle {
         || payInstallments.visible || addRecurring.visible || stopRecurring.visible
         || autoPayDay.visible || reschedule.visible || changeAmount.visible
         || addAsset.visible || sellAsset.visible || addGoal.visible || moveSavings.visible
-        || addPlanItem.visible
+        || addPlanItem.visible || autoSaving.visible
     color: Theme.page
 
     property string pendingTool: ""
@@ -202,6 +202,7 @@ Rectangle {
         Savings {
             onAddRequested: addGoal.openFresh()
             onMoveRequested: function (goal, mode) { moveSavings.openFor(goal, mode) }
+            onAutoRequested: function (goal) { autoSaving.openFor(goal) }
         }
     }
 
@@ -222,6 +223,7 @@ Rectangle {
 
     AddGoal { id: addGoal; objectName: "addGoal" }
     MoveSavings { id: moveSavings; objectName: "moveSavings" }
+    AutoSaving { id: autoSaving; objectName: "autoSaving" }
     AddAsset { id: addAsset; objectName: "addAsset" }
     SellAsset { id: sellAsset; objectName: "sellAsset" }
 

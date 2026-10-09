@@ -1,5 +1,5 @@
 """Applies everything that has fallen due: pending transactions, automatic
-recurring payments and automatic debt instalments.
+recurring payments, automatic debt instalments and savings contributions.
 
 Run once after sign-in, off the interface thread. Each item is handled on its
 own: one record that cannot be processed is logged and the rest continue, so a
@@ -91,4 +91,11 @@ def process_due_items(today: datetime.date | None = None) -> bool:
                 "Otomatik borç taksiti işlenemedi (id=%s), diğerleri sürdürülüyor",
                 debt.get("id"),
             )
+
+    try:
+        from services.savings_auto_service import process_due_contributions
+
+        changed = bool(process_due_contributions(today)) or changed
+    except _ITEM_ERRORS:
+        get_logger().exception("Otomatik birikim katkıları işlenemedi")
     return changed

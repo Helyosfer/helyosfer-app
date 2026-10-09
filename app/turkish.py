@@ -365,6 +365,18 @@ TEXT = {
     "Reached": "Tamamlandı",
     "Nothing left to save.": "Biriktirilecek bir şey kalmadı.",
     "Add money": "Para ekle",
+    "Save automatically": "Otomatik biriktir",
+    "Change automatic saving": "Otomatik birikimi değiştir",
+    "Automatic: %1": "Otomatik: %1",
+    "{0} ₺ on day {1} of each month, from {2}": "her ayın {1}. günü {0} ₺, {2} hesabından",
+    "Save for %1 automatically": "%1 için otomatik biriktir",
+    "The amount moves from the account into the goal once a month, the next time you open "
+    "Helyosfer on or after that day. A month the account cannot cover is skipped.":
+        "Tutar ayda bir kez, o gün ya da sonrasında Helyosfer'i ilk açtığınızda hesaptan hedefe "
+        "aktarılır. Hesabın karşılayamadığı ay atlanır.",
+    "Amount each month (₺)": "Aylık tutar (₺)",
+    "Turn off": "Otomatiği kapat",
+    "day of the month": "ayın günü",
     "Delete goal": "Hedefi sil",
     "The target date has passed": "Hedef tarihi geçti",
     "New savings goal": "Yeni birikim hedefi",

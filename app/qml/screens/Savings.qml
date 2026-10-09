@@ -7,6 +7,7 @@ Flickable {
     id: root
     signal addRequested()
     signal moveRequested(var goal, string mode)
+    signal autoRequested(var goal)
 
     contentWidth: width
     contentHeight: page.implicitHeight + 48
@@ -132,6 +133,16 @@ Flickable {
                             wrapMode: Text.WordWrap
                         }
 
+                        Text {
+                            width: parent.width
+                            visible: card.modelData.auto
+                            text: qsTr("Automatic: %1").arg(card.modelData.autoText)
+                            color: Theme.accent
+                            font.family: Theme.uiFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                        }
+
                         Flow {
                             width: parent.width
                             spacing: 10
@@ -141,6 +152,13 @@ Flickable {
                                 visible: !card.modelData.done
                                 text: qsTr("Add money")
                                 onClicked: root.moveRequested(card.modelData, "deposit")
+                            }
+                            PrimaryButton {
+                                compact: true; quiet: true
+                                visible: !card.modelData.done
+                                text: card.modelData.auto ? qsTr("Change automatic saving")
+                                                          : qsTr("Save automatically")
+                                onClicked: root.autoRequested(card.modelData)
                             }
                             PrimaryButton {
                                 compact: true; quiet: true

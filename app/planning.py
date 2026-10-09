@@ -40,11 +40,15 @@ class SavingsController(_Listing):
 
     @staticmethod
     def _fetch():
+        from services.account_service import AccountService
+        from services.savings_auto_service import get_contributions
         from services.savings_service import SavingsService
 
-        return SavingsService.get_goals()
+        names = {account["id"]: account["name"] for account in AccountService.get_accounts()}
+        return SavingsService.get_goals(), get_contributions(), names
 
-    def _show(self, goals) -> None:
+    def _show(self, data) -> None:
+        goals, plans, account_names = data
         today = datetime.date.today()
         views = []
         saved = target = 0.0
@@ -82,12 +86,53 @@ class SavingsController(_Listing):
                 "pace": pace,
                 "done": done,
                 "hasMoney": current > 0,
+                **self._auto(plans.get(goal["goal_uid"]), account_names, done),
             })
         self._goals = views
         self._saved = f"{format_amount(saved)} ₺"
         self._target = f"{format_amount(target)} ₺"
 
+    @staticmethod
+    def _auto(plan, account_names, done) -> dict:
+        """What a goal's card and its dialog need about its monthly contribution."""
+        if not plan or done:
+            return {"auto": False, "autoText": "", "autoAmountText": "", "autoDay": 0,
+                    "autoAccount": -1}
+        # The account's name is the user's own text and goes in as a value.
+        return {
+            "auto": True,
+            "autoText": say(
+                "{0} ₺ on day {1} of each month, from {2}",
+                format_amount(plan["amount"]), plan["day"],
+                account_names.get(plan["account_id"], "—"),
+            ),
+            "autoAmountText": format_amount(plan["amount"]),
+            "autoDay": plan["day"],
+            "autoAccount": plan["account_id"],
+        }
+
     # -- actions -------------------------------------------------------------
+    @Slot(str, str, str, int)
+    def setAuto(self, goal_uid, amount_text, day_text, account_id):
+        """Sets or changes the goal's monthly contribution."""
+        def work():
+            from app.payments import read_count
+            from services.savings_auto_service import set_contribution
+
+            amount = read_amount(amount_text, say("amount"))
+            day = read_count(day_text, say("day of the month"), 1, 31)
+            if account_id < 0:
+                raise FormError(say("Choose an account."))
+            set_contribution(goal_uid, account_id, amount, day)
+
+        self._mutate(work)
+
+    @Slot(str)
+    def clearAuto(self, goal_uid):
+        from services.savings_auto_service import clear_contribution
+
+        self._mutate(lambda: clear_contribution(goal_uid))
+
     @Slot(str, str, str)
     def addGoal(self, name, target_text, date_text):
         def work():

@@ -10,7 +10,8 @@ Working and covered by tests:
 - Sign-in, first-run setup, password change, lock.
 - Accounts and credit cards; adding, changing and removing transactions;
   pending transactions that apply themselves on their day.
-- Debts and installments, recurring payments, savings goals.
+- Debts and installments, recurring payments, savings goals with an optional
+  monthly contribution.
 - Portfolio with live prices for BIST shares, gold, currencies and crypto.
 - Budget plan, calendar, calculators (loan with PDF schedule, deposit
   interest, compound growth, time to a goal), insights, what-if, past balance.
@@ -68,5 +69,4 @@ author.
 
 ## Later
 
-- Automatic contributions to a savings goal.
 - Linux and macOS packages.

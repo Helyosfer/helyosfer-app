@@ -111,7 +111,6 @@ EN = {
     "Aktif Aboneliklerim": "My Active Subscriptions",
     "Aktif aboneliğiniz bulunmuyor.": "You have no active subscriptions.",
     "Sonraki ödeme:": "Next payment:",
-    "Ödeme günü 1 ile 31 arasında olmalıdır.": "Payment day must be between 1 and 31.",
     "Tekrarlama günü 1 ile 31 arasında olmalıdır.": "Recurrence day must be between 1 and 31.",
     "Ayrılmış abonelik gideri:": "Reserved subscription expense:",
     "Harcama limitiniz:": "Spending limit:",
@@ -289,6 +288,8 @@ EN = {
     "İşlem tarihi geçersiz.": "Enter a valid date.",
     "Bu kategori bu işlem türü için kullanılamaz.": "Choose a category from the list.",
     "Kategori bulunamadı.": "This category no longer exists.",
+    "Otomatik birikim için bir vadesiz hesap seçin.": "Choose a cash or checking account to save from.",
+    "Ödeme günü 1 ile 31 arasında olmalıdır.": "The day must be between 1 and 31.",
     "Kayıtların taşınacağı kategori geçersiz.": "Choose the category that takes over its records.",
     "Hazır kategoriler değiştirilemez.": "Built-in categories cannot be renamed or removed.",
     "Bu kategori kullanımda olduğu için silinemez. Yeniden adlandırabilirsiniz.":

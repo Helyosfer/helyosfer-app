@@ -371,6 +371,36 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertTrue(self.savings.message)
         self.assertEqual(self.savings.goals[0]["savedText"], "200,00 ₺")
         shows("addGoal", "openFresh")
+        # A monthly contribution: set, shown on the card, changed, turned off.
+        self.assertFalse(self.savings.goals[0]["auto"])
+        shows("autoSaving", "openFor", self.savings.goals[0])
+        self.savings.setAuto(goal["uid"], "", "5", main["id"])
+        self._settle()
+        self.assertEqual(self.savings.message, "Enter the amount.")
+        self.savings.setAuto(goal["uid"], "150", "40", main["id"])
+        self._settle()
+        self.assertEqual(self.savings.message, "The day of the month must be between 1 and 31.")
+        self.savings.setAuto(goal["uid"], "150", "5", -1)
+        self._settle()
+        self.assertEqual(self.savings.message, "Choose an account.")
+        self.savings.setAuto(goal["uid"], "150", "5", card["id"])
+        self._settle()
+        self.assertIn("cash or checking", self.savings.message)
+        self.savings.setAuto(goal["uid"], "150", "5", main["id"])
+        self._settle()
+        self.assertEqual(self.savings.message, "")
+        planned = self.savings.goals[0]
+        self.assertEqual(
+            (planned["auto"], planned["autoText"], planned["autoAmountText"], planned["autoDay"],
+             planned["autoAccount"]),
+            (True, "150,00 ₺ on day 5 of each month, from Main account", "150,00", 5, main["id"]),
+        )
+        shows("autoSaving", "openFor", planned)
+        self.savings.clearAuto(goal["uid"])
+        self._settle()
+        self.assertFalse(self.savings.goals[0]["auto"])
+        self.assertEqual(self.savings.goals[0]["savedText"], "200,00 ₺")
+
         shows("moveSavings", "openFor", self.savings.goals[0], "deposit")
         shows("moveSavings", "openFor", self.savings.goals[0], "delete")
         self.savings.deleteGoal(goal["id"], goal["uid"], -1)
