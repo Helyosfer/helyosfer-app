@@ -15,9 +15,9 @@ QtObject {
     readonly property color muted: dark ? "#93a0b4" : "#56637a"
     readonly property color faint: dark ? "#64718a" : "#8490a5"
 
-    readonly property color accent: dark ? "#d2b279" : "#8a6a2c"
-    readonly property color accentSoft: dark ? "#24d2b279" : "#1f8a6a2c"
-    readonly property color onAccent: dark ? "#1a1408" : "#ffffff"
+    readonly property color accent: dark ? "#9485f7" : "#5646d4"
+    readonly property color accentSoft: dark ? "#2e9485f7" : "#1f5646d4"
+    readonly property color onAccent: dark ? "#100c26" : "#ffffff"
 
     readonly property color up: dark ? "#6fcf9a" : "#1d7f4e"
     readonly property color down: dark ? "#ef8f86" : "#b8443a"
