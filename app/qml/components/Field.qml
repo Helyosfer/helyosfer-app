@@ -68,6 +68,7 @@ Column {
             color: Theme.panel
             border.width: input.activeFocus ? 2 : 1
             border.color: input.activeFocus ? Theme.accent : Theme.line
+            Behavior on border.color { ColorAnimation { duration: Theme.fast } }
         }
     }
 }

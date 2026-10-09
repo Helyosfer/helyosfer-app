@@ -40,6 +40,12 @@ ApplicationWindow {
     Loader {
         id: screens
         anchors.fill: parent
+        // Signing in, locking and the first-run steps fade into one another.
+        onLoaded: screenArrival.restart()
+        NumberAnimation {
+            id: screenArrival
+            target: screens; property: "opacity"; from: 0; to: 1; duration: Theme.slow
+        }
         sourceComponent: {
             switch (app.screen) {
             case "setup": return setupScreen

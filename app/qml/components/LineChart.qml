@@ -35,6 +35,70 @@ Item {
 
     onValuesChanged: { canvas.requestPaint(); if (values.length >= 2) drawing.restart() }
 
+    // Where the plot was drawn, set when it is painted.
+    property var plot: null
+    // The point under the pointer, or -1.
+    readonly property int pointed: {
+        if (!pointer.hovered || plot === null || values.length < 2) return -1
+        var at = (pointer.point.position.x - plot.left) / plot.width
+        if (at < -0.02 || at > 1.02) return -1
+        return Math.max(0, Math.min(values.length - 1, Math.round(at * (values.length - 1))))
+    }
+    HoverHandler { id: pointer }
+
+    Item {
+        id: readout
+        visible: root.pointed >= 0
+        z: 2
+        readonly property real at: root.pointed >= 0
+            ? root.plot.left + root.plot.width * root.pointed / (root.values.length - 1) : 0
+        readonly property real level: root.pointed >= 0
+            ? root.plot.top + root.plot.height
+              * (1 - (root.values[root.pointed] - root.plot.low) / (root.plot.high - root.plot.low)) : 0
+
+        Rectangle {
+            x: readout.at
+            y: root.plot ? root.plot.top : 0
+            width: 1
+            height: root.plot ? root.plot.height : 0
+            color: Theme.line
+        }
+        Rectangle {
+            x: readout.at - 4
+            y: readout.level - 4
+            width: 8; height: 8; radius: 4
+            color: root.stroke
+            border.width: 2
+            border.color: Theme.panel
+            Behavior on x { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+            Behavior on y { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+        }
+        Rectangle {
+            readonly property var parts: root.pointed >= 0 ? app.amountParts(root.values[root.pointed]) : ["", ""]
+            x: Math.max(root.plot ? root.plot.left : 0,
+                        Math.min(root.width - width - 4, readout.at - width / 2))
+            y: Math.max(0, readout.level - height - 12)
+            width: label.implicitWidth + 16
+            height: label.implicitHeight + 8
+            radius: 5
+            color: Theme.raised
+            border.width: 1
+            border.color: Theme.line
+            Behavior on x { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+            Behavior on y { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+
+            Text {
+                id: label
+                anchors.centerIn: parent
+                text: (root.pointed >= 0 && root.labels[root.pointed] !== undefined
+                       ? root.labels[root.pointed] + "   " : "") + parent.parts[0] + parent.parts[1]
+                color: Theme.text
+                font.family: Theme.dataFont
+                font.pixelSize: 11
+            }
+        }
+    }
+
     // How much of the chart is uncovered, from its left edge.
     property real shown: 1
     NumberAnimation {
@@ -83,6 +147,7 @@ Item {
             var ctx = getContext("2d")
             ctx.reset()
             var points = root.values
+            root.plot = null
             if (points.length < 2) return
 
             var other = root.compare.length === points.length ? root.compare : []
@@ -99,6 +164,8 @@ Item {
             var plotHeight = height - top - root.padBottom
             function px(index) { return left + plotWidth * index / (points.length - 1) }
             function py(value) { return top + plotHeight * (1 - (value - low) / (high - low)) }
+            // What the pointer readout needs to find a point again.
+            root.plot = { left: left, top: top, width: plotWidth, height: plotHeight, low: low, high: high }
 
             ctx.font = "10px " + Theme.dataFont
             ctx.textBaseline = "middle"

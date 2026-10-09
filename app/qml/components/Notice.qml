@@ -12,7 +12,10 @@ Text {
     font.pixelSize: 13
     wrapMode: Text.WordWrap
 
-    function nudge() { shake.restart() }
+    function nudge() { if (Theme.motion) shake.restart() }
+
+    // A new problem draws the eye by itself; the caller need not ask.
+    onTextChanged: if (root.problem && root.text.length > 0) root.nudge()
 
     transform: Translate { id: offset }
 
