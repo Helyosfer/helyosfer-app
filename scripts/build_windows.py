@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -129,6 +130,90 @@ def _window_titles(process_id: int) -> list[str]:
     return titles
 
 
+# What Windows itself sets. The build computer has Python, its packages and
+# this repository on the path as well; the computer the package is for has
+# none of them, so the checks run without them.
+_WINDOWS_ONLY = (
+    "SystemRoot", "SystemDrive", "windir", "TEMP", "TMP", "USERPROFILE", "APPDATA",
+    "LOCALAPPDATA", "ProgramData", "ALLUSERSPROFILE", "PUBLIC", "ComSpec", "USERNAME",
+    "USERDOMAIN", "COMPUTERNAME", "HOMEDRIVE", "HOMEPATH", "OS",
+    "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE",
+)
+
+
+def bare_environment(**extra: str) -> dict[str, str]:
+    """An environment that names Windows and nothing installed on top of it."""
+    env = {name: os.environ[name] for name in _WINDOWS_ONLY if name in os.environ}
+    windows = os.environ["SystemRoot"]
+    env["PATH"] = os.pathsep.join([os.path.join(windows, "System32"), windows])
+    env.update(extra)
+    return env
+
+
+def _loaded_files(process_id: int) -> list[str]:
+    """Every program file a running process has loaded."""
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    psapi = ctypes.WinDLL("psapi", use_last_error=True)
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+    psapi.EnumProcessModulesEx.argtypes = (
+        wintypes.HANDLE, ctypes.POINTER(wintypes.HMODULE), wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD), wintypes.DWORD,
+    )
+    psapi.GetModuleFileNameExW.argtypes = (
+        wintypes.HANDLE, wintypes.HMODULE, wintypes.LPWSTR, wintypes.DWORD,
+    )
+    query_and_read = 0x0400 | 0x0010
+    handle = kernel32.OpenProcess(query_and_read, False, process_id)
+    if not handle:
+        return []
+    try:
+        modules = (wintypes.HMODULE * 4096)()
+        needed = wintypes.DWORD()
+        every_module = 0x03
+        if not psapi.EnumProcessModulesEx(
+            handle, modules, ctypes.sizeof(modules), ctypes.byref(needed), every_module,
+        ):
+            return []
+        files = []
+        for module in modules[: needed.value // ctypes.sizeof(wintypes.HMODULE)]:
+            name = ctypes.create_unicode_buffer(1024)
+            if psapi.GetModuleFileNameExW(handle, module, name, 1024):
+                files.append(name.value)
+        return files
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def _borrowed(files: list[str]) -> list[str]:
+    """Loaded files the package would not find on a computer without Python.
+
+    Anything from this Python, from a `site-packages` folder or from the
+    repository is the build computer's. So is a C++ runtime library found
+    outside the package: it is not part of Windows, and a copy in System32
+    was put there by some other program's installer.
+    """
+    package = os.path.normcase(os.path.dirname(PROGRAM)) + os.sep
+    foreign = [os.path.normcase(os.path.abspath(path)) + os.sep
+               for path in {sys.prefix, sys.base_prefix, ROOT}]
+    # vcruntime140.dll, msvcp140_1.dll and the like; msvcp_win.dll is Windows' own.
+    runtime = re.compile(r"(vcruntime|msvcp|concrt|vccorlib)\d")
+    borrowed = []
+    for path in files:
+        where = os.path.normcase(os.path.abspath(path))
+        if where.startswith(package):
+            continue
+        name = os.path.basename(where)
+        if (any(where.startswith(root) for root in foreign)
+                or f"{os.sep}site-packages{os.sep}" in where
+                or runtime.match(name)):
+            borrowed.append(path)
+    return borrowed
+
+
 def check_starts(seconds: float = 12.0) -> None:
     """Starts the package on a throwaway profile and expects its window.
 
@@ -136,9 +221,13 @@ def check_starts(seconds: float = 12.0) -> None:
     a window. Whatever Qt reports while the first screen loads is collected
     and counts as a failure too: an interface file that could not be loaded
     is reported there and nowhere else.
+
+    It runs with nothing but Windows on the path, and every file it has
+    loaded by the end is looked at: one taken from the build computer's
+    Python would be missing where the package is going.
     """
     home = tempfile.mkdtemp(prefix="helyosfer-package-")
-    env = dict(os.environ, HELYOSFER_HOME=home)
+    env = bare_environment(HELYOSFER_HOME=home)
     report = os.path.join(home, "startup.txt")
     started = time.monotonic()
     with open(report, "wb") as output:
@@ -147,11 +236,14 @@ def check_starts(seconds: float = 12.0) -> None:
             stdin=subprocess.DEVNULL, stdout=output, stderr=output,
         )
         titles: list[str] = []
+        files: list[str] = []
         try:
             while time.monotonic() - started < seconds and process.poll() is None:
                 titles = _window_titles(process.pid) or titles
                 time.sleep(0.5)
             code = process.poll()
+            if code is None:
+                files = _loaded_files(process.pid)
         finally:
             if process.poll() is None:
                 process.terminate()
@@ -168,6 +260,20 @@ def check_starts(seconds: float = 12.0) -> None:
     if said:
         raise SystemExit(f"The package started with complaints:\n{said}")
     print(f"The package showed its window and stayed up for {seconds:.0f} s without a complaint.")
+    if not files:
+        raise SystemExit("The files the package loaded could not be listed.")
+    borrowed = _borrowed(files)
+    if borrowed:
+        raise SystemExit(
+            "The package loaded files that a computer without Python does not have:\n  "
+            + "\n  ".join(borrowed)
+        )
+    package = os.path.normcase(os.path.dirname(PROGRAM)) + os.sep
+    own = sum(os.path.normcase(os.path.abspath(path)).startswith(package) for path in files)
+    print(
+        f"With only Windows on the path it loaded {len(files)} files: {own} of its own,"
+        f" {len(files) - own} of Windows, none from this computer's Python."
+    )
 
 
 def check_itself() -> None:
@@ -175,7 +281,7 @@ def check_itself() -> None:
     done = subprocess.run(
         [PROGRAM, "--check-package"], stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=180, check=False,
-        cwd=tempfile.gettempdir(),
+        cwd=tempfile.gettempdir(), env=bare_environment(),
     )
     said = done.stderr.decode("utf-8", "replace").strip()
     print(said)

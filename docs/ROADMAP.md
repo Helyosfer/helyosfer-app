@@ -34,9 +34,12 @@ author.
    builds (`python scripts/build_windows.py --zip`), and on the build
    computer it was driven with real keyboard and mouse input through setup,
    every section, saving a transaction, and a CSV, a PDF, a backup and a
-   restore through the Windows file dialogs. It has not been started
-   anywhere else. The installer script (`packaging/installer.iss`) has never been
-   compiled.
+   restore through the Windows file dialogs. The build also starts it with
+   nothing but Windows on the path and fails if it loads a single file from
+   the build computer's Python or a C++ runtime from outside its own folder.
+   That is the nearest the build computer can come to another one; the
+   package has still not been started anywhere else. The installer script
+   (`packaging/installer.iss`) has never been compiled.
 2. **Use it for real for a few weeks.** Items that settle themselves over
    time (pending transactions, recurring payments, installments) are played
    through five months of days by the test suite, opened daily and opened
