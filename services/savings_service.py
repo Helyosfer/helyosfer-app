@@ -173,7 +173,7 @@ class SavingsService:
 
     @staticmethod
     def deposit_to_goal(goal_id, amount, account_id=DEFAULT_ACCOUNT_ID,
-                       goal_uid=None):
+                       goal_uid=None, effective_at=None):
         """Transfers money from the main account into the goal (atomic isolation).
 
         The insufficient-balance guard was removed: the account may go
@@ -181,10 +181,17 @@ class SavingsService:
 
         If `goal_uid` is supplied, identity verification happens BEFORE ANY
         MONEY MOVES and the operation is rejected on a mismatch.
+
+        `effective_at` is the day the move belongs to. When that day has
+        passed, the ledger carries it on that day: an automatic contribution
+        is recorded when it was due, however late the application is opened.
         """
+        from database.db import _extend_ledger_back, past_event_stamp
+
         amount = float(fiat(amount))
         if amount <= 0:
             raise ValueError("Aktarılacak tutar 0'dan büyük olmalıdır")
+        stamp = past_event_stamp(effective_at)
 
         conn = get_connection()
         try:
@@ -217,15 +224,21 @@ class SavingsService:
             )
 
 
+            if stamp is None:
+                account_now = current_account_balance(cursor, account_id)
+                goal_now = current_goal_amount(cursor, goal_id)
+            else:
+                # What each stood at right after a past move is not known:
+                # later changes are already part of what they hold today.
+                _extend_ledger_back(cursor, account_id, stamp)
+                account_now = goal_now = None
             record_balance_event(
-                cursor, ACCOUNT, account_id, -amount,
-                current_account_balance(cursor, account_id),
-                "savings_deposit", goal_id,
+                cursor, ACCOUNT, account_id, -amount, account_now,
+                "savings_deposit", goal_id, ts=stamp,
             )
             record_balance_event(
-                cursor, SAVINGS_GOAL, goal_id, amount,
-                current_goal_amount(cursor, goal_id),
-                "savings_deposit", account_id,
+                cursor, SAVINGS_GOAL, goal_id, amount, goal_now,
+                "savings_deposit", account_id, ts=stamp,
             )
 
             conn.commit()

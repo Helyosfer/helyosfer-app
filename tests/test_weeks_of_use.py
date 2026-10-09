@@ -42,7 +42,10 @@ def _monthly(first, count):
 RENT = [(day, "main", -9000.0) for day in _monthly(datetime.date(2025, 1, 31), 5)]
 SALARY = [(day, "main", 30000.0) for day in _monthly(datetime.date(2025, 2, 1), 5)]
 MUSIC = [(_day(4 + 7 * week), "card", -90.0) for week in range(22)]
-LOAN = [(day, "bills", -1500.0) for day in _monthly(datetime.date(2025, 2, 15), 5)]
+# Its pay day is the 31st: opened now and then, almost never on that day.
+LOAN = [(day, "bills", -1500.0) for day in _monthly(datetime.date(2025, 1, 31), 5)]
+# Not records: money moved into a savings goal, on the 31st as well.
+SAVED = [(day, "bills", -1000.0) for day in _monthly(datetime.date(2025, 1, 31), 5)]
 PENDING = [(_day(9), "main", -700.0), (_day(40), "main", 2500.0), (_day(75), "card", -1200.0)]
 BY_HAND = [(_day(2), "main", -300.0), (_day(20), "main", -450.0), (_day(95), "main", 1000.0)]
 EXPECTED = sorted(RENT + SALARY + MUSIC + LOAN + PENDING + BY_HAND)
@@ -97,8 +100,15 @@ class WeeksOfUseTest(unittest.TestCase):
             account_id=main,
         )
         DebtPaymentService.create_debt(
-            "Loan", 1500.0, 10, True, 15, auto_pay_account_id=self.accounts["bills"],
+            "Loan", 1500.0, 10, True, 31, auto_pay_account_id=self.accounts["bills"],
         )
+        from services.savings_auto_service import set_contribution
+        from services.savings_service import SavingsService
+
+        goal = SavingsService.create_goal("Holiday", 20000.0)
+        self.goal_uid = next(
+            g["goal_uid"] for g in SavingsService.get_goals() if g["id"] == goal)
+        set_contribution(self.goal_uid, self.accounts["bills"], 1000.0, 31)
         for day, account, amount in PENDING:
             TransactionService.add_transaction(
                 self.accounts[account], abs(amount), "income" if amount > 0 else "expense",
@@ -179,18 +189,25 @@ class WeeksOfUseTest(unittest.TestCase):
     def _assert_the_books_are_right(self):
         from services.history_service import get_balance_at
 
+        from services.savings_service import SavingsService
+
         self.assertEqual(self._records(), EXPECTED)
+        moves = EXPECTED + SAVED
         for name, (balance, ledger) in self._balances().items():
-            expected = OPENING[name] + sum(a for _, account, a in EXPECTED if account == name)
+            expected = OPENING[name] + sum(a for _, account, a in moves if account == name)
             self.assertEqual((name, balance, ledger), (name, expected, expected))
+        goal = next(g for g in SavingsService.get_goals() if g["goal_uid"] == self.goal_uid)
+        self.assertEqual(goal["current_amount"], -sum(amount for _, _, amount in SAVED))
         # The balance on every single day follows the dates of the records,
         # not the days the application happened to be open.
         total = sum(OPENING.values())
         for offset in range(LAST_DAY + 1):
             day = _day(offset)
-            expected = total + sum(amount for dated, _, amount in EXPECTED if dated <= day)
+            at = get_balance_at(day.isoformat())
             self.assertEqual(
-                (day, get_balance_at(day.isoformat())["total_balance"]), (day, expected),
+                (day, at["total_balance"], at["savings_total"]),
+                (day, total + sum(amount for dated, _, amount in moves if dated <= day),
+                 -sum(amount for dated, _, amount in SAVED if dated <= day)),
             )
 
     # -- the two ways of using it ----------------------------------------------
@@ -229,8 +246,103 @@ class WeeksOfUseTest(unittest.TestCase):
         )
         loan = get_active_debts()[0]
         self.assertEqual(
-            (loan["paid_installments"], loan["last_auto_pay_date"]), (5, "2025-06"),
+            (loan["paid_installments"], loan["last_auto_pay_date"]), (5, "2025-05"),
         )
+
+
+class AcrossANewYearTest(unittest.TestCase):
+    """Every kind of period, over a new year and a leap day.
+
+    Nothing is worked out by hand here: the same fifteen weeks are played
+    twice, opened every day and opened seven times, and the two sets of
+    books must be the same in every record and on every day.
+    """
+
+    FIRST = datetime.datetime(2023, 11, 25, 9, 30)
+    LAST = 104  # 2024-03-08
+
+    def _books(self, opened_on):
+        from database.db import SECRET_KEY, get_connection, insert_recurring_payment
+        from database.init_db import initialize_database
+        from services.account_service import AccountService
+        from services.debt_payment_service import DebtPaymentService
+        from services.history_service import get_balance_at
+        from services.savings_auto_service import set_contribution
+        from services.savings_service import SavingsService
+        from services.scheduled_service import process_due_items
+        from utils.crypto import decrypt
+
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        with mock.patch("database.db.DB_NAME", path), Clock(self.FIRST) as clock:
+            initialize_database()
+            main = AccountService.create_account("Main", "checking", 200000.0)
+            card = AccountService.create_account(
+                "Card", "credit_card", 0.0, credit_limit=90000.0, statement_date=31)
+            for name, amount, frequency, first, account, kind in (
+                ("Rent", 9000.0, "monthly", "2023-11-30", main, "expense"),
+                ("Salary", 30000.0, "monthly", "2023-12-01", main, "income"),
+                ("Music", 90.0, "weekly", "2023-11-27", card, "expense"),
+                ("Cleaner", 600.0, "biweekly", "2023-12-02", main, "expense"),
+                ("Insurance", 2400.0, "quarterly", "2023-12-31", main, "expense"),
+                ("Domain", 350.0, "yearly", "2024-02-29", card, "expense"),
+            ):
+                insert_recurring_payment(
+                    name, amount, "Maaş" if kind == "income" else "Ev Kirası", frequency,
+                    first, True, account_id=account, recurrence_day=int(first[8:10]),
+                    transaction_type=kind,
+                )
+            DebtPaymentService.create_debt("Loan", 1500.0, 3, True, 31, auto_pay_account_id=main)
+            goal = SavingsService.create_goal("Holiday", 6000.0)
+            uid = next(g["goal_uid"] for g in SavingsService.get_goals() if g["id"] == goal)
+            set_contribution(uid, main, 2500.0, 31)
+
+            for offset in opened_on:
+                clock.move_to(self.FIRST + datetime.timedelta(days=offset))
+                process_due_items()
+
+            conn = get_connection()
+            try:
+                records = sorted(
+                    (row["transaction_date"][:10], row["account_id"], row["type"],
+                     float(decrypt(row["amount"], SECRET_KEY)),
+                     decrypt(row["description"], SECRET_KEY))
+                    for row in conn.execute("SELECT * FROM transactions")
+                )
+                balances = [tuple(row) for row in conn.execute(
+                    "SELECT id, ROUND(balance, 2) FROM accounts ORDER BY id")]
+            finally:
+                conn.close()
+            first_day = self.FIRST.date()
+            days = [
+                (lambda at: (at["total_balance"], at["savings_total"]))(
+                    get_balance_at((first_day + datetime.timedelta(days=offset)).isoformat()))
+                for offset in range(self.LAST + 1)
+            ]
+        os.unlink(path)
+        return records, balances, days
+
+    def test_the_books_do_not_depend_on_when_the_application_was_opened(self):
+        daily = self._books(range(self.LAST + 1))
+        now_and_then = self._books([0, 3, 4, 38, 40, 97, self.LAST])
+        self.assertEqual(daily[0], now_and_then[0])
+        self.assertEqual(daily[1], now_and_then[1])
+        self.assertEqual(daily[2], now_and_then[2])
+        # And what they hold is what the periods say: on the days they fall,
+        # over the new year and on the leap day.
+        taken = {}
+        for day, _account, _kind, _amount, text in daily[0]:
+            taken.setdefault(text.replace(" (Otomatik)", "").split(" (")[0], []).append(day)
+        self.assertEqual(
+            taken["Rent"], ["2023-11-30", "2023-12-30", "2024-01-30", "2024-02-29"])
+        self.assertEqual(taken["Insurance"], ["2023-12-31"])
+        self.assertEqual(taken["Domain"], ["2024-02-29"])
+        self.assertEqual(taken["Loan"], ["2023-11-30", "2023-12-31", "2024-01-31"])
+        self.assertEqual(len(taken["Music"]), 15)
+        self.assertEqual(len(taken["Cleaner"]), 7)
+        # The goal took three contributions and was full; the last one was
+        # only what it still needed.
+        self.assertEqual(daily[2][-1][1], 6000.0)
 
 
 class AutomaticDebtPaymentTest(unittest.TestCase):

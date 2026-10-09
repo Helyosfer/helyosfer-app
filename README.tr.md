@@ -58,7 +58,8 @@ Hesaplar, kartlar, borçlar, bütçe ve yatırımlar için kişisel bir masaüst
   Uygulamanın sizin yerinize yazdığı bir ödeme ya da alım-satım, karşı tarafıyla
   birlikte geri alınır: taksitler borca, varlık portföye geri döner.
 - **Geç açmak sorun değil.** Uygulamayı bir ay kapalı bırakın; kaçırdığınız
-  otomatik ödemeler ve taksitler, vadelerinin olduğu günlere kaydedilir.
+  otomatik ödemeler, taksitler ve birikim katkıları, vadelerinin olduğu günlere
+  kaydedilir.
 - **Tahmini toplam yok.** Okunamayan bir kayıt asla sıfır sayılmaz. Hiç toplam
   göstermemek, yanlış bir toplam göstermekten daha güvenlidir.
 - **Size göre.** Koyu ve açık tema, Türkçe ve İngilizce, kendi kategorileriniz

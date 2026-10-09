@@ -50,6 +50,68 @@ class CollectUpcomingTest(AccountFixtureMixin, unittest.TestCase):
         names = [item["name"] for item in self._collect()]
         self.assertEqual(names, ["Gecikmis", "Bugun", "Sinirda"])
 
+    def test_an_automatic_debt_installment_is_listed_when_its_pay_day_is_near(self):
+        from database.db import insert_debt
+
+        # Created today: the baseline is today's real month, so set what the
+        # tests need by hand.
+        def debt(name, day, last, auto=True):
+            from database.db import get_connection
+
+            insert_debt(name, 6000.0, 500.0, 12, int(auto), day)
+            conn = get_connection()
+            try:
+                conn.execute(
+                    "UPDATE active_debts SET last_auto_pay_date = ?"
+                    " WHERE id = (SELECT MAX(id) FROM active_debts)", (last,))
+                conn.commit()
+            finally:
+                conn.close()
+
+        debt("Yakin", 15, "2026-02")
+        debt("Uzak", 25, "2026-02")
+        debt("Odendi", 5, "2026-03")
+        debt("Gecikti", 31, "2026-01")
+        debt("Elle", 12, None, auto=False)
+        listed = {item["name"]: item for item in self._collect()}
+        self.assertEqual(sorted(listed), ["Gecikti", "Yakin"])
+        self.assertEqual(
+            (listed["Yakin"]["kind"], listed["Yakin"]["date"], listed["Yakin"]["amount"],
+             listed["Yakin"]["automatic"], listed["Yakin"]["income"]),
+            ("debt", "2026-03-15", 500.0, True, False),
+        )
+        # The one that was missed is owed since the last day of February.
+        self.assertEqual(listed["Gecikti"]["date"], "2026-02-28")
+
+    def test_an_automatic_savings_contribution_is_listed_with_what_the_goal_needs(self):
+        from database.db import get_connection
+        from services.savings_auto_service import set_contribution
+        from services.savings_service import SavingsService
+
+        def plan(name, target, saved, amount, day, last):
+            goal = SavingsService.create_goal(name, target, current_amount=saved)
+            uid = next(g["goal_uid"] for g in SavingsService.get_goals() if g["id"] == goal)
+            set_contribution(uid, self.account_id, amount, day)
+            conn = get_connection()
+            try:
+                conn.execute(
+                    "UPDATE savings_auto_contributions SET last_month = ? WHERE goal_uid = ?",
+                    (last, uid))
+                conn.commit()
+            finally:
+                conn.close()
+
+        plan("Tatil", 10000.0, 0.0, 800.0, 12, "2026-02")
+        plan("Az kaldi", 1000.0, 900.0, 800.0, 14, "2026-02")
+        plan("Uzak", 10000.0, 0.0, 800.0, 28, "2026-02")
+        plan("Bu ay tamam", 10000.0, 0.0, 800.0, 5, "2026-03")
+        listed = [(item["name"], item["kind"], item["date"], item["amount"])
+                  for item in self._collect()]
+        self.assertEqual(listed, [
+            ("Tatil", "saving", "2026-03-12", 800.0),
+            ("Az kaldi", "saving", "2026-03-14", 100.0),
+        ])
+
     def test_recurring_items_carry_amount_direction_and_how_they_are_paid(self):
         self._recurring("Kira", "2026-03-12", automatic=False)
         self._recurring("Maas", "2026-03-11", kind="income")

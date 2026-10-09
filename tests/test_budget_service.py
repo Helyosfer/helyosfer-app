@@ -186,6 +186,29 @@ class BudgetTrackingServiceTest(AccountFixtureMixin, unittest.TestCase):
             calculate_monthly_budget(9, 2026)["planned_expense"], 400
         )
 
+    def test_a_weekly_payment_is_reserved_once_for_every_week_of_the_month(self):
+        from database.db import insert_recurring_payment
+        from services.budget_service import get_reserved_recurring_items
+
+        insert_recurring_payment(
+            "Kahve", 100.0, "Dijital Abonelik", "weekly", "2026-08-03", True,
+        )
+        insert_recurring_payment(
+            "Temizlik", 600.0, "Dijital Abonelik", "biweekly", "2026-08-08", True,
+        )
+        reserved = {
+            (month, item["name"]): (item["occurrences"], float(item["reserved_amount"]))
+            for month in (8, 9, 10)
+            for item in get_reserved_recurring_items(month, 2026)
+        }
+        # Mondays in August 2026 from the 3rd: five; in September: four.
+        self.assertEqual(reserved[(8, "Kahve")], (5, 500.0))
+        self.assertEqual(reserved[(9, "Kahve")], (4, 400.0))
+        self.assertEqual(reserved[(10, "Kahve")], (4, 400.0))
+        self.assertEqual(reserved[(8, "Temizlik")], (2, 1200.0))
+        self.assertEqual(reserved[(9, "Temizlik")], (2, 1200.0))
+        self.assertEqual(reserved[(10, "Temizlik")], (3, 1800.0))
+
     def test_future_subscription_is_reserved_from_monthly_budget(self):
         from database.db import insert_recurring_payment
         from services.budget_service import calculate_monthly_budget

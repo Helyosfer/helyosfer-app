@@ -132,6 +132,8 @@ TEXT = {
 
     # -- buttons and states -----------------------------------------------
     "Add": "Ekle",
+    "Moved to savings automatically": "Birikime otomatik aktarılır",
+    "Installment, taken automatically": "Taksit, otomatik alınır",
     "This is a debt payment. Its date can be changed. Removing it gives the "
     "installments back to the debt and the money back to the account.":
         "Bu bir borç ödemesi. Tarihi değiştirilebilir. Silerseniz taksitler borca, "

@@ -5,13 +5,16 @@ the day of the month it is due. It is moved with everything else that has
 fallen due, after sign-in, through the same service a manual move uses, so
 the account, the goal and the ledger change together.
 
-It is deliberately cautious with the user's money:
+It behaves as a standing order at a bank does, and is careful with the money:
 
-  * once a month at most, and a missed month is not made up for later --
-    three months away must not empty an account on return;
+  * once for every month, on its day. A month that passed while the
+    application was closed is made up for and recorded on that day, like an
+    automatic payment or installment;
+  * the first one is the next time its day comes round, never one that had
+    already gone by when the plan was set;
   * never more than the goal still needs;
-  * never from an account that does not hold the amount: that month is
-    skipped and tried again on the next sign-in, until the month ends.
+  * never from an account that does not hold the amount: that month, and
+    the ones after it, wait and are tried again on the next sign-in.
 """
 
 from __future__ import annotations
@@ -44,6 +47,55 @@ def _connection():
     return conn
 
 
+def _day_in(index: int, day: int) -> datetime.date:
+    """The contribution's day in a month counted as year * 12 + month - 1."""
+    year, month = index // 12, index % 12 + 1
+    return datetime.date(year, month, min(int(day), calendar.monthrange(year, month)[1]))
+
+
+def _settled_month(day, today: datetime.date | None = None) -> str:
+    """The last month a plan set today has nothing to move for."""
+    today = today or datetime.date.today()
+    index = today.year * 12 + today.month - 1
+    if today.day <= _day_in(index, day).day:
+        index -= 1
+    return f"{index // 12}-{index % 12 + 1:02d}"
+
+
+def due_days(contribution: dict, today: datetime.date) -> list[datetime.date]:
+    """The days a contribution is owed for, oldest first.
+
+    One for every month whose day has come since the last one moved. Before
+    this month's day the months before it still count, so a day late in the
+    month is not lost when the application is opened after it.
+    """
+    day = int(contribution["day"])
+    this_month = today.year * 12 + today.month - 1
+    latest = this_month if today >= _day_in(this_month, day) else this_month - 1
+    last = contribution.get("last_month")
+    if last:
+        year, month = (int(part) for part in str(last).split("-"))
+        first = year * 12 + month
+    else:
+        # Nothing is known about earlier months; only this one can be owed.
+        first = this_month
+    return [_day_in(index, day) for index in range(first, latest + 1)]
+
+
+def next_day(contribution: dict, today: datetime.date) -> datetime.date:
+    """The day the next contribution falls on; one already owed comes first."""
+    owed = due_days(contribution, today)
+    if owed:
+        return owed[0]
+    last = contribution.get("last_month")
+    if last:
+        year, month = (int(part) for part in str(last).split("-"))
+        index = year * 12 + month
+    else:
+        index = today.year * 12 + today.month - 1
+    return _day_in(index, int(contribution["day"]))
+
+
 def set_contribution(goal_uid, account_id, amount, day) -> None:
     """Sets, or replaces, the monthly contribution of a goal."""
     amount = float(fiat(amount))
@@ -64,15 +116,18 @@ def set_contribution(goal_uid, account_id, amount, day) -> None:
         ).fetchone()
         if account is None or account[0] == "credit_card":
             raise ValueError("Otomatik birikim için bir vadesiz hesap seçin.")
-        # Changing the plan never moves money for the month already handled.
+        # A plan looks ahead only: the month whose day has gone by counts as
+        # handled. Changing the plan never moves money for a month that
+        # already was, so the later of the two stands.
         previous = conn.execute(
             "SELECT last_month FROM savings_auto_contributions WHERE goal_uid = ?",
             (str(goal_uid),),
         ).fetchone()
+        handled = max(filter(None, (previous[0] if previous else None, _settled_month(day))))
         conn.execute(
             "INSERT OR REPLACE INTO savings_auto_contributions"
             " (goal_uid, account_id, amount, day, last_month) VALUES (?, ?, ?, ?, ?)",
-            (str(goal_uid), int(account_id), amount, day, previous[0] if previous else None),
+            (str(goal_uid), int(account_id), amount, day, handled),
         )
         conn.commit()
     finally:
@@ -109,11 +164,8 @@ def get_contributions() -> dict[str, dict]:
 
 
 def is_due(contribution: dict, today: datetime.date) -> bool:
-    """True from the contribution's day until the month ends, once."""
-    if contribution.get("last_month") == today.strftime("%Y-%m"):
-        return False
-    last_day = calendar.monthrange(today.year, today.month)[1]
-    return today.day >= min(int(contribution["day"]), last_day)
+    """True while a month's contribution has not been moved yet."""
+    return bool(due_days(contribution, today))
 
 
 def _mark(goal_uid, month) -> None:
@@ -131,11 +183,11 @@ def _mark(goal_uid, month) -> None:
 def process_due_contributions(today: datetime.date | None = None) -> int:
     """Moves every contribution that is due; returns how many were moved.
 
-    A plan whose goal is gone or complete is removed. One that fails is
-    left for the caller's log and does not stop the others.
+    Each month owed is moved on its own, on its day. A plan whose goal is
+    gone or complete is removed. One that fails is left for the caller's log
+    and does not stop the others.
     """
     today = today or datetime.date.today()
-    month = today.strftime("%Y-%m")
     plans = get_contributions()
     if not plans:
         return 0
@@ -146,19 +198,22 @@ def process_due_contributions(today: datetime.date | None = None) -> int:
         if goal is None or goal["status"] == STATUS_COMPLETED:
             clear_contribution(goal_uid)
             continue
-        if not is_due(plan, today):
-            continue
-        remaining = fiat(goal["target_amount"]) - fiat(goal["current_amount"])
-        amount = min(fiat(plan["amount"]), remaining)
-        if amount <= 0:
-            clear_contribution(goal_uid)
-            continue
-        if _account_balance(plan["account_id"]) < amount:
-            continue
-        SavingsService.deposit_to_goal(
-            goal["id"], float(amount), plan["account_id"], goal_uid=goal_uid)
-        _mark(goal_uid, month)
-        moved += 1
+        saved = fiat(goal["current_amount"])
+        for day in due_days(plan, today):
+            amount = min(fiat(plan["amount"]), fiat(goal["target_amount"]) - saved)
+            if amount <= 0:
+                clear_contribution(goal_uid)
+                break
+            if _account_balance(plan["account_id"]) < amount:
+                # This month waits, and so do the ones after it.
+                break
+            SavingsService.deposit_to_goal(
+                goal["id"], float(amount), plan["account_id"], goal_uid=goal_uid,
+                effective_at=f"{day.isoformat()} 12:00:00",
+            )
+            _mark(goal_uid, day.strftime("%Y-%m"))
+            saved += amount
+            moved += 1
     return moved
 
 

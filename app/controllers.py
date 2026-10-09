@@ -561,6 +561,14 @@ class DashboardController(QObject):
         else:
             when = say("in {0} days", delta)
         pending = item["kind"] == "pending"
+        note = (
+            say("Pending transaction") if pending
+            else say("Moved to savings automatically") if item["kind"] == "saving"
+            else say("Installment, taken automatically") if item["kind"] == "debt"
+            else say("Taken automatically") if item["automatic"] else say("Pay by hand")
+        )
+        section = {"pending": "debts", "debt": "debts", "saving": "savings"}.get(
+            item["kind"], "subscriptions")
         amount = "—"
         if item["amount"] is not None:
             amount = ("+" if item["income"] else "−") + format_amount(item["amount"]) + " ₺"
@@ -570,12 +578,11 @@ class DashboardController(QObject):
             "day": f"{day.day:02d}",
             "month": month_short(day.month),
             "when": when,
-            "note": say("Pending transaction") if pending
-            else (say("Taken automatically") if item["automatic"] else say("Pay by hand")),
+            "note": note,
             "amount": amount,
             "income": item["income"],
             "overdue": delta < 0,
-            "section": "debts" if pending else "subscriptions",
+            "section": section,
         }
 
     @staticmethod

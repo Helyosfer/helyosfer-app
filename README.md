@@ -58,7 +58,8 @@ No sign-up, no server, nothing to sync. Your records never leave the computer.
   trade the app recorded for you can be undone together with its other half:
   the installments return to the debt, the holding returns to the portfolio.
 - **Late is still on time.** Leave it closed for a month and the automatic
-  payments and installments you missed are recorded on the days they were due.
+  payments, installments and savings contributions you missed are recorded on
+  the days they were due.
 - **No guessed totals.** A record that cannot be read is never counted as zero.
   Showing no total is safer than showing a wrong one.
 - **Yours to shape.** Dark and light themes, English and Turkish, your own

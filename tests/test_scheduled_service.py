@@ -43,6 +43,29 @@ class DueDebtInstallmentsTest(unittest.TestCase):
         self.assertEqual(due_debt_installments(debt, datetime.date(2026, 2, 27)), 0)
         self.assertEqual(due_debt_installments(debt, datetime.date(2026, 2, 28)), 1)
 
+    def test_a_pay_day_late_in_the_month_is_still_owed_early_in_the_next(self):
+        debt = _debt(auto_pay_day=31, last_auto_pay_date="2026-03")
+        # Not opened on the last day of April: on the 2nd of May April is
+        # owed, and May is not yet.
+        self.assertEqual(due_debt_installments(debt, datetime.date(2026, 4, 29)), 0)
+        self.assertEqual(due_debt_installments(debt, datetime.date(2026, 5, 2)), 1)
+        self.assertEqual(due_debt_installments(debt, datetime.date(2026, 5, 31)), 2)
+        self.assertEqual(due_debt_installments(debt, datetime.date(2026, 7, 4)), 3)
+
+    def test_the_days_owed_are_the_pay_days_of_the_months_missed(self):
+        from services.scheduled_service import due_debt_days
+
+        debt = _debt(auto_pay_day=31, last_auto_pay_date="2026-01")
+        self.assertEqual(
+            due_debt_days(debt, datetime.date(2026, 5, 2)),
+            [datetime.date(2026, 2, 28), datetime.date(2026, 3, 31), datetime.date(2026, 4, 30)],
+        )
+        self.assertEqual(due_debt_days(debt, datetime.date(2026, 2, 27)), [])
+
+    def test_a_clock_set_back_owes_nothing(self):
+        debt = _debt(last_auto_pay_date="2026-06")
+        self.assertEqual(due_debt_installments(debt, datetime.date(2026, 3, 20)), 0)
+
     def test_manual_and_finished_debts_owe_nothing(self):
         day = datetime.date(2026, 3, 20)
         self.assertEqual(due_debt_installments(_debt(is_auto_pay=False), day), 0)

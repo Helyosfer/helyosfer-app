@@ -26,8 +26,11 @@ CREDIT_CARD = "credit_card"
 def due_debt_installments(debt: dict, today: datetime.date) -> int:
     """How many instalments automatic payment owes for this debt today.
 
-    Nothing before the debt's pay day this month, nothing twice in one month,
-    and missed months are caught up -- never more than what remains.
+    One for every month whose pay day has come since the last one paid:
+    nothing twice in one month, and never more than what remains. Before this
+    month's pay day the months before it still count, so a pay day late in
+    the month is not lost when the application is next opened early in the
+    following one.
     """
     if not debt.get("is_auto_pay"):
         return 0
@@ -36,17 +39,17 @@ def due_debt_installments(debt: dict, today: datetime.date) -> int:
         return 0
     days_in_month = calendar.monthrange(today.year, today.month)[1]
     pay_day = min(debt.get("auto_pay_day") or 1, days_in_month)
-    if today.day < pay_day:
-        return 0
+    this_month = today.year * 12 + today.month - 1
+    # The latest month whose pay day has come.
+    latest = this_month if today.day >= pay_day else this_month - 1
     last = debt.get("last_auto_pay_date")
-    if last == today.strftime("%Y-%m"):
-        return 0
     if last:
         last_year, last_month = (int(part) for part in last.split("-"))
-        missed = (today.year - last_year) * 12 + (today.month - last_month)
+        missed = latest - (last_year * 12 + last_month - 1)
     else:
-        missed = 1
-    return min(max(1, missed), remaining)
+        # Nothing is known about earlier months; only this one can be owed.
+        missed = 1 if latest == this_month else 0
+    return min(max(0, missed), remaining)
 
 
 def due_debt_days(debt: dict, today: datetime.date) -> list[datetime.date]:
@@ -71,6 +74,30 @@ def due_debt_days(debt: dict, today: datetime.date) -> list[datetime.date]:
         days.append(datetime.date(year, month, day))
     # A clock that was set back must not pay for days that have not come.
     return [day for day in days if day <= today]
+
+
+def next_debt_day(debt: dict, today: datetime.date):
+    """The day the next automatic instalment of a debt falls on, or None.
+
+    One that is already owed is the next; otherwise it is the pay day of the
+    month after the last one paid.
+    """
+    if not debt.get("is_auto_pay"):
+        return None
+    if debt["total_installments"] - debt["paid_installments"] <= 0:
+        return None
+    owed = due_debt_days(debt, today)
+    if owed:
+        return owed[0]
+    last = debt.get("last_auto_pay_date")
+    if last:
+        year, month = (int(part) for part in last.split("-"))
+        index = year * 12 + month
+    else:
+        index = today.year * 12 + today.month - 1
+    year, month = index // 12, index % 12 + 1
+    day = min(debt.get("auto_pay_day") or 1, calendar.monthrange(year, month)[1])
+    return datetime.date(year, month, day)
 
 
 def auto_pay_account(debt: dict, accounts: list[dict]):
