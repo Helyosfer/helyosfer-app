@@ -21,8 +21,9 @@ Working and covered by tests:
 - Encrypted backup and restore, CSV export and import.
 - Dark and light themes; English and Turkish.
 
-Tried by hand in a real window on Windows as well as by the test suite. Not
-yet tried by anyone but the author.
+Tried by hand in a real window on Windows as well as by the test suite, which
+also runs on GitHub on Linux and Windows. Not yet tried by anyone but the
+author.
 
 ## Before the first release
 
@@ -33,9 +34,7 @@ yet tried by anyone but the author.
    restore through the Windows file dialogs. It has not been started
    anywhere else. The installer script (`packaging/installer.iss`) has never been
    compiled.
-2. **Run the test workflow on GitHub for the first time**, in a private
-   repository, and fix what only shows up there.
-3. **Use it for real for a few weeks.** Items that settle themselves over
+2. **Use it for real for a few weeks.** Items that settle themselves over
    time (pending transactions, recurring payments, installments) have tests
    but have not been watched across real days.
 
