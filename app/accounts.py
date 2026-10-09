@@ -14,7 +14,7 @@ from utils.logging_config import get_logger
 
 CHECKING = "checking"
 CREDIT_CARD = "credit_card"
-_GENERIC_FAILURE = "This could not be saved. Check the values and try again."
+GENERIC_FAILURE = "This could not be saved. Check the values and try again."
 _NETWORKS = ("Visa", "Mastercard", "Troy")
 
 
@@ -32,7 +32,7 @@ def user_message(error: Exception) -> str:
         return str(error)
     text = str(error)
     translated = tr(text)
-    return translated if translated != text else _GENERIC_FAILURE
+    return translated if translated != text else GENERIC_FAILURE
 
 
 def read_amount(text: str, label: str, *, optional: bool = False) -> float:

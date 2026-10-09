@@ -629,6 +629,19 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertTrue(os.path.exists(export + ".csv"))
         self.assertIn("Exported", self.settings.notice)
 
+        # A file that cannot be read or written says so, not "check the values".
+        account = self.accounts.accounts[0]["id"]
+        with open(os.path.join(folder, "picture.csv"), "wb") as stream:
+            stream.write(bytes(range(256)) * 8)
+        for unreadable in ("picture.csv", "missing.csv"):
+            self.settings.importCsv(os.path.join(folder, unreadable), account)
+            self._settle()
+            self.assertIn("could not be read", self.settings.message, unreadable)
+        self.settings.exportCsv(os.path.join(folder, "picture.csv", "rows"))
+        self._settle()
+        self.assertIn("could not be saved there", self.settings.message)
+        self.settings.clearMessage()
+
         self.settings.changePassword("wrong", "Baska-Parola-2027?", "Baska-Parola-2027?")
         self._settle()
         self.assertEqual(self.settings.message, "Incorrect password!")

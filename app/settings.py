@@ -16,6 +16,8 @@ from utils.logging_config import get_logger
 BACKUP_SUFFIX = ".helysofer-backup"
 CONTACT_EMAIL = "cakirgozmehmetc@proton.me"
 PROJECT_URL = "github.com/Helysofer/helysofer"
+UNWRITABLE = "The file could not be saved there. Choose another location."
+UNREADABLE_CSV = "This file could not be read. Choose a CSV file exported from Helysofer."
 
 
 def local_path(url: str, suffix: str = "") -> str:
@@ -89,8 +91,12 @@ class SettingsController(_Mutating):
     def backupSuffix(self):
         return BACKUP_SUFFIX
 
-    def _run(self, work, done) -> None:
-        """Like `_mutate`, but hands the result to `done` on success."""
+    def _run(self, work, done, problem: str = "") -> None:
+        """Like `_mutate`, but hands the result to `done` on success.
+
+        `problem` replaces the general failure text when the error is not
+        one the catalog can explain, such as a file that cannot be read.
+        """
         if self._busy:
             return
         self._set_busy(True)
@@ -103,15 +109,18 @@ class SettingsController(_Mutating):
             self.saved.emit()
 
         def failed(error):
-            from app.accounts import user_message
+            from app.accounts import GENERIC_FAILURE, user_message
 
             self._set_busy(False)
+            text = user_message(error)
+            if problem and text == GENERIC_FAILURE:
+                text = problem
             if not isinstance(error, ValueError):
                 get_logger().exception(
                     "Ayar işlemi başarısız.",
                     exc_info=(type(error), error, error.__traceback__),
                 )
-            self._set_message(user_message(error))
+            self._set_message(text)
 
         self._tasks.submit(
             "settings", lambda _cancel: work(),
@@ -153,7 +162,7 @@ class SettingsController(_Mutating):
         self._run(work, lambda path: self._set_notice(
             f"Backup saved to {os.path.basename(path)}. Keep its password safe: "
             "without it the backup cannot be opened."
-        ))
+        ), UNWRITABLE)
 
     @Slot(str, str)
     def restoreBackup(self, url, passphrase):
@@ -187,7 +196,7 @@ class SettingsController(_Mutating):
         self._run(work, lambda result: self._set_notice(
             f"Exported {result[1]} rows to {os.path.basename(result[0])}. "
             "The file is not encrypted; store it carefully."
-        ))
+        ), UNWRITABLE)
 
     @Slot(str, int)
     def importCsv(self, url, account_id):
@@ -207,7 +216,7 @@ class SettingsController(_Mutating):
             self._set_notice(f"{text}. Net effect on the balance: {sign}{format_amount(net)} ₺.")
             self.dataChanged.emit()
 
-        self._run(work, done)
+        self._run(work, done, UNREADABLE_CSV)
 
     # -- reset ---------------------------------------------------------------
     @Slot(str)
