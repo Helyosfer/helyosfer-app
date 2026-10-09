@@ -108,9 +108,22 @@ python scripts/build_windows.py --zip
 ```
 
 That writes `dist/Helyosfer-<version>-windows.zip`. Unpack it anywhere and start
-`Helyosfer.exe`, keeping the `_internal` folder next to it. The program is not
-signed, so Windows asks for confirmation the first time: choose **More info**,
-then **Run anyway**.
+`Helyosfer.exe`, keeping the `_internal` folder next to it.
+
+**As a setup program**, with [Inno Setup 6](https://jrsoftware.org/isinfo.php)
+installed as well:
+
+```bash
+python scripts/build_windows.py --installer
+```
+
+That writes `dist/Helyosfer-<version>-setup.exe`. It installs for the current
+user without administrator rights, adds a Start menu entry, and is removed
+again from Windows' own list of installed apps. Your records are kept apart
+from the program and stay where they are when it is removed or upgraded.
+
+Neither is signed, so Windows asks for confirmation the first time: choose
+**More info**, then **Run anyway**.
 
 The first start asks for a password and a first account. It opens in Turkish on
 a computer set to Turkish and in English everywhere else; **Settings** changes

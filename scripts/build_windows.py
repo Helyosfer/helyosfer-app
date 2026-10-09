@@ -327,18 +327,147 @@ def make_zip() -> str:
     return path
 
 
-def make_installer() -> None:
-    compiler = shutil.which("iscc") or next(
-        (candidate for candidate in (
-            r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
-            r"C:\Program Files\Inno Setup 6\ISCC.exe",
-        ) if os.path.exists(candidate)), None,
+# The identity in packaging/installer.iss; Windows lists the program under it.
+_INSTALLED_KEY = (
+    r"Software\Microsoft\Windows\CurrentVersion\Uninstall"
+    r"\{6C1F2B0E-4D0A-4E57-9E0C-6B7D1E5A9F31}_is1"
+)
+
+
+def _installer_compiler() -> str | None:
+    """Inno Setup's command-line compiler, wherever it was installed."""
+    found = shutil.which("iscc")
+    if found:
+        return found
+    roots = (
+        os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
+        os.environ.get("ProgramFiles", r"C:\Program Files"),
+        # Where it goes when it is installed for one user only.
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs"),
     )
+    for root in roots:
+        candidate = os.path.join(root, "Inno Setup 6", "ISCC.exe")
+        if os.path.exists(candidate):
+            return candidate
+    return None
+
+
+def make_installer() -> str:
+    compiler = _installer_compiler()
     if compiler is None:
         raise SystemExit("Inno Setup was not found. Install it, or use --zip.")
-    subprocess.run(
-        [compiler, f"/DAppVersion={APP_VERSION}", os.path.join(PACKAGING, "installer.iss")],
-        cwd=ROOT, check=True,
+    done = subprocess.run(
+        [compiler, "/Q", f"/DAppVersion={APP_VERSION}", os.path.join(PACKAGING, "installer.iss")],
+        cwd=ROOT, check=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )
+    if done.returncode != 0:
+        raise SystemExit(
+            "The installer could not be compiled:\n" + done.stdout.decode("utf-8", "replace")
+        )
+    path = os.path.join(DIST, f"Helyosfer-{APP_VERSION}-setup.exe")
+    print(f"Wrote {path} ({os.path.getsize(path) / 2**20:.0f} MB).")
+    return path
+
+
+def _installed() -> dict | None:
+    """How Windows lists an installed Helyosfer, or None when it is not."""
+    import winreg
+
+    for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        try:
+            with winreg.OpenKey(hive, _INSTALLED_KEY) as key:
+                return {
+                    name: winreg.QueryValueEx(key, name)[0]
+                    for name in ("DisplayName", "DisplayVersion", "InstallLocation")
+                }
+        except OSError:
+            continue
+    return None
+
+
+def _start_menu_entry() -> str:
+    return os.path.join(
+        os.environ["APPDATA"], "Microsoft", "Windows", "Start Menu", "Programs", "Helyosfer.lnk",
+    )
+
+
+def check_installer(setup: str) -> None:
+    """Installs with the installer, checks what it left, and removes it again.
+
+    Compiling proves the script is well formed, not that the result installs
+    a program that runs. So it is installed for real, into a folder of its
+    own: the program must start from there, Windows must list it with the
+    right version and a Start menu entry, and uninstalling must take all of
+    that away again.
+
+    A computer that already has Helyosfer installed is left alone: the trial
+    would be taken for an upgrade of that installation and then remove it.
+    """
+    if _installed() is not None:
+        print("Helyosfer is installed on this computer, so the installer was not tried.")
+        return
+    home = tempfile.mkdtemp(prefix="helyosfer-setup-")
+    target = os.path.join(home, "Helyosfer")
+    log = os.path.join(home, "setup.log")
+    quiet = ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-"]
+    try:
+        done = subprocess.run(
+            [setup, *quiet, f"/DIR={target}", f"/LOG={log}"], check=False, timeout=600,
+        )
+        if done.returncode != 0:
+            said = ""
+            if os.path.exists(log):
+                with open(log, encoding="utf-8", errors="replace") as text:
+                    said = "".join(text.readlines()[-15:])
+            raise SystemExit(f"The installer ended with code {done.returncode}.\n{said}")
+
+        program = os.path.join(target, "Helyosfer.exe")
+        listed = _installed()
+        problems = []
+        if not os.path.exists(program):
+            problems.append("the program is not in the folder it was installed to")
+        if listed is None:
+            problems.append("Windows does not list it as installed")
+        elif (listed["DisplayName"], listed["DisplayVersion"]) != ("Helyosfer", APP_VERSION):
+            problems.append(f"Windows lists it as {listed['DisplayName']} {listed['DisplayVersion']}")
+        if not os.path.exists(_start_menu_entry()):
+            problems.append("there is no Start menu entry")
+        if not problems:
+            ran = subprocess.run(
+                [program, "--check-package"], stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=180, check=False,
+                cwd=tempfile.gettempdir(), env=bare_environment(),
+            )
+            if ran.returncode != 0:
+                problems.append(
+                    "the installed program failed its own check:\n"
+                    + ran.stderr.decode("utf-8", "replace").strip()
+                )
+    finally:
+        remover = os.path.join(target, "unins000.exe")
+        if os.path.exists(remover):
+            subprocess.run([remover, *quiet[:3]], check=False, timeout=300)
+            # The remover hands over to a copy of itself and returns early.
+            waited = time.monotonic()
+            while time.monotonic() - waited < 60 and (
+                os.path.exists(target) or _installed() is not None
+            ):
+                time.sleep(0.5)
+    left = [
+        what for what, there in (
+            ("its folder", os.path.exists(target)),
+            ("its entry in the list of installed programs", _installed() is not None),
+            ("its Start menu entry", os.path.exists(_start_menu_entry())),
+        ) if there
+    ]
+    shutil.rmtree(home, ignore_errors=True)
+    if problems:
+        raise SystemExit("The installer does not install a working program:\n  " + "\n  ".join(problems))
+    if left:
+        raise SystemExit("Uninstalling left behind: " + ", ".join(left) + ".")
+    print(
+        "The installer was tried: it installed without a question, the program passed its"
+        " own check from there, and uninstalling removed everything it had put in place."
     )
 
 
@@ -361,7 +490,7 @@ def main() -> None:
     if options.zip:
         make_zip()
     if options.installer:
-        make_installer()
+        check_installer(make_installer())
 
 
 if __name__ == "__main__":

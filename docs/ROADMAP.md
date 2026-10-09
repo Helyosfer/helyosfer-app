@@ -38,8 +38,11 @@ author.
    nothing but Windows on the path and fails if it loads a single file from
    the build computer's Python or a C++ runtime from outside its own folder.
    That is the nearest the build computer can come to another one; the
-   package has still not been started anywhere else. The installer script
-   (`packaging/installer.iss`) has never been compiled.
+   package has still not been started anywhere else. The setup program
+   (`--installer`) is tried by the build as well: it is installed without a
+   question, the installed program is checked, and uninstalling has to
+   remove everything it put in place. Installing over an older installation
+   was tried by hand.
 2. **Use it for real for a few weeks.** Items that settle themselves over
    time (pending transactions, recurring payments, installments, savings
    contributions) are played through months of days by the test suite, over
@@ -49,10 +52,8 @@ author.
 
 ## Open decisions
 
-- **Installer or archive.** For now the package is a zip of its folder. An
-  installer needs Inno Setup on the build computer.
-- **Signing.** The executable is not signed, so Windows warns before it runs
-  for the first time.
+- **Signing.** Decided against for now. Neither the program nor its setup
+  is signed, so Windows warns before either runs for the first time.
 - **Fonts.** The interface uses the fonts Windows ships. Bundling its own
   would make it look the same everywhere and add to the package.
 

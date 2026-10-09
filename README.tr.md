@@ -110,7 +110,20 @@ python scripts/build_windows.py --zip
 
 Bu komut `dist/Helyosfer-<sürüm>-windows.zip` dosyasını yazar. İstediğiniz yere
 açıp `Helyosfer.exe` dosyasını çalıştırın; `_internal` klasörü yanında kalsın.
-Program imzalı değildir, bu yüzden Windows ilk açılışta onay ister: önce
+
+**Bir kurulum programı olarak**, ayrıca
+[Inno Setup 6](https://jrsoftware.org/isinfo.php) kuruluysa:
+
+```bash
+python scripts/build_windows.py --installer
+```
+
+Bu komut `dist/Helyosfer-<sürüm>-setup.exe` dosyasını yazar. Yönetici izni
+istemeden geçerli kullanıcı için kurar, Başlat menüsüne ekler ve Windows'un
+yüklü uygulamalar listesinden kaldırılabilir. Kayıtlarınız programdan ayrı
+tutulur; program kaldırılsa da güncellense de yerinde kalır.
+
+İkisi de imzalı değildir, bu yüzden Windows ilk açılışta onay ister: önce
 **Ek bilgi**, sonra **Yine de çalıştır**.
 
 İlk açılışta bir şifre ve ilk hesabınız istenir. Uygulama, dili Türkçe olan
