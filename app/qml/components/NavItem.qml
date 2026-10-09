@@ -6,6 +6,8 @@ AbstractButton {
     id: control
     property string glyph: ""
     property bool selected: false
+    // Off where something else marks the chosen entry.
+    property bool marked: true
 
     implicitHeight: 36
     hoverEnabled: true
@@ -13,7 +15,8 @@ AbstractButton {
 
     background: Rectangle {
         radius: Theme.controlRadius
-        color: control.selected ? Theme.accentSoft : (control.hovered ? Theme.raised : "transparent")
+        color: control.selected && control.marked ? Theme.accentSoft
+            : (control.hovered && !control.selected ? Theme.raised : "transparent")
         Behavior on color { ColorAnimation { duration: Theme.fast } }
         border.width: control.visualFocus ? 2 : 0
         border.color: Theme.accent

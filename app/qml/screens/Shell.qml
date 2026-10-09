@@ -56,7 +56,26 @@ Rectangle {
             color: Theme.lineSoft
         }
 
+        // The marker behind the chosen section; it slides when another is chosen.
+        Rectangle {
+            readonly property int chosen: {
+                for (var i = 0; i < root.sections.length; i++)
+                    if (root.sections[i].key === root.section) return i
+                return -1
+            }
+            readonly property Item entry: chosen >= 0 ? navigation.itemAt(chosen) : null
+            visible: entry !== null
+            x: menu.x
+            y: menu.y + (entry ? entry.y : 0)
+            width: entry ? entry.width : 0
+            height: entry ? entry.height : 0
+            radius: Theme.controlRadius
+            color: Theme.accentSoft
+            Behavior on y { NumberAnimation { duration: Theme.medium; easing.type: Easing.OutCubic } }
+        }
+
         Column {
+            id: menu
             anchors.fill: parent
             anchors.margins: 12
             spacing: 2
@@ -100,6 +119,7 @@ Rectangle {
                     text: modelData.label
                     glyph: modelData.glyph
                     selected: root.section === modelData.key
+                    marked: false
                     onClicked: root.section = modelData.key
                 }
             }

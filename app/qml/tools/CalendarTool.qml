@@ -51,6 +51,13 @@ Column {
 
                 Grid {
                     id: grid
+                    property string month: calendar.monthTitle
+                    onMonthChanged: turning.restart()
+                    NumberAnimation {
+                        id: turning
+                        target: grid; property: "opacity"; from: 0.2; to: 1
+                        duration: Theme.medium; easing.type: Easing.OutCubic
+                    }
                     readonly property real cell: Math.floor(parent.width / 7)
                     columns: 7
 

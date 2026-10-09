@@ -92,8 +92,9 @@ Column {
                             font.family: Theme.uiFont
                             font.pixelSize: 12
                         }
-                        Text {
-                            text: modelData.value
+                        Counting {
+                            value: modelData.value
+                            place: "history:" + modelData.label
                             color: Theme.text
                             font.family: Theme.displayFont
                             font.pixelSize: 26

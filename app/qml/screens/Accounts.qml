@@ -48,8 +48,9 @@ Flickable {
                             font.family: Theme.uiFont
                             font.pixelSize: 12
                         }
-                        Text {
-                            text: modelData.value
+                        Counting {
+                            value: modelData.value
+                            place: "accounts:" + modelData.label
                             color: Theme.text
                             font.family: Theme.displayFont
                             font.pixelSize: 26
@@ -153,9 +154,10 @@ Flickable {
 
                             Row {
                                 spacing: 8
-                                Text {
+                                Counting {
                                     id: figure
-                                    text: card.credit ? card.modelData.debtText : card.modelData.balanceText
+                                    value: card.credit ? card.modelData.debtText : card.modelData.balanceText
+                                    place: "account:" + card.modelData.id
                                     color: Theme.text
                                     font.family: Theme.displayFont
                                     font.pixelSize: 28

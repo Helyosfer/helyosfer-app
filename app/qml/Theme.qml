@@ -44,6 +44,11 @@ QtObject {
     readonly property int medium: motion ? 220 : 0
     readonly property int slow: motion ? 420 : 0
 
+    // The figure each named place last showed. Lists are rebuilt when their
+    // data changes, so a figure that is to count on from its old value has
+    // to find that value somewhere that outlives it.
+    property var figures: ({})
+
     function direction(value) {
         return value > 0 ? up : value < 0 ? down : muted
     }

@@ -92,9 +92,10 @@ Flickable {
 
                         Row {
                             spacing: 8
-                            Text {
+                            Counting {
                                 id: figure
-                                text: card.modelData.savedText
+                                value: card.modelData.savedText
+                                place: "goal:" + card.modelData.id
                                 color: Theme.text
                                 font.family: Theme.displayFont
                                 font.pixelSize: 28

@@ -70,8 +70,9 @@ Column {
                         font.pixelSize: 12
                         elide: Text.ElideRight
                     }
-                    Text {
-                        text: modelData.value
+                    Counting {
+                        value: modelData.value
+                        place: "budget:" + modelData.label
                         color: modelData.tone < 0 ? Theme.down : modelData.tone > 0 ? Theme.up : Theme.text
                         font.family: Theme.displayFont
                         font.pixelSize: 22

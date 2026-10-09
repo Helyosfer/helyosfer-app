@@ -101,6 +101,13 @@ Column {
 
         popup: Popup {
             y: box.height + 4
+            enter: Transition {
+                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.fast }
+                NumberAnimation { property: "y"; from: box.height - 4; to: box.height + 4; duration: Theme.fast; easing.type: Easing.OutCubic }
+            }
+            exit: Transition {
+                NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.fast }
+            }
             width: box.width
             padding: 1
             implicitHeight: Math.min(contentItem.implicitHeight + 2, 264)

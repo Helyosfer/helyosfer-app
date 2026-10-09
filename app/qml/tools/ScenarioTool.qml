@@ -122,8 +122,9 @@ Column {
                             font.family: Theme.uiFont
                             font.pixelSize: 12
                         }
-                        Text {
-                            text: modelData.value
+                        Counting {
+                            value: modelData.value
+                            place: "scenario:" + modelData.label
                             color: modelData.tone === 0 ? Theme.text : Theme.direction(modelData.tone)
                             font.family: Theme.displayFont
                             font.pixelSize: 24

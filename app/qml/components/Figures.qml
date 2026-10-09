@@ -22,8 +22,9 @@ Row {
                 font.pixelSize: 12
                 elide: Text.ElideRight
             }
-            Text {
-                text: modelData.value
+            Counting {
+                value: modelData.value
+                place: "figure:" + modelData.label
                 color: modelData.tone > 0 ? Theme.up : modelData.tone < 0 ? Theme.down : Theme.text
                 font.family: Theme.displayFont
                 font.pixelSize: root.valueSize

@@ -61,6 +61,7 @@ Item {
         onTapped: root.flipped = !root.flipped
     }
     onFlippedChanged: sweep.restart()
+    onFrozenChanged: sweep.restart()
     NumberAnimation {
         id: sweep
         target: sheen; property: "at"; from: -0.3; to: 1.3
@@ -102,8 +103,14 @@ Item {
                 radius: 14 * root.unit
                 gradient: Gradient {
                     orientation: Gradient.Horizontal
-                    GradientStop { position: 0; color: root.frozen ? "#6b7386" : "#7667f2" }
-                    GradientStop { position: 1; color: root.frozen ? "#3c4252" : "#3a2ea3" }
+                    GradientStop {
+                        position: 0; color: root.frozen ? "#6b7386" : "#7667f2"
+                        Behavior on color { ColorAnimation { duration: Theme.slow } }
+                    }
+                    GradientStop {
+                        position: 1; color: root.frozen ? "#3c4252" : "#3a2ea3"
+                        Behavior on color { ColorAnimation { duration: Theme.slow } }
+                    }
                 }
                 Behavior on opacity { NumberAnimation { duration: Theme.medium } }
             }

@@ -38,9 +38,9 @@ Column {
                 Row {
                     visible: insights.healthReady
                     spacing: 10
-                    Text {
+                    Counting {
                         id: scoreText
-                        text: insights.score
+                        value: insights.score
                         color: Theme.text
                         font.family: Theme.displayFont
                         font.pixelSize: 44
