@@ -115,7 +115,7 @@ SAVINGS_GOAL = "savings_goal"
 
 
 def record_balance_event(cursor, entity_type, entity_id, delta,
-                         resulting_value, source, ref_id=None):
+                         resulting_value, source, ref_id=None, ts=None):
     """Writes one row to balance_events -- with THE CALLER's cursor, in the same commit.
 
     It does NOT open its own connection: the ledger has to sit in the same
@@ -134,7 +134,7 @@ def record_balance_event(cursor, entity_type, entity_id, delta,
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            ts or datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             entity_type,
             int(entity_id),
             float(delta),
@@ -168,8 +168,52 @@ def current_goal_amount(cursor, goal_id):
     return (row["current_amount"] if row else 0.0) or 0.0
 
 
+def past_event_stamp(effective_at):
+    """The ledger stamp for a change that belongs to an earlier day, or None.
+
+    `effective_at` is a transaction date ('YYYY-MM-DD' with an optional time).
+    Today and anything unreadable give None: the change is stamped when it
+    is written, as every other change is.
+    """
+    text = str(effective_at or "").strip()
+    try:
+        day = datetime.strptime(text[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return None
+    if day >= datetime.now().date():
+        return None
+    clock = text[11:19]
+    try:
+        datetime.strptime(clock, "%H:%M:%S")
+    except ValueError:
+        clock = "12:00:00"
+    return f"{day.isoformat()} {clock}"
+
+
+def _extend_ledger_back(cursor, account_id, stamp):
+    """Makes room in the ledger for a change dated before the account opened.
+
+    The opening balance is the anchor every later change is added to. A
+    change dated before it would otherwise be replayed against nothing, and
+    the account would read as that change alone until its opening day. The
+    anchor moves to the start of the earlier day instead.
+
+    Snapshots from that day on were taken without the change, so they are
+    dropped; balances for those days are replayed from the ledger.
+    """
+    day = stamp[:10]
+    cursor.execute(
+        "UPDATE balance_events SET ts = ?"
+        " WHERE entity_type = ? AND entity_id = ? AND source = 'account_opened' AND ts > ?",
+        (f"{day} 00:00:00", ACCOUNT, int(account_id), f"{day} 00:00:00"),
+    )
+    cursor.execute(
+        "DELETE FROM daily_balance_snapshot WHERE snapshot_date >= ?", (day,)
+    )
+
+
 def adjust_account_balance(cursor, account_id, transaction_type, amount,
-                           ref_id=None, source="transaction"):
+                           ref_id=None, source="transaction", effective_at=None):
     """Updates accounts.balance in step with the transaction amount (the
     "Accounts Disconnected" fix). It takes an open cursor so it is written
     atomically in the same commit as the caller's INSERT -- opening a separate
@@ -196,6 +240,10 @@ def adjust_account_balance(cursor, account_id, transaction_type, amount,
     uses the derived `debt` / `available_limit` fields in
     services/account_service.py; it does not show the raw signed value in
     the UI.
+
+    `effective_at` is the date the change belongs to. When that is an earlier
+    day, the ledger records the change on that day, so balances over time
+    follow the dates of the transactions and not the day they were typed in.
     """
     delta = amount if transaction_type in ("income", "Gelir") else -amount
     cursor.execute(
@@ -210,10 +258,17 @@ def adjust_account_balance(cursor, account_id, transaction_type, amount,
             "Önce bir hesap oluşturulmalı."
         )
 
-    record_balance_event(
-        cursor, ACCOUNT, account_id, delta,
-        current_account_balance(cursor, account_id), source, ref_id,
-    )
+    stamp = past_event_stamp(effective_at)
+    if stamp is None:
+        record_balance_event(
+            cursor, ACCOUNT, account_id, delta,
+            current_account_balance(cursor, account_id), source, ref_id,
+        )
+        return
+    # The balance right after a past change is not known: later changes are
+    # already part of the current one.
+    _extend_ledger_back(cursor, account_id, stamp)
+    record_balance_event(cursor, ACCOUNT, account_id, delta, None, source, ref_id, ts=stamp)
 
 def insert_debt(debt_name, total_amount, monthly_payment, total_installments, is_auto_pay=0, auto_pay_day=1):
     with managed_connection() as conn:

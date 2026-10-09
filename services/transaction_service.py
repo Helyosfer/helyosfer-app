@@ -135,7 +135,9 @@ class TransactionService:
 
 
             if not is_future:
-                adjust_account_balance(cursor, account_id, transaction_type, amount)
+                adjust_account_balance(
+                    cursor, account_id, transaction_type, amount, effective_at=date_now,
+                )
 
             if installments:
 
