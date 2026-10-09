@@ -21,6 +21,9 @@ QtObject {
 
     readonly property color up: dark ? "#6fcf9a" : "#1d7f4e"
     readonly property color down: dark ? "#ef8f86" : "#b8443a"
+    // A loss drawn large, as a whole chart: the same direction as `down`,
+    // without its alarm.
+    readonly property color downSoft: dark ? "#a98d92" : "#9a7378"
     readonly property color warn: dark ? "#ee8f5b" : "#ad4f1c"
 
     readonly property string uiFont: "Segoe UI"
