@@ -15,7 +15,7 @@ Rectangle {
         || payInstallments.visible || addRecurring.visible || stopRecurring.visible
         || autoPayDay.visible || reschedule.visible || changeAmount.visible
         || addAsset.visible || sellAsset.visible || addGoal.visible || moveSavings.visible
-        || addPlanItem.visible || autoSaving.visible
+        || addPlanItem.visible || autoSaving.visible || removePlanItem.visible
     color: Theme.page
 
     property string pendingTool: ""
@@ -258,11 +258,13 @@ Rectangle {
             }
             onAddPlanItemRequested: addPlanItem.openFresh()
             onEditPlanItemRequested: function (item) { addPlanItem.openFor(item) }
+            onRemovePlanItemRequested: function (item) { removePlanItem.openFor(item) }
             onEditTransactionRequested: function (transactionId) { addTransaction.openForEdit(transactionId) }
         }
     }
 
     AddPlanItem { id: addPlanItem; objectName: "addPlanItem" }
+    RemovePlanItem { id: removePlanItem; objectName: "removePlanItem" }
 
     AddGoal { id: addGoal; objectName: "addGoal" }
     MoveSavings { id: moveSavings; objectName: "moveSavings" }

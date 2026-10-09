@@ -379,6 +379,40 @@ class PlanItemWriteBoundaryTest(AccountFixtureMixin, unittest.TestCase):
             [[("Market", 1500.0)], [("Market", 1900.0)], [("Market", 2100.0)]],
         )
 
+    def test_ending_a_repeating_item_keeps_it_in_earlier_months(self):
+        from services.budget_service import end_plan_item
+
+        self._save(is_template=True, month=3)
+        template_id = self._rows()[0]["id"]
+        self.assertTrue(end_plan_item(template_id, 8, 2026))
+        self.assertEqual(
+            self._amounts((2026, 2), (2026, 7), (2026, 8), (2027, 1)),
+            [[("Market", 1500.0)], [("Market", 1500.0)], [], []],
+        )
+        self.assertEqual(len(self._rows()), 1)
+
+    def test_ending_an_item_in_the_month_it_started_removes_it(self):
+        from services.budget_service import end_plan_item, get_effective_plan_items
+
+        self._save(is_template=True, month=3)
+        self._save(item_id=self._rows()[0]["id"], month=8, amount=1800.0,
+                   from_this_month_on=True)
+        current = get_effective_plan_items(8, 2026)[0]["id"]
+        self.assertTrue(end_plan_item(current, 8, 2026))
+        self.assertEqual(len(self._rows()), 1)
+        self.assertEqual(
+            self._amounts((2026, 7), (2026, 8), (2026, 9)),
+            [[("Market", 1500.0)], [], []],
+        )
+
+    def test_only_a_repeating_item_can_be_ended(self):
+        from services.budget_service import end_plan_item
+
+        self._save()
+        self.assertFalse(end_plan_item(self._rows()[0]["id"], 8, 2026))
+        self.assertFalse(end_plan_item(999, 8, 2026))
+        self.assertEqual(len(self._rows()), 1)
+
     def test_an_item_that_does_not_repeat_cannot_be_changed_onward(self):
         from services.budget_service import NOT_REPEATING
 

@@ -9,6 +9,7 @@ Flickable {
     property string tool: "budget"
     signal addPlanItemRequested()
     signal editPlanItemRequested(var item)
+    signal removePlanItemRequested(var item)
     signal editTransactionRequested(int transactionId)
 
     contentWidth: width
@@ -76,6 +77,7 @@ Flickable {
         BudgetTool {
             onAddRequested: root.addPlanItemRequested()
             onEditRequested: function (item) { root.editPlanItemRequested(item) }
+            onRemoveRequested: function (item) { root.removePlanItemRequested(item) }
         }
     }
     Component {

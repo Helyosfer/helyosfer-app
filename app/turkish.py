@@ -471,6 +471,10 @@ TEXT = {
     "Category (optional)": "Kategori (isteğe bağlı)",
     "Use this for every month": "Her ay için kullan",
     "Change the following months as well": "Sonraki ayları da değiştir",
+    "Every month": "Her ay",
+    "From %1 on": "%1 ve sonrası",
+    "This item repeats every month. From %1 on keeps it in the months before; every month removes it from those as well.":
+        "Bu kalem her ay tekrarlanıyor. \"%1 ve sonrası\" önceki aylarda bırakır; \"Her ay\" geçmiş aylardan da kaldırır.",
     "This item repeats every month. Your change applies from %1 on.":
         "Bu kalem her ay tekrarlanıyor. Değişikliğiniz %1 ve sonraki aylar için geçerli olur.",
     "Carry what is left into next month": "Kalanı sonraki aya devret",

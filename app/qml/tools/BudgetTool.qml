@@ -7,6 +7,7 @@ Column {
     id: root
     signal addRequested()
     signal editRequested(var item)
+    signal removeRequested(var item)
     spacing: Theme.gap
 
     Component.onCompleted: budget.refresh()
@@ -234,7 +235,11 @@ Column {
                             compact: true; quiet: true; danger: true
                             text: qsTr("Remove")
                             enabled: !budget.busy
-                            onClicked: budget.deleteItem(line.modelData.id)
+                            // A repeating item asks from when; any other goes at once.
+                            onClicked: {
+                                if (line.modelData.everyMonth) root.removeRequested(line.modelData)
+                                else budget.deleteItem(line.modelData.id)
+                            }
                         }
                     }
                 }

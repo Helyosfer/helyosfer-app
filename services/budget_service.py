@@ -354,6 +354,36 @@ def delete_plan_item(item_id):
         conn.close()
 
 
+def end_plan_item(item_id, month, year):
+    """Removes a repeating item from `month` on; returns True if it existed.
+
+    The months before keep it. An item that only started in that month has
+    nothing earlier to keep and is removed outright.
+    """
+    start = _month_index(year, month)
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("BEGIN IMMEDIATE")
+        row = cursor.execute(
+            "SELECT template_from FROM monthly_budget_plan WHERE id = ? AND is_template = 1",
+            (int(item_id),),
+        ).fetchone()
+        if row is None:
+            return False
+        if row["template_from"] is not None and row["template_from"] >= start:
+            cursor.execute("DELETE FROM monthly_budget_plan WHERE id = ?", (int(item_id),))
+        else:
+            cursor.execute(
+                "UPDATE monthly_budget_plan SET template_until = ? WHERE id = ?",
+                (start, int(item_id)),
+            )
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+
 def apply_plan_to_year_end(source_month, source_year):
     """Copies the current month's plan items through to the end of the year (December).
 
