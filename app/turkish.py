@@ -459,6 +459,8 @@ TEXT = {
     "No category": "Kategorisiz",
     "every month": "her ay",
     "carries over": "devreder",
+    "left out of this month": "bu ay yok",
+    "Bring back": "Geri getir",
     "carried over": "devredildi",
     "overspent last month": "geçen ay aşıldı",
     "Copied {0} items to the rest of {1}.": "{0} kalem {1} yılının kalanına kopyalandı.",
@@ -474,8 +476,9 @@ TEXT = {
     "Every month": "Her ay",
     "From %1 on": "%1 ve sonrası",
     "Only %1": "Yalnızca %1",
-    "This item repeats every month. It is left out of %1 and stays in every other month.":
-        "Bu kalem her ay tekrarlanıyor. Yalnızca %1 ayından çıkarılır, diğer aylarda kalır.",
+    "This item repeats every month. It is left out of %1 and stays in every other month. You can bring it back from that month's list.":
+        "Bu kalem her ay tekrarlanıyor. Yalnızca %1 ayından çıkarılır, diğer aylarda kalır."
+        " O ayın listesinden geri getirebilirsiniz.",
     "This item repeats every month. It is removed from %1 on and stays in the months before.":
         "Bu kalem her ay tekrarlanıyor. %1 ve sonraki aylardan kaldırılır, önceki aylarda kalır.",
     "This item repeats every month. It is removed from every month, the past ones included.":

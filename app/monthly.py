@@ -41,6 +41,7 @@ class BudgetController(_Monthly):
     def __init__(self, tasks: BackgroundTaskManager, parent=None):
         super().__init__(tasks, parent)
         self._items: list[dict] = []
+        self._left_out: list[dict] = []
         self._progress: list[dict] = []
         self._summary = {"income": "—", "expense": "—", "reserved": "—", "left": "—",
                          "direction": 0}
@@ -53,6 +54,11 @@ class BudgetController(_Monthly):
     @Property("QVariantList", notify=changed)
     def items(self):
         return self._items
+
+    @Property("QVariantList", notify=changed)
+    def leftOut(self):
+        """Repeating items this month was left without."""
+        return self._left_out
 
     @Property("QVariantList", notify=changed)
     def progress(self):
@@ -111,10 +117,21 @@ class BudgetController(_Monthly):
             budget_service.calculate_monthly_budget(month, year),
             budget_service.get_effective_plan_items(month, year),
             progress,
+            budget_service.get_left_out_plan_items(month, year),
         )
 
     def _show(self, data) -> None:
-        summary, items, progress = data
+        summary, items, progress, left_out = data
+        self._left_out = [
+            {
+                "id": item["id"],
+                "name": item["name"],
+                "category": tr(item["category_name"]) if item["category_name"] else "",
+                "income": item["type"] in _INCOME_TYPES,
+                "amountText": f"{format_amount(float(item['amount']))} ₺",
+            }
+            for item in sorted(left_out, key=lambda row: (row["type"] not in _INCOME_TYPES, row["id"]))
+        ]
         left = summary["remaining_budget"]
         self._summary = {
             "income": f"{format_amount(summary['planned_income'])} ₺",
@@ -224,6 +241,15 @@ class BudgetController(_Monthly):
         month, year = self._month, self._year
         self._notice = ""
         self._mutate(lambda: skip_plan_item(item_id, month, year))
+
+    @Slot(int)
+    def restoreItem(self, item_id):
+        """Brings a repeating item back to the month shown."""
+        from services.budget_service import restore_plan_item
+
+        month, year = self._month, self._year
+        self._notice = ""
+        self._mutate(lambda: restore_plan_item(item_id, month, year))
 
     @Slot(int)
     def endItem(self, item_id):

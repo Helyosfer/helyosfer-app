@@ -65,6 +65,11 @@ def _identity(row):
 
 def _effective_plan_rows(conn, target_month, target_year):
     """Returns the concrete month records plus the latest templates not overridden by them."""
+    return _plan_rows(conn, target_month, target_year)[0]
+
+
+def _plan_rows(conn, target_month, target_year):
+    """The month's plan, and the repeating items it was left without."""
     concrete = conn.execute(
         "SELECT * FROM monthly_budget_plan "
         "WHERE target_month = ? AND target_year = ? AND is_template = 0 "
@@ -87,15 +92,15 @@ def _effective_plan_rows(conn, target_month, target_year):
     for row in templates:
         latest_templates[_identity(row)] = row
     # Left out after the choice, so the month stays empty instead of showing
-    # an older item of the same name.
-    latest_templates = {
-        key: row for key, row in latest_templates.items() if index not in _skips(row)
-    }
-    inherited = [
-        row for key, row in latest_templates.items()
-        if key not in concrete_keys
-    ]
-    return list(concrete) + inherited
+    # an older item of the same name. One whose place the month's own item
+    # has taken is not missing from it.
+    inherited: list = []
+    left_out: list = []
+    for key, row in latest_templates.items():
+        if key in concrete_keys:
+            continue
+        (left_out if index in _skips(row) else inherited).append(row)
+    return list(concrete) + inherited, left_out
 
 
 def get_effective_plan_items(target_month, target_year):
@@ -362,6 +367,42 @@ def delete_plan_item(item_id):
         )
         conn.commit()
         return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
+def get_left_out_plan_items(target_month, target_year):
+    """The repeating items that month was left without and could have again."""
+    conn = get_connection()
+    try:
+        return [dict(row) for row in _plan_rows(conn, int(target_month), int(target_year))[1]]
+    finally:
+        conn.close()
+
+
+def restore_plan_item(item_id, month, year):
+    """Brings a repeating item back to a month it was left out of.
+
+    Returns True if it had been left out of that month.
+    """
+    index = _month_index(year, month)
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("BEGIN IMMEDIATE")
+        row = cursor.execute(
+            "SELECT template_skips FROM monthly_budget_plan WHERE id = ? AND is_template = 1",
+            (int(item_id),),
+        ).fetchone()
+        if row is None or index not in _skips(row):
+            return False
+        months = sorted(_skips(row) - {index})
+        cursor.execute(
+            "UPDATE monthly_budget_plan SET template_skips = ? WHERE id = ?",
+            (",".join(str(value) for value in months) or None, int(item_id)),
+        )
+        conn.commit()
+        return True
     finally:
         conn.close()
 

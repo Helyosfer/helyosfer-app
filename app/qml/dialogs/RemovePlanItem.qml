@@ -13,7 +13,7 @@ Sheet {
 
     title: item ? qsTr("Remove %1?").arg(item.name) : ""
     subtitle: reach === "only"
-        ? qsTr("This item repeats every month. It is left out of %1 and stays in every other month.").arg(budget.monthTitle)
+        ? qsTr("This item repeats every month. It is left out of %1 and stays in every other month. You can bring it back from that month's list.").arg(budget.monthTitle)
         : reach === "onward"
         ? qsTr("This item repeats every month. It is removed from %1 on and stays in the months before.").arg(budget.monthTitle)
         : qsTr("This item repeats every month. It is removed from every month, the past ones included.")

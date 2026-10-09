@@ -559,6 +559,24 @@ class InterfaceSmokeTest(unittest.TestCase):
         self.assertEqual([item["name"] for item in self.budget.items], ["Salary"])
         self.budget.previous()
         self._settle()
+        # Left out of this month alone, the repeating Salary waits in the
+        # list and comes back as it was.
+        own = next(i for i in self.budget.items if i["name"] == "Salary")
+        self.budget.deleteItem(own["id"])
+        self._settle()
+        repeating = next(i for i in self.budget.items if i["name"] == "Salary")
+        self.assertTrue(repeating["everyMonth"])
+        self.budget.skipItem(repeating["id"])
+        self._settle()
+        self.assertNotIn("Salary", [i["name"] for i in self.budget.items])
+        self.assertEqual(
+            [(i["name"], i["amountText"]) for i in self.budget.leftOut],
+            [("Salary", "5.200,00 ₺")],
+        )
+        self.budget.restoreItem(repeating["id"])
+        self._settle()
+        self.assertEqual(self.budget.leftOut, [])
+        self.assertEqual(self.budget.incomeText, "5.200,00 ₺")
         # Removing this month's own Salary uncovers the repeating one again,
         # so keep removing until nothing is left.
         for _ in range(6):

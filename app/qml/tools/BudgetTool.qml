@@ -177,7 +177,7 @@ Column {
 
             Text {
                 width: parent.width
-                visible: budget.items.length === 0
+                visible: budget.items.length === 0 && budget.leftOut.length === 0
                 topPadding: 6
                 text: qsTr("Nothing planned for this month. Add your expected income and the spending you want to cap.")
                 color: Theme.faint
@@ -241,6 +241,55 @@ Column {
                                 else budget.deleteItem(line.modelData.id)
                             }
                         }
+                    }
+                }
+            }
+
+            // Repeating items this month was left without: not counted, and
+            // one step from being counted again.
+            Repeater {
+                model: budget.leftOut
+
+                Item {
+                    id: gone
+                    required property var modelData
+                    width: parent.width
+                    height: 44
+
+                    Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left
+                        anchors.right: goneSum.left
+                        anchors.rightMargin: 16
+                        text: gone.modelData.name
+                            + (gone.modelData.category.length > 0 ? "  ·  " + gone.modelData.category : "")
+                            + "  ·  " + qsTr("left out of this month")
+                        color: Theme.faint
+                        font.family: Theme.uiFont
+                        font.pixelSize: 13
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        id: goneSum
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: bringBack.left
+                        anchors.rightMargin: 20
+                        text: (gone.modelData.income ? "+" : "−") + gone.modelData.amountText
+                        color: Theme.faint
+                        font.family: Theme.dataFont
+                        font.pixelSize: 13
+                        font.strikeout: true
+                    }
+                    PrimaryButton {
+                        id: bringBack
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        compact: true; quiet: true
+                        text: qsTr("Bring back")
+                        enabled: !budget.busy
+                        onClicked: budget.restoreItem(gone.modelData.id)
                     }
                 }
             }
