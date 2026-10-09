@@ -10,6 +10,12 @@ and portfolio tracking.
 > package can be built, but nobody except its author has tried it yet. See the
 > [roadmap](docs/ROADMAP.md).
 
+![The overview: total balance, its chart, upcoming payments and recent transactions](docs/images/overview.png)
+
+| Budget plan | Light theme |
+| --- | --- |
+| ![Spending against the monthly plan](docs/images/budget.png) | ![The overview in the light theme](docs/images/overview-light.png) |
+
 ## What it covers
 
 - Accounts and credit cards, income and expense transactions.
@@ -26,6 +32,41 @@ and portfolio tracking.
   prices and brand logos.
 - **Fail closed:** an unreadable record is never counted as zero. Showing no
   total is safer than showing a false one.
+
+## Running it
+
+There is no download yet. Until the first release, Helysofer runs from source
+or from a package you build yourself; both need Windows 10 or later for now.
+
+From source, with Python 3.12:
+
+```bash
+python -m pip install -r requirements-runtime.txt
+```
+
+```bash
+python -m app
+```
+
+As a package that needs no Python on the computer it runs on:
+
+```bash
+python -m pip install pyinstaller
+```
+
+```bash
+python scripts/build_windows.py --zip
+```
+
+That writes `dist/Helysofer-<version>-windows.zip`. Unpack it anywhere and
+start `Helysofer.exe`; keep the `_internal` folder next to it. The program is
+not signed, so Windows asks for confirmation the first time: choose
+**More info**, then **Run anyway**.
+
+The first start asks for a password and a first account. Records, the
+encryption key and settings are kept in your Windows user profile, not next
+to the program; **Settings** shows the folder. To move them to another
+computer, create a backup in **Settings** and restore it there.
 
 ## Repository layout
 
@@ -54,12 +95,6 @@ python -m app
 
 ```bash
 python run_tests.py
-```
-
-To build the Windows package, with PyInstaller installed:
-
-```bash
-python scripts/build_windows.py --zip
 ```
 
 See the [documentation](docs/) for architecture, backup and recovery, and key

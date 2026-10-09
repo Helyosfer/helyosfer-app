@@ -27,19 +27,16 @@ yet tried by anyone but the author.
 
 1. **Try the Windows package on a computer without Python.** The package
    builds (`python scripts/build_windows.py --zip`), and on the build
-   computer it was driven through setup and every section with real keyboard
-   and mouse input, and fetched a price. It has not been started anywhere
-   else. The installer script (`packaging/installer.iss`) has never been
+   computer it was driven with real keyboard and mouse input through setup,
+   every section, saving a transaction, and a CSV, a PDF, a backup and a
+   restore through the Windows file dialogs. It has not been started
+   anywhere else. The installer script (`packaging/installer.iss`) has never been
    compiled.
 2. **Run the test workflow on GitHub for the first time**, in a private
    repository, and fix what only shows up there.
-3. **README with screenshots** and plain installation steps.
-4. **Use it for real for a few weeks.** Items that settle themselves over
+3. **Use it for real for a few weeks.** Items that settle themselves over
    time (pending transactions, recurring payments, installments) have tests
    but have not been watched across real days.
-5. **Pick a file in the native dialogs by hand** once for each of backup,
-   restore, CSV and PDF; the dialogs were opened but their choice was fed in
-   by the test.
 
 ## Open decisions
 
@@ -64,8 +61,9 @@ yet tried by anyone but the author.
   transaction form.
 - A category that is in use cannot be removed, only renamed. Built-in
   categories cannot be changed.
-- A back-dated transaction moves only its own account's history back; other
-  accounts join the chart on the day they were opened.
+- A back-dated transaction moves back the history of its own account and of
+  the accounts opened on the profile's first day. An account opened on a
+  later day joins the chart on that day.
 - Changing a repeating budget item changes that month only.
 - Amount fields take two decimals; asset unit prices are left free for
   smaller values.
