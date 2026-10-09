@@ -27,6 +27,7 @@ from the file, which is why they are not translated.
 
 import csv
 import math
+from collections import Counter
 import os
 import tempfile
 from pathlib import Path
@@ -384,14 +385,28 @@ def import_transactions_from_csv(path, account_id=DEFAULT_ACCOUNT_ID):
     Because encryption and the accounts.balance update happen atomically
     inside add_transaction, nothing extra is done here -- every back-dated
     record affects the balance in its own direction (income +, expense -).
-    Returns (imported_count, skipped_count, net_balance_effect).
+    A row that is already in the account -- same moment, direction, category,
+    amount and description -- is left out, so importing a file twice does not
+    double it. Rows that repeat inside the file itself are all kept.
+
+    Returns (imported_count, skipped_count, net_balance_effect, duplicate_count).
     """
     from services.transaction_service import TransactionService
 
     records, skipped = parse_transactions_csv(path)
+    present = _existing_transaction_keys(account_id) if records else Counter()
     net_delta = 0.0
     imported = 0
+    duplicates = 0
     for rec in records:
+        key = _transaction_key(
+            rec["date"], rec["type"], rec["category"], rec["amount"],
+            rec["description"] or rec["category"],
+        )
+        if present[key] > 0:
+            present[key] -= 1
+            duplicates += 1
+            continue
         TransactionService.add_transaction(
             account_id=account_id,
             amount=rec["amount"],
@@ -406,4 +421,33 @@ def import_transactions_from_csv(path, account_id=DEFAULT_ACCOUNT_ID):
         net_delta += rec["amount"] if rec["type"] == "income" else -rec["amount"]
         imported += 1
 
-    return imported, skipped, net_delta
+    return imported, skipped, net_delta, duplicates
+
+
+def _transaction_key(date, kind, category, amount, description):
+    return (str(date)[:19], kind, category, round(float(amount), 2), description)
+
+
+def _existing_transaction_keys(account_id) -> Counter:
+    """How many times each transaction already appears in the account."""
+    from database.db import SECRET_KEY, get_connection
+    from utils.crypto import decrypt
+    from utils.errors import DecryptionError
+
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT transaction_date, type, category, amount, description"
+            " FROM transactions WHERE account_id = ?", (account_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+    present = Counter()
+    for row in rows:
+        try:
+            amount = float(decrypt(row[3], SECRET_KEY))
+            description = decrypt(row[4], SECRET_KEY) if row[4] else ""
+        except (DecryptionError, ValueError, TypeError):
+            continue
+        present[_transaction_key(row[0], row[1], row[2], amount, description)] += 1
+    return present

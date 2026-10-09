@@ -208,8 +208,10 @@ class SettingsController(_Mutating):
             return import_transactions_from_csv(local_path(url), account_id)
 
         def done(result):
-            imported, skipped, net = result
+            imported, skipped, net, duplicates = result
             text = f"Imported {imported} transactions"
+            if duplicates:
+                text += f", left out {duplicates} that were already in the account"
             if skipped:
                 text += f", skipped {skipped} rows that could not be read"
             sign = "−" if net < 0 else "+"
