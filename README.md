@@ -15,17 +15,18 @@ No sign-up, no server, nothing to sync. Your records never leave the computer.
 ![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-5646d4)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-5646d4)
 ![Windows 10 or later](https://img.shields.io/badge/platform-Windows%2010%2B-5646d4)
-![Status: pre-release](https://img.shields.io/badge/status-pre--release-b9770e)
+![Status: first release](https://img.shields.io/badge/status-first%20release-b9770e)
 
 </div>
 
 ![The overview: total balance, its chart, upcoming payments and recent transactions](docs/images/en/overview.png)
 
 > [!NOTE]
-> Helyosfer is pre-release. Everything described here works and is covered by
-> tests, and a Windows package can be built from this repository, but there is
-> no published download yet and nobody except its author has used it. The
-> [roadmap](docs/ROADMAP.md) says what is left.
+> This is the first release, and an early one. Everything described here works
+> and is covered by tests, and the setup program has been installed and run on
+> two computers. Nobody except its author has used it yet, and not for long:
+> keep a backup of anything you would not want to enter twice. The
+> [roadmap](docs/ROADMAP.md) says what has and has not been tried.
 
 ## What it does
 
@@ -84,8 +85,17 @@ More in [key management](docs/KEY_MANAGEMENT.md),
 
 ## Get started
 
-There is no download yet. Until the first release Helyosfer runs from source,
-or from a package you build yourself. Both need Windows 10 or later for now.
+**Download** the setup program from the
+[latest release](https://github.com/Helyosfer/helyosfer-app/releases/latest): `Helyosfer-<version>-setup.exe`. It
+installs for the current user without administrator rights and needs nothing
+else on the computer. Windows 10 or later, 64-bit. A zip of the same program,
+which runs from wherever it is unpacked, is there as well.
+
+Neither file is signed, so Windows asks for confirmation the first time:
+choose **More info**, then **Run anyway**. The release lists the SHA-256 of
+each file for anyone who wants to check a download.
+
+Helyosfer also runs from source, and the same package can be built from it.
 
 **From source**, with Python 3.12:
 
@@ -121,9 +131,6 @@ That writes `dist/Helyosfer-<version>-setup.exe`. It installs for the current
 user without administrator rights, adds a Start menu entry, and is removed
 again from Windows' own list of installed apps. Your records are kept apart
 from the program and stay where they are when it is removed or upgraded.
-
-Neither is signed, so Windows asks for confirmation the first time: choose
-**More info**, then **Run anyway**.
 
 The first start asks for a password and a first account. It opens in Turkish on
 a computer set to Turkish and in English everywhere else; **Settings** changes

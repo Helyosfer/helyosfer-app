@@ -15,17 +15,18 @@ Hesaplar, kartlar, borçlar, bütçe ve yatırımlar için kişisel bir masaüst
 ![Lisans: Apache 2.0](https://img.shields.io/badge/lisans-Apache--2.0-5646d4)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-5646d4)
 ![Windows 10 ve sonrası](https://img.shields.io/badge/platform-Windows%2010%2B-5646d4)
-![Durum: ön sürüm](https://img.shields.io/badge/durum-%C3%B6n%20s%C3%BCr%C3%BCm-b9770e)
+![Durum: ilk sürüm](https://img.shields.io/badge/durum-ilk%20s%C3%BCr%C3%BCm-b9770e)
 
 </div>
 
 ![Genel bakış: toplam bakiye, grafiği, yaklaşan ödemeler ve son işlemler](docs/images/tr/overview.png)
 
 > [!NOTE]
-> Helyosfer henüz ön sürüm aşamasında. Burada anlatılan her şey çalışıyor ve
-> testlerle doğrulanıyor, bu depodan bir Windows paketi de derlenebiliyor; ancak
-> yayımlanmış bir indirme yok ve uygulamayı geliştiricisinden başka kullanan
-> olmadı. Geriye kalanlar [yol haritasında](docs/ROADMAP.md) (İngilizce).
+> Bu ilk sürüm ve erken bir sürüm. Burada anlatılan her şey çalışıyor ve
+> testlerle doğrulanıyor; kurulum programı iki bilgisayara kurulup çalıştırıldı.
+> Uygulamayı henüz geliştiricisinden başka kullanan olmadı, o da uzun süre
+> kullanmadı: yeniden girmek istemeyeceğiniz kayıtların yedeğini alın. Nelerin
+> denendiği ve denenmediği [yol haritasında](docs/ROADMAP.md) (İngilizce).
 
 ## Neler yapar
 
@@ -84,9 +85,16 @@ Ayrıntılar (İngilizce): [anahtar yönetimi](docs/KEY_MANAGEMENT.md),
 
 ## Başlarken
 
-Henüz indirilebilir bir sürüm yok. İlk sürüme kadar Helyosfer kaynak koddan ya
-da kendi derlediğiniz bir paketten çalışır. İkisi de şimdilik Windows 10 ya da
-sonrasını gerektirir.
+Kurulum programını [son sürümden](https://github.com/Helyosfer/helyosfer-app/releases/latest) **indirin**:
+`Helyosfer-<sürüm>-setup.exe`. Yönetici izni istemeden geçerli kullanıcı için
+kurar ve bilgisayarda başka hiçbir şeye ihtiyaç duymaz. Windows 10 ya da
+sonrası, 64 bit. Aynı programın, açıldığı yerden çalışan zip hâli de orada.
+
+İki dosya da imzalı değildir, bu yüzden Windows ilk açılışta onay ister: önce
+**Ek bilgi**, sonra **Yine de çalıştır**. İndirdiğini doğrulamak isteyenler
+için sürüm sayfasında her dosyanın SHA-256 değeri yazar.
+
+Helyosfer kaynak koddan da çalışır; aynı paket kaynak koddan derlenebilir.
 
 **Kaynak koddan**, Python 3.12 ile:
 
@@ -122,9 +130,6 @@ Bu komut `dist/Helyosfer-<sürüm>-setup.exe` dosyasını yazar. Yönetici izni
 istemeden geçerli kullanıcı için kurar, Başlat menüsüne ekler ve Windows'un
 yüklü uygulamalar listesinden kaldırılabilir. Kayıtlarınız programdan ayrı
 tutulur; program kaldırılsa da güncellense de yerinde kalır.
-
-İkisi de imzalı değildir, bu yüzden Windows ilk açılışta onay ister: önce
-**Ek bilgi**, sonra **Yine de çalıştır**.
 
 İlk açılışta bir şifre ve ilk hesabınız istenir. Uygulama, dili Türkçe olan
 bilgisayarda Türkçe, diğerlerinde İngilizce açılır; **Ayarlar**'dan istediğiniz

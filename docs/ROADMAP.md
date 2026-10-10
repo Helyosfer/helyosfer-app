@@ -1,7 +1,8 @@
 # Roadmap
 
-Where Helyosfer stands and what is left before the first release. Nothing here
-is a promise of a date; the order is the order of work.
+Where Helyosfer stands after its first release, 0.1.0, and what has and has
+not been tried. Nothing here is a promise of a date; the order is the order
+of work.
 
 ## Where it stands
 
@@ -28,7 +29,9 @@ Tried by hand in a real window on Windows as well as by the test suite, which
 also runs on GitHub on Linux and Windows. Installed with its setup program on
 a second computer, where it runs. Not yet tried by anyone but the author.
 
-## Before the first release
+## What the first release rests on
+
+It was published before either of these was complete, and says so.
 
 1. **Try the Windows package on other computers.** Installed with the setup
    program on a second computer (Windows 11, another graphics card, 100%
