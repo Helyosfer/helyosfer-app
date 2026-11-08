@@ -9,7 +9,7 @@ from PySide6.QtCore import Property, Signal, Slot
 
 from app.accounts import read_amount
 from app.payments import read_count
-from app.controllers import display_title, format_amount
+from app.controllers import display_title, format_amount, short_date
 from app.payments import _Listing
 from services.background_task_manager import BackgroundTaskManager
 from app.language import month_name, say, tr
@@ -43,6 +43,8 @@ class BudgetController(_Monthly):
         self._items: list[dict] = []
         self._left_out: list[dict] = []
         self._progress: list[dict] = []
+        self._selected_category = ""
+        self._category_items: list[dict] = []
         self._summary = {"income": "—", "expense": "—", "reserved": "—", "left": "—",
                          "direction": 0}
         self._notice = ""
@@ -63,6 +65,18 @@ class BudgetController(_Monthly):
     @Property("QVariantList", notify=changed)
     def progress(self):
         return self._progress
+
+    @Property(str, notify=changed)
+    def selectedCategory(self):
+        return self._selected_category
+
+    @Property(str, notify=changed)
+    def selectedCategoryLabel(self):
+        return tr(self._selected_category) if self._selected_category else ""
+
+    @Property("QVariantList", notify=changed)
+    def categoryTransactions(self):
+        return self._category_items
 
     @Property(str, notify=changed)
     def incomeText(self):
@@ -92,6 +106,17 @@ class BudgetController(_Monthly):
         self._notice = text
         self.changed.emit()
 
+    @Slot(str)
+    def selectCategory(self, category_key):
+        key = (category_key or "").strip()
+        if not key or key == self._selected_category:
+            self._selected_category = ""
+            self._category_items = []
+            self.changed.emit()
+            return
+        self._selected_category = key
+        self.refresh()
+
     @Slot()
     def previous(self):
         self._notice = ""
@@ -113,15 +138,20 @@ class BudgetController(_Monthly):
                 budget_service.get_effective_limit(row["category"], month, year)
                 if row["rollover_enabled"] else row["planned"]
             )
+        cat_txs = (
+            budget_service.get_category_month_transactions(self._selected_category, month, year)
+            if self._selected_category else []
+        )
         return (
             budget_service.calculate_monthly_budget(month, year),
             budget_service.get_effective_plan_items(month, year),
             progress,
             budget_service.get_left_out_plan_items(month, year),
+            cat_txs,
         )
 
     def _show(self, data) -> None:
-        summary, items, progress, left_out = data
+        summary, items, progress, left_out, cat_txs = data
         self._left_out = [
             {
                 "id": item["id"],
@@ -158,6 +188,15 @@ class BudgetController(_Monthly):
             for item in ordered
         ]
         self._progress = [self._progress_row(row) for row in progress]
+        self._category_items = [
+            {
+                "id": tx["id"],
+                "date": short_date(tx["date"]),
+                "title": display_title(tx["description"] or self._selected_category),
+                "amountText": f"−{format_amount(tx['amount'])} ₺",
+            }
+            for tx in cat_txs
+        ]
 
     @staticmethod
     def _progress_row(row: dict) -> dict:
@@ -177,6 +216,7 @@ class BudgetController(_Monthly):
                 + (say("carried over") if carried > 0 else say("overspent last month"))
             )
         return {
+            "categoryKey": row["category"],
             "category": tr(row["category"]),
             "spentText": f"{format_amount(spent)} ₺",
             "plannedText": f"{format_amount(limit)} ₺",

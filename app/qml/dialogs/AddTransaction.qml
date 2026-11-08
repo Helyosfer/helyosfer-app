@@ -63,6 +63,7 @@ Sheet {
         if (accountKey >= 0) account.select(accountKey)
         else if (accounts.options.length === 1) account.select(accounts.options[0].key)
         else account.select(-1)
+        targetAccount.select(-1)
         category.select("")
         open()
         amount.input.forceActiveFocus()
@@ -75,6 +76,13 @@ Sheet {
                                 account.currentKey === undefined ? -1 : account.currentKey,
                                 category.currentKey === undefined ? "" : category.currentKey,
                                 description.text, date.text)
+            return
+        }
+        if (kind === "transfer") {
+            transactions.transfer(
+                account.currentKey === undefined ? -1 : account.currentKey,
+                targetAccount.currentKey === undefined ? -1 : targetAccount.currentKey,
+                amount.text, description.text, date.text)
             return
         }
         transactions.add(
@@ -93,7 +101,9 @@ Sheet {
     }
 
     Segmented {
-        model: [{ key: "expense", label: qsTr("Spending") }, { key: "income", label: qsTr("Income") }]
+        model: root.editing >= 0
+            ? [{ key: "expense", label: qsTr("Spending") }, { key: "income", label: qsTr("Income") }]
+            : [{ key: "expense", label: qsTr("Spending") }, { key: "income", label: qsTr("Income") }, { key: "transfer", label: qsTr("Transfer") }]
         current: root.kind
         enabled: root.free("kind")
         opacity: enabled ? 1 : 0.55
@@ -118,23 +128,32 @@ Sheet {
         Choice {
             id: account
             width: (parent.width - 12) / 2
-            label: qsTr("Account")
+            label: root.kind === "transfer" ? qsTr("Pay from") : qsTr("Account")
             placeholder: qsTr("Choose an account")
-            model: accounts.options
+            model: root.kind === "transfer" ? accounts.checkingOptions : accounts.options
             enabled: root.free("account")
             opacity: enabled ? 1 : 0.55
         }
         Choice {
             id: category
+            visible: root.kind !== "transfer"
             width: (parent.width - 12) / 2
             label: qsTr("Category")
             placeholder: qsTr("Choose a category")
             // A category the application files its own records under is
             // not among the ones offered; it is shown as the only entry.
             model: root.fixedCategory !== null ? [root.fixedCategory]
-                : (transactions.categoryRevision, transactions.categories(root.kind))
+                : (transactions.categoryRevision, transactions.categories(root.kind === "transfer" ? "expense" : root.kind))
             enabled: root.free("category")
             opacity: enabled ? 1 : 0.55
+        }
+        Choice {
+            id: targetAccount
+            visible: root.kind === "transfer"
+            width: (parent.width - 12) / 2
+            label: qsTr("Add to account")
+            placeholder: qsTr("Choose an account")
+            model: accounts.options
         }
     }
 

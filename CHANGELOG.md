@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-08
+
+Streamlines navigation, daily entry and multi-account workflows.
+
+- Consolidated the left navigation rail into five core sections (Overview,
+  Cards and accounts, Debts and payments, Tools, Settings) with contextual
+  sub-navigation bars.
+- Added a one-line Quick Add bar on the Overview screen (`"250 Market"`,
+  `"+45.000 Salary"`) with automatic category detection.
+- Added atomic account-to-account transfers (`Transfer` mode in the transaction
+  dialog) between checking accounts and credit cards.
+- Added interactive category drill-down in the Budget plan so clicking a
+  category progress bar lists and opens its transactions in place.
+- Added Net liquid position (`Cash − Card debt`) to the Cards and accounts
+  header.
+- Extended CSV import to read standard semicolon-delimited bank statements,
+  signed amounts without a type column, and keyword-based categories.
+
 ## [0.1.0] - 2026-10-10
 
 The first release. For Windows 10 and later, 64-bit, as a setup program and

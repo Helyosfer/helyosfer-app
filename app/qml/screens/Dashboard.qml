@@ -57,6 +57,39 @@ Flickable {
             }
         }
 
+        // -- Quick Add Bar -------------------------------------------------
+        Row {
+            width: parent.width
+            spacing: 12
+
+            Field {
+                id: quickAddBox
+                objectName: "quickAddBox"
+                width: parent.width - quickAddBtn.width - 12
+                placeholder: qsTr("Quick add (e.g. 250 Groceries or +5000 Salary)   Enter")
+                input.enabled: !transactions.busy
+                onAccepted: {
+                    if (text.trim().length > 0) {
+                        transactions.quickAdd(text, -1)
+                    }
+                }
+                Keys.onEscapePressed: text = ""
+            }
+            PrimaryButton {
+                id: quickAddBtn
+                quiet: true
+                text: qsTr("Add")
+                enabled: !transactions.busy && quickAddBox.text.trim().length > 0
+                onClicked: transactions.quickAdd(quickAddBox.text, -1)
+            }
+            Connections {
+                target: transactions
+                function onSaved() {
+                    if (quickAddBox.text.length > 0) quickAddBox.text = ""
+                }
+            }
+        }
+
         // -- Search results ------------------------------------------------
         Card {
             width: parent.width

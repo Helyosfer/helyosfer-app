@@ -78,6 +78,7 @@ Flickable {
             onAddRequested: root.addPlanItemRequested()
             onEditRequested: function (item) { root.editPlanItemRequested(item) }
             onRemoveRequested: function (item) { root.removePlanItemRequested(item) }
+            onEditTransactionRequested: function (transactionId) { root.editTransactionRequested(transactionId) }
         }
     }
     Component {

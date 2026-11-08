@@ -23,7 +23,7 @@ var. Veriler bilgisayarınızdaki şifreli bir dosyada duruyor ve internete yaln
 hisse, altın ve döviz fiyatlarını almak için çıkıyor.
 
 > [!NOTE]
-> Bu ilk sürüm (0.1.0). Şimdiye kadar yalnızca ben kullandım, o da kısa bir
+> Güncel sürüm: **0.2.0**. Şimdiye kadar yalnızca ben kullandım, o da kısa bir
 > süre. İki bilgisayarda kurup denedim, testleri geçiyor, ama gözümden kaçan
 > şeyler mutlaka vardır. Önemli kayıtlarınız için ara sıra yedek alın
 > (Ayarlar → Yedek oluştur). Bir sorun görürseniz

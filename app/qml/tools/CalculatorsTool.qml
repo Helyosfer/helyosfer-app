@@ -13,8 +13,7 @@ Column {
             { key: "loan", label: qsTr("Loan") },
             { key: "interest", label: qsTr("Deposit interest") },
             { key: "growth", label: qsTr("Compound growth") },
-            { key: "goal", label: qsTr("Time to a goal") },
-            { key: "plain", label: qsTr("Calculator") }
+            { key: "goal", label: qsTr("Time to a goal") }
         ]
         current: root.calculator
         onChosen: function (key) { calc.clearMessage(); root.calculator = key }

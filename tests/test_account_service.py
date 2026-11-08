@@ -220,6 +220,26 @@ class AccountServiceTestCase(AccountFixtureMixin, unittest.TestCase):
         self.assertEqual(statement[0]["type"], "payment")
         self.assertEqual(statement[0]["amount"], 900.0)
 
+    def test_transfer_between_checking_accounts_is_atomic_and_reversible(self):
+        from services.account_service import AccountService
+        from services.dashboard_service import recent_transactions
+        from services.transaction_edit_service import delete_transaction
+
+        from_id = AccountService.create_account("Maaş", "checking", initial_balance=3000)
+        to_id = AccountService.create_account("Birikim", "checking", initial_balance=500)
+
+        AccountService.transfer_between_accounts(from_id, to_id, 750, description="Kira payı")
+
+        self.assertEqual(AccountService.get_account(from_id)["balance"], 2250.0)
+        self.assertEqual(AccountService.get_account(to_id)["balance"], 1250.0)
+
+        rows = recent_transactions(4)
+        self.assertEqual(len(rows), 2)
+        delete_transaction(rows[0]["id"])
+
+        self.assertEqual(AccountService.get_account(from_id)["balance"], 3000.0)
+        self.assertEqual(AccountService.get_account(to_id)["balance"], 500.0)
+
     def test_debt_payment_cannot_exceed_debt(self):
         from services.account_service import AccountService
 

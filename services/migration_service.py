@@ -62,14 +62,42 @@ _RECORD_KINDS = frozenset({"islem", "varlik", "borc", "tekrarlanan"})
 
 _COLUMN_ALIASES = {
     "tarih": "tarih", "date": "tarih",
+    "islem tarihi": "tarih", "işlem tarihi": "tarih", "transaction date": "tarih",
     "tur": "tur", "tür": "tur", "type": "tur",
-    "kategori": "kategori", "category": "kategori",
+    "islem turu": "tur", "işlem türü": "tur",
+    "borc/alacak": "tur", "borç/alacak": "tur", "direction": "tur",
+    "kategori": "kategori", "category": "kategori", "harcama kategorisi": "kategori",
     "tutar": "tutar", "miktar": "tutar", "amount": "tutar",
+    "islem tutari": "tutar", "işlem tutarı": "tutar",
+    "tutar (tl)": "tutar", "tutar (try)": "tutar",
     "aciklama": "aciklama", "açıklama": "aciklama", "description": "aciklama",
+    "islem aciklamasi": "aciklama", "işlem açıklaması": "aciklama",
 }
 
-_INCOME_WORDS = {"gelir", "income"}
-_EXPENSE_WORDS = {"gider", "expense", "harcama"}
+_INCOME_WORDS = {"gelir", "income", "alacak", "credit", "+"}
+_EXPENSE_WORDS = {"gider", "expense", "harcama", "borc", "borç", "debit", "-"}
+
+_BANK_CATEGORY_HINTS = (
+    (("migros", "carrefour", "bim", "a101", "şok", "sok", "file market", "market"), "Süpermarket"),
+    (("starbucks", "kahve", "restoran", "kafe", "cafe", "yemeksepeti", "getiryemek"), "Dışarıda Yemek"),
+    (("taksi", "bitaksi", "uber", "martı"), "Taksi"),
+    (("opet", "shell", "petrol", "bp ", "akaryakıt", "benzin"), "Akaryakıt"),
+    (("netflix", "spotify", "youtube", "icloud", "chatgpt"), "Dijital Abonelik"),
+    (("elektrik", "enerjisa", "ck bogazici"), "Elektrik"),
+    (("iski", "aski", "su faturası"), "Su"),
+    (("igdaş", "igdas", "doğalgaz"), "Doğalgaz"),
+    (("turkcell", "vodafone", "türk telekom", "turk telekom", "superonline"), "İnternet"),
+    (("eczane", "hastane", "klinik"), "Sağlık"),
+    (("maaş", "maas", "bordro", "salary"), "Maaş"),
+)
+
+
+def _guess_bank_category(description: str) -> str:
+    lowered = (description or "").casefold()
+    for words, category in _BANK_CATEGORY_HINTS:
+        if any(word in lowered for word in words):
+            return category
+    return "Diğer"
 
 _DATE_FORMATS = [
     "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d",
@@ -295,14 +323,16 @@ def parse_transactions_csv(path):
     records, skipped = [], 0
 
     with open(path, "r", newline="", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
+        first_line = f.readline()
+        f.seek(0)
+        delimiter = ";" if first_line.count(";") > first_line.count(",") else ","
+        reader = csv.DictReader(f, delimiter=delimiter)
         if not reader.fieldnames:
             return [], 0
 
-
         header_map = {}
         for name in reader.fieldnames:
-            key = (name or "").strip().lower()
+            key = (name or "").strip().lower().replace("\u0307", "")
             if key and key not in header_map:
                 header_map[key] = name
         field_map = {}
@@ -313,7 +343,7 @@ def parse_transactions_csv(path):
 
         type_col = header_map.get("kayit_turu")
         version_col = header_map.get(CSV_VERSION_COLUMN)
-
+        has_tur_col = "tur" in field_map
 
         def _text(row, key, unescape):
             raw = row.get(field_map.get(key, ""), "") or ""
@@ -324,8 +354,6 @@ def parse_transactions_csv(path):
             if version_col is not None:
                 version = _row_escape_version(row.get(version_col))
                 if version is _AMBIGUOUS:
-
-
                     skipped += 1
                     continue
                 unescape = version is not None
@@ -333,21 +361,10 @@ def parse_transactions_csv(path):
             if type_col is not None:
                 kayit_turu = (row.get(type_col) or "").strip().lower()
                 if kayit_turu not in _RECORD_KINDS:
-
-
                     skipped += 1
                     continue
                 if kayit_turu != "islem":
                     continue
-
-            raw_tur = _text(row, "tur", unescape).strip().lower()
-            if raw_tur in _INCOME_WORDS:
-                tx_type = "income"
-            elif raw_tur in _EXPENSE_WORDS:
-                tx_type = "expense"
-            else:
-                skipped += 1
-                continue
 
             date = _normalize_date(row.get(field_map.get("tarih", ""), ""))
             if not date:
@@ -355,25 +372,47 @@ def parse_transactions_csv(path):
                 continue
 
             raw_amount = (row.get(field_map.get("tutar", ""), "") or "").strip()
+            for token in ("₺", "TL", "TRY", "tl", "try"):
+                raw_amount = raw_amount.replace(token, "")
+            raw_amount = raw_amount.replace("−", "-").strip()
             try:
-
                 if "," in raw_amount and raw_amount.count(",") == 1:
                     raw_amount = raw_amount.replace(".", "").replace(",", ".")
-                amount = float(raw_amount)
-
-
-                if not math.isfinite(amount) or amount <= 0:
+                parsed_amount = float(raw_amount)
+                if not math.isfinite(parsed_amount) or parsed_amount == 0:
                     raise ValueError
             except ValueError:
                 skipped += 1
                 continue
 
+            raw_tur = _text(row, "tur", unescape).strip().lower()
+            if has_tur_col or raw_tur:
+                if parsed_amount <= 0:
+                    skipped += 1
+                    continue
+                if raw_tur in _INCOME_WORDS:
+                    tx_type = "income"
+                elif raw_tur in _EXPENSE_WORDS:
+                    tx_type = "expense"
+                else:
+                    skipped += 1
+                    continue
+                amount = parsed_amount
+            else:
+                tx_type = "expense" if parsed_amount < 0 else "income"
+                amount = abs(parsed_amount)
+
+            description = _text(row, "aciklama", unescape).strip()
+            category = _text(row, "kategori", unescape).strip()
+            if not category:
+                category = _guess_bank_category(description) if "kategori" not in field_map else "Diğer"
+
             records.append({
                 "date": date,
                 "type": tx_type,
-                "category": _text(row, "kategori", unescape).strip() or "Diğer",
+                "category": category,
                 "amount": amount,
-                "description": _text(row, "aciklama", unescape).strip(),
+                "description": description,
             })
 
     return records, skipped

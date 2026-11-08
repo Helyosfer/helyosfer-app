@@ -158,6 +158,8 @@ class AccountsController(_Mutating):
         self._accounts: list[dict] = []
         self._cash = "—"
         self._debt = "—"
+        self._net = "—"
+        self._net_direction = 0
         self.dataChanged.connect(self.refresh)
 
     # -- state ---------------------------------------------------------------
@@ -189,6 +191,14 @@ class AccountsController(_Mutating):
     def debtText(self):
         return self._debt
 
+    @Property(str, notify=changed)
+    def netText(self):
+        return self._net
+
+    @Property(int, notify=changed)
+    def netDirection(self):
+        return self._net_direction
+
     @Slot()
     def refresh(self):
         self._tasks.submit(
@@ -218,8 +228,11 @@ class AccountsController(_Mutating):
         self._accounts = [self._view(account) for account in accounts]
         cash = sum(a["balance"] for a in accounts if a["account_type"] == CHECKING)
         debt = sum(a["debt"] for a in accounts if a["account_type"] == CREDIT_CARD)
+        net = cash - debt
         self._cash = f"{format_amount(cash)} ₺"
         self._debt = f"{format_amount(debt)} ₺"
+        self._net = ("−" if net < 0 else "") + f"{format_amount(net)} ₺"
+        self._net_direction = (net > 0) - (net < 0)
         self.changed.emit()
 
     def _load_failed(self, error) -> None:
@@ -490,3 +503,155 @@ class TransactionFormController(_Mutating):
             )
 
         self._mutate(work)
+
+    @Slot(int, int, str, str, str)
+    def transfer(self, source_id, target_id, amount_text, description, date_text):
+        def work():
+            from services.account_service import AccountService
+
+            if source_id < 0:
+                raise FormError(say("Choose the account to pay from."))
+            if target_id < 0:
+                raise FormError(say("Choose the account that receives the money."))
+            if source_id == target_id:
+                raise FormError(say("Choose two different accounts."))
+            amount = read_amount(amount_text, say("amount"))
+            stamp = read_date(date_text)
+            target = AccountService.get_account(target_id)
+            if target and target["account_type"] == CREDIT_CARD and 0 < target["debt"] < amount:
+                raise FormError(
+                    say(
+                        "The payment cannot exceed the current debt of {0} ₺.",
+                        format_amount(target["debt"]),
+                    )
+                )
+            AccountService.transfer_between_accounts(
+                source_id, target_id, amount,
+                description=(description or "").strip(),
+                transaction_date=stamp,
+            )
+            self._last_pending = False
+
+        self._mutate(work)
+
+    @Slot(str, int)
+    def quickAdd(self, raw_text, preferred_account_id=-1):
+        """Parses a single-line entry such as '250 Market' or '+5000 Salary' and records it."""
+        def work():
+            from services.account_service import AccountService
+            from services.transaction_service import TransactionService
+
+            parsed = parse_quick_entry(raw_text)
+            account_id = int(preferred_account_id)
+            if account_id < 0:
+                all_accounts = AccountService.get_accounts()
+                if not all_accounts:
+                    raise FormError(say("Add an account first."))
+                checking = [a for a in all_accounts if a["account_type"] == CHECKING]
+                account_id = checking[0]["id"] if checking else all_accounts[0]["id"]
+            TransactionService.add_transaction(
+                account_id,
+                parsed["amount"],
+                parsed["kind"],
+                parsed["category"],
+                parsed["description"],
+            )
+            self._last_pending = False
+
+        self._mutate(work)
+
+
+_QUICK_KEYWORDS = {
+    "expense": (
+        (("market", "migros", "bim", "a101", "sok", "carrefour", "gida", "grocery", "groceries", "supermarket"), "Süpermarket"),
+        (("kahve", "starbucks", "kafe", "cafe", "restoran", "yemek", "lunch", "dinner", "coffee", "burger", "pizza"), "Dışarıda Yemek"),
+        (("yakit", "benzin", "mazot", "opet", "shell", "petrol", "fuel", "gas"), "Akaryakıt"),
+        (("taksi", "uber", "bitaksi", "taxi"), "Taksi"),
+        (("otobus", "metro", "ulasim", "akbil", "istanbulkart", "bus", "transit", "train"), "Toplu Taşıma"),
+        (("kira", "rent"), "Ev Kirası"),
+        (("elektrik", "electric", "electricity"), "Elektrik"),
+        (("dogalgaz", "gaz", "heating"), "Doğalgaz"),
+        (("internet", "fiber", "wifi", "turknet", "superonline"), "İnternet"),
+        (("telefon", "turkcell", "vodafone", "telekom", "mobile", "phone"), "Cep Telefonu"),
+        (("netflix", "spotify", "youtube", "disney", "abonelik", "prime"), "Dijital Platformlar"),
+        (("eczane", "ilac", "pharmacy", "medicine"), "İlaç/Eczane"),
+        (("hastane", "doktor", "hospital", "doctor", "clinic"), "Hastane"),
+        (("kiyafet", "giyim", "zara", "lcw", "mavi", "clothes", "shirt", "coat"), "Kıyafet"),
+        (("spor", "gym", "fitness"), "Spor Salonu"),
+        (("kitap", "kirtasiye", "book"), "Kitap/Kırtasiye"),
+    ),
+    "income": (
+        (("maas", "salary", "payroll", "wage"), "Maaş"),
+        (("prim", "bonus"), "Prim"),
+        (("freelance", "proje", "danismanlik", "client"), "Freelance"),
+        (("kira", "rent"), "Ev Kirası (Gelir)"),
+        (("temettu", "dividend"), "Temettü"),
+        (("faiz", "interest"), "Faiz Getirisi"),
+        (("iade", "refund"), "İade"),
+    ),
+}
+
+
+def parse_quick_entry(raw_text: str) -> dict:
+    """Extracts amount, direction, description and a best-guess category from one line."""
+    import re
+    from services.queries import CategoryService
+    from services.search_service import normalize
+    from services.transaction_edit_service import SYSTEM_CATEGORIES
+
+    cleaned = (raw_text or "").strip()
+    if not cleaned:
+        raise FormError(say("Enter the {0}.", say("amount")))
+
+    # Match a leading or trailing number (e.g. "250,50 Market" or "Market 250,50" or "+5000 Maas")
+    pattern = re.compile(r"^([+−-]?\s*\d[\d.,]*)\s*(.*)$|^(.*?)\s+([+−-]?\s*\d[\d.,]*)$")
+    match = pattern.match(cleaned)
+    if not match:
+        raise FormError(say("Enter a valid {0}, for example 1.250,50.", say("amount")))
+
+    if match.group(1) is not None:
+        raw_num, note = match.group(1), match.group(2)
+    else:
+        note, raw_num = match.group(3), match.group(4)
+
+    raw_num = raw_num.strip()
+    kind = "income" if raw_num.startswith("+") else "expense"
+    num_text = raw_num.lstrip("+−- ").strip()
+    amount = read_amount(num_text, say("amount"))
+    description = (note or "").strip()
+
+    folded = normalize(description)
+    words = set(folded.split())
+    available = [
+        row[1] for row in CategoryService.get_categories(kind)
+        if row[1] not in SYSTEM_CATEGORIES
+    ]
+    available_set = set(available)
+
+    chosen = ""
+    if folded:
+        # 1. Exact or substring match against user's or built-in category names (TR & EN)
+        for cat in available:
+            if normalize(cat) in folded or normalize(tr(cat)) in folded:
+                chosen = cat
+                break
+        # 2. Keyword heuristics
+        if not chosen:
+            for keywords, target_cat in _QUICK_KEYWORDS.get(kind, ()):
+                if target_cat in available_set and any(
+                    kw in words or kw in folded for kw in keywords
+                ):
+                    chosen = target_cat
+                    break
+
+    if not chosen:
+        default_cat = "Maaş" if kind == "income" else "Süpermarket"
+        chosen = default_cat if default_cat in available_set else (available[0] if available else default_cat)
+
+    return {
+        "kind": kind,
+        "amount": amount,
+        "category": chosen,
+        "description": description,
+    }
+

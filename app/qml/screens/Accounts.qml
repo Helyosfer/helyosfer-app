@@ -37,8 +37,9 @@ Flickable {
 
                 Repeater {
                     model: [
-                        { label: qsTr("Cash and checking"), value: accounts.cashText },
-                        { label: qsTr("Card debt"), value: accounts.debtText }
+                        { label: qsTr("Cash and checking"), value: accounts.cashText, tone: 0 },
+                        { label: qsTr("Card debt"), value: accounts.debtText, tone: 0 },
+                        { label: qsTr("Net liquid position"), value: accounts.netText, tone: accounts.netDirection }
                     ]
                     Column {
                         required property var modelData
@@ -52,7 +53,7 @@ Flickable {
                         Counting {
                             value: modelData.value
                             place: "accounts:" + modelData.label
-                            color: Theme.text
+                            color: modelData.tone < 0 ? Theme.down : modelData.tone > 0 ? Theme.up : Theme.text
                             font.family: Theme.displayFont
                             font.pixelSize: 26
                             font.weight: Font.Light

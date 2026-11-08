@@ -24,7 +24,7 @@ and the only thing it goes online for is the price of shares, gold and
 currencies.
 
 > [!NOTE]
-> This is the first release (0.1.0). So far I am the only one who has used it,
+> Current release: **0.2.0**. So far I am the only one who has used it,
 > and not for long. I installed it on two computers and the tests pass, but
 > there are bound to be things I missed. Take a backup now and then
 > (Settings → Create backup) if the records matter to you. If something goes

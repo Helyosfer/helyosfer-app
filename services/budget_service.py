@@ -629,3 +629,44 @@ def get_budget_trend(months=6, end_date=None):
             "actual": round(sum(item["actual"] for item in progress), 2),
         })
     return series
+
+
+def get_category_month_transactions(category_name, target_month, target_year):
+    """Returns decrypted expense transactions for a category in the target month."""
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT id, transaction_date, amount, description FROM transactions "
+            "WHERE type IN ('expense', 'Gider') "
+            "AND category = ? "
+            "AND strftime('%m', transaction_date) = ? "
+            "AND strftime('%Y', transaction_date) = ? "
+            f"AND {COMPLETED_TX} "
+            "ORDER BY transaction_date DESC, id DESC",
+            (str(category_name or ""), f"{int(target_month):02d}", str(int(target_year))),
+        ).fetchall()
+    finally:
+        conn.close()
+
+    items = []
+    for row in rows:
+        amount = float(_amount(
+            row["amount"], table="transactions", record_id=row["id"]
+        ))
+        try:
+            description = (
+                decrypt(str(row["description"]), SECRET_KEY)
+                if row["description"] else ""
+            )
+        except KeyUnavailableError:
+            raise
+        except (DecryptionError, ValueError, TypeError):
+            description = str(row["description"] or "")
+        items.append({
+            "id": row["id"],
+            "date": str(row["transaction_date"] or ""),
+            "amount": amount,
+            "description": description,
+        })
+    return items
+

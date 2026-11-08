@@ -57,7 +57,7 @@ class TurkishTableTest(unittest.TestCase):
                         sorted(FILLED_BY_QML.findall(turkish)))
 
     def test_no_entry_is_empty_or_left_in_english(self):
-        same = {"Net", "1Y", "today"} - {"today"}
+        same = {"Net", "1Y", "Transfer", "today"} - {"today"}
         for source, turkish in TEXT.items():
             with self.subTest(source=source):
                 self.assertTrue(turkish.strip())

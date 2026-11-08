@@ -8,6 +8,7 @@ Column {
     signal addRequested()
     signal editRequested(var item)
     signal removeRequested(var item)
+    signal editTransactionRequested(int transactionId)
     spacing: Theme.gap
 
     Component.onCompleted: budget.refresh()
@@ -92,13 +93,23 @@ Column {
         Column {
             width: parent.width
 
-            Text {
-                bottomPadding: 10
-                text: qsTr("Spending against the plan")
-                color: Theme.text
-                font.family: Theme.uiFont
-                font.pixelSize: 13
-                font.weight: Font.DemiBold
+            Item {
+                width: parent.width
+                height: 28
+                Text {
+                    text: qsTr("Spending against the plan")
+                    color: Theme.text
+                    font.family: Theme.uiFont
+                    font.pixelSize: 13
+                    font.weight: Font.DemiBold
+                }
+                Text {
+                    anchors.right: parent.right
+                    text: qsTr("Click a category to see its transactions")
+                    color: Theme.faint
+                    font.family: Theme.uiFont
+                    font.pixelSize: 11
+                }
             }
 
             Repeater {
@@ -107,10 +118,26 @@ Column {
                 Item {
                     id: row
                     required property var modelData
+                    readonly property bool chosen: budget.selectedCategory === modelData.categoryKey
                     width: parent.width
                     height: 54
 
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.leftMargin: -8
+                        anchors.rightMargin: -8
+                        radius: 6
+                        color: row.chosen ? Theme.accentSoft : Theme.raised
+                        visible: row.chosen || rowArea.containsMouse
+                    }
                     Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+                    MouseArea {
+                        id: rowArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: budget.selectCategory(row.modelData.categoryKey)
+                    }
 
                     Column {
                         anchors.left: parent.left
@@ -127,6 +154,7 @@ Column {
                                 color: Theme.text
                                 font.family: Theme.uiFont
                                 font.pixelSize: 13
+                                font.weight: row.chosen ? Font.DemiBold : Font.Normal
                             }
                             Text {
                                 anchors.right: parent.right
@@ -152,6 +180,100 @@ Column {
                                     : row.modelData.near ? Theme.warn : Theme.accent
                                 Behavior on color { ColorAnimation { duration: Theme.slow } }
                             }
+                        }
+                    }
+                }
+            }
+
+            Column {
+                width: parent.width
+                visible: budget.selectedCategory.length > 0
+                topPadding: 12
+                spacing: 4
+
+                Rectangle { width: parent.width; height: 1; color: Theme.line }
+
+                Item {
+                    width: parent.width
+                    height: 32
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: budget.selectedCategoryLabel
+                        color: Theme.text
+                        font.family: Theme.uiFont
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                    }
+                    PrimaryButton {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        compact: true; quiet: true
+                        text: qsTr("Close")
+                        onClicked: budget.selectCategory("")
+                    }
+                }
+
+                Text {
+                    visible: budget.categoryTransactions.length === 0
+                    text: qsTr("No transactions in this category yet.")
+                    color: Theme.faint
+                    font.family: Theme.uiFont
+                    font.pixelSize: 12
+                }
+
+                Repeater {
+                    model: budget.categoryTransactions
+
+                    Item {
+                        id: txRow
+                        required property var modelData
+                        width: parent.width
+                        height: 36
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.leftMargin: -8
+                            anchors.rightMargin: -8
+                            radius: 6
+                            color: Theme.raised
+                            visible: txArea.containsMouse
+                        }
+                        Rectangle { width: parent.width; height: 1; color: Theme.lineSoft }
+                        MouseArea {
+                            id: txArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.editTransactionRequested(txRow.modelData.id)
+                        }
+                        Text {
+                            id: txDate
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 64
+                            text: txRow.modelData.date
+                            color: Theme.faint
+                            font.family: Theme.dataFont
+                            font.pixelSize: 12
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: txDate.right
+                            anchors.right: txSum.left
+                            anchors.rightMargin: 12
+                            text: txRow.modelData.title
+                            color: Theme.text
+                            font.family: Theme.uiFont
+                            font.pixelSize: 12
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            id: txSum
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            text: txRow.modelData.amountText
+                            color: Theme.text
+                            font.family: Theme.dataFont
+                            font.pixelSize: 12
                         }
                     }
                 }

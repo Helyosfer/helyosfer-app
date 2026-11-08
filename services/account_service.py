@@ -508,6 +508,87 @@ class AccountService:
             conn.close()
 
     @staticmethod
+    def transfer_between_accounts(source_account_id, target_account_id, amount,
+                                  description=None, transaction_date=None):
+        """Transfers money from a checking account to another checking account or credit card."""
+        try:
+            amount = float(fiat(amount))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Ödenecek tutar geçerli bir sayı olmalıdır.") from exc
+        if amount <= 0:
+            raise ValueError("Ödenecek tutar sıfırdan büyük olmalıdır.")
+
+        source_account_id = int(source_account_id)
+        target_account_id = int(target_account_id)
+        if source_account_id == target_account_id:
+            raise ValueError("Ödeme yapılacak hesap vadesiz hesap olmalıdır.")
+
+        source = AccountService.get_account(source_account_id)
+        if not source or source["account_type"] != CHECKING:
+            raise ValueError("Ödeme yapılacak hesap vadesiz hesap olmalıdır.")
+
+        target = AccountService.get_account(target_account_id)
+        if not target:
+            raise ValueError("Hesap bulunamadı.")
+
+        if target["account_type"] == CREDIT_CARD:
+            AccountService.pay_credit_card_debt(target_account_id, source_account_id, amount)
+            return
+
+        import datetime
+        from database.db import CARD_PAYMENT, adjust_account_balance, write_record_link
+        from services.transaction_service import SECRET_KEY
+        from utils.crypto import encrypt
+
+        stamp = (
+            str(transaction_date).strip()
+            if transaction_date
+            else datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
+        text_desc = (description or "").strip() or f"{target['name']} Borç Ödemesi"
+        enc_amount = encrypt(str(amount), SECRET_KEY)
+        enc_desc = encrypt(text_desc, SECRET_KEY)
+
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("BEGIN IMMEDIATE")
+
+            cursor.execute(
+                """
+                INSERT INTO transactions (account_id, amount, type, category, description, transaction_date)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (source_account_id, enc_amount, "expense", "Borç Ödeme", enc_desc, stamp),
+            )
+            paid_from = cursor.lastrowid
+            adjust_account_balance(
+                cursor, source_account_id, "expense", amount,
+                ref_id=paid_from, source="card_payment", effective_at=stamp,
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO transactions (account_id, amount, type, category, description, transaction_date)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (target_account_id, enc_amount, "payment", "Borç Ödeme", enc_desc, stamp),
+            )
+            paid_to = cursor.lastrowid
+            adjust_account_balance(
+                cursor, target_account_id, "income", amount,
+                ref_id=paid_to, source="card_payment", effective_at=stamp,
+            )
+
+            write_record_link(cursor, paid_from, CARD_PAYMENT, paid_to)
+            write_record_link(cursor, paid_to, CARD_PAYMENT, paid_from)
+            conn.commit()
+        finally:
+            conn.close()
+        from services.asset_service import mark_financial_data_changed
+        mark_financial_data_changed()
+
+    @staticmethod
     def delete_credit_card(credit_card_id):
         """Deletes the card and all of its dependent records in a single transaction."""
         credit_card_id = int(credit_card_id)

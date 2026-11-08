@@ -154,6 +154,35 @@ class FormInputTest(unittest.TestCase):
         self.assertEqual(due_phrase("2026-10-20", today), ("20 Oct  ·  in 12 days", False))
         self.assertEqual(due_phrase("2026-10-06", today), ("06 Oct  ·  2 days overdue", True))
 
+    def test_quick_entry_parses_amount_direction_and_category_keywords(self):
+        from unittest import mock
+        from app.accounts import parse_quick_entry
+
+        fake_cats = {
+            "expense": [(1, "Süpermarket"), (2, "Dışarıda Yemek"), (3, "Taksi"), (4, "Akaryakıt")],
+            "income": [(5, "Maaş"), (6, "Freelance")],
+        }
+        with mock.patch("services.queries.CategoryService.get_categories", side_effect=fake_cats.get):
+            shop = parse_quick_entry("250,50 Migros market")
+            self.assertEqual(
+                (shop["kind"], shop["amount"], shop["category"], shop["description"]),
+                ("expense", 250.5, "Süpermarket", "Migros market"),
+            )
+            coffee = parse_quick_entry("Starbucks kahve 95")
+            self.assertEqual(
+                (coffee["kind"], coffee["amount"], coffee["category"], coffee["description"]),
+                ("expense", 95.0, "Dışarıda Yemek", "Starbucks kahve"),
+            )
+            pay = parse_quick_entry("+45.000 Salary")
+            self.assertEqual(
+                (pay["kind"], pay["amount"], pay["category"], pay["description"]),
+                ("income", 45000.0, "Maaş", "Salary"),
+            )
+            with self.assertRaises(FormError):
+                parse_quick_entry("   ")
+            with self.assertRaises(FormError):
+                parse_quick_entry("no numbers here")
+
 
 if __name__ == "__main__":
     unittest.main()

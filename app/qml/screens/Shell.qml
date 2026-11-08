@@ -33,15 +33,29 @@ Rectangle {
     }
 
     readonly property var sections: [
-        { key: "overview", label: qsTr("Overview"), glyph: "" },
-        { key: "assets", label: qsTr("Assets"), glyph: "" },
-        { key: "cards", label: qsTr("Cards and accounts"), glyph: "" },
-        { key: "debts", label: qsTr("Debts and payments"), glyph: "" },
-        { key: "subscriptions", label: qsTr("Subscriptions"), glyph: "" },
-        { key: "savings", label: qsTr("Savings goals"), glyph: "" },
-        { key: "tools", label: qsTr("Tools"), glyph: "" },
-        { key: "settings", label: qsTr("Settings"), glyph: "" }
+        { key: "overview", label: qsTr("Overview"), glyph: "", group: ["overview"] },
+        { key: "cards", label: qsTr("Cards and accounts"), glyph: "", group: ["cards", "assets", "savings"] },
+        { key: "debts", label: qsTr("Debts and payments"), glyph: "", group: ["debts", "subscriptions"] },
+        { key: "tools", label: qsTr("Tools"), glyph: "", group: ["tools"] },
+        { key: "settings", label: qsTr("Settings"), glyph: "", group: ["settings"] }
     ]
+
+    readonly property var activeSubTabs: {
+        if (section === "cards" || section === "assets" || section === "savings") {
+            return [
+                { key: "cards", label: qsTr("Cards and accounts") },
+                { key: "assets", label: qsTr("Assets") },
+                { key: "savings", label: qsTr("Savings goals") }
+            ]
+        }
+        if (section === "debts" || section === "subscriptions") {
+            return [
+                { key: "debts", label: qsTr("Debts and payments") },
+                { key: "subscriptions", label: qsTr("Subscriptions") }
+            ]
+        }
+        return []
+    }
 
     Rectangle {
         id: rail
@@ -60,7 +74,7 @@ Rectangle {
         Rectangle {
             readonly property int chosen: {
                 for (var i = 0; i < root.sections.length; i++)
-                    if (root.sections[i].key === root.section) return i
+                    if (root.sections[i].group.indexOf(root.section) >= 0) return i
                 return -1
             }
             readonly property Item entry: chosen >= 0 ? navigation.itemAt(chosen) : null
@@ -118,7 +132,7 @@ Rectangle {
                     width: rail.width - 24
                     text: modelData.label
                     glyph: modelData.glyph
-                    selected: root.section === modelData.key
+                    selected: modelData.group.indexOf(root.section) >= 0
                     marked: false
                     onClicked: root.section = modelData.key
                 }
@@ -155,11 +169,30 @@ Rectangle {
         }
     }
 
+    Item {
+        id: subHeader
+        visible: root.activeSubTabs.length > 0
+        anchors.left: rail.right
+        anchors.right: parent.right
+        anchors.top: parent.top
+        height: visible ? 52 : 0
+        z: 2
+
+        Segmented {
+            anchors.left: parent.left
+            anchors.leftMargin: 28
+            anchors.bottom: parent.bottom
+            model: root.activeSubTabs
+            current: root.section
+            onChosen: function (key) { root.section = key }
+        }
+    }
+
     Loader {
         id: sectionLoader
         anchors.left: rail.right
         anchors.right: parent.right
-        anchors.top: parent.top
+        anchors.top: subHeader.bottom
         anchors.bottom: parent.bottom
         transform: Translate { id: sectionShift }
         onLoaded: sectionArrival.restart()

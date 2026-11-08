@@ -77,6 +77,26 @@ class CsvAmountValidationTest(unittest.TestCase):
                 self.assertEqual(records, [])
                 self.assertEqual(skipped, 1)
 
+    def test_semicolon_bank_statement_csv_with_signed_amounts_and_auto_category(self):
+        fd, path = tempfile.mkstemp(suffix=".csv")
+        os.close(fd)
+        self.addCleanup(os.unlink, path)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("İşlem Tarihi;Açıklama;Tutar (TL)\n")
+            f.write("15.01.2026;MIGROS TICARET A.S.;-450,75 TL\n")
+            f.write("16.01.2026;MAAS ODEMESI;+52.000,00 TL\n")
+        records, skipped = parse_transactions_csv(path)
+        self.assertEqual(skipped, 0)
+        self.assertEqual(len(records), 2)
+        self.assertEqual(
+            (records[0]["type"], records[0]["amount"], records[0]["category"]),
+            ("expense", 450.75, "Süpermarket"),
+        )
+        self.assertEqual(
+            (records[1]["type"], records[1]["amount"], records[1]["category"]),
+            ("income", 52000.0, "Maaş"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
